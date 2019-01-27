@@ -15,12 +15,13 @@ class TestInput:
         x0 = create_input()
         assert isinstance(x0, Data)
 
-    def test_instantiate_with_name(self, teardown):
-        create_input(name='x_0')
-
-    def test_instantiate_without_name(self, teardown):
+    def test_input_is_in_default_graph(self, teardown):
         x0 = create_input()
-        assert isinstance(x0.name, str) and len(x0.name) > 0
+        for node in baikal.core.default_graph:
+            if isinstance(node, Input) and node.name == 'default/Input_0':
+                assert True
+                return
+        assert False
 
     def test_instantiate_two_with_same_name(self, teardown):
         x0 = create_input(name='x')
@@ -33,11 +34,3 @@ class TestInput:
         x1 = create_input()
         assert 'default/Input_0/0' == x0.name
         assert 'default/Input_1/0' == x1.name
-
-    def test_input_is_in_default_graph(self, teardown):
-        x0 = create_input(name='x')
-        for node in baikal.core.default_graph:
-            if isinstance(node, Input) and node.name == 'default/x_0':
-                assert True
-                return
-        assert False
