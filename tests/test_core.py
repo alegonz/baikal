@@ -1,6 +1,7 @@
 import pytest
+import sklearn.linear_model.logistic
 
-from baikal.core import default_graph, Input, InputNode, Data
+from baikal.core import default_graph, ProcessorMixin, Input, InputNode, Data
 
 
 @pytest.fixture
@@ -32,3 +33,35 @@ class TestInput:
         x1 = Input()
         assert 'default/InputNode_0/0' == x0.name
         assert 'default/InputNode_1/0' == x1.name
+
+
+class LogisticRegression(ProcessorMixin, sklearn.linear_model.logistic.LogisticRegression):
+    pass
+
+
+class TestProcessorMixin:
+    def test_takes_and_returns_data_instances(self, teardown):
+        x = Input(name='x')
+        y = LogisticRegression()(x)
+        assert isinstance(y, Data)
+        assert y.name == 'default/LogisticRegression_0/0'
+
+    # def test_processor_is_in_default_graph(self, teardown):
+    #     x0 = LogisticRegression()
+    #     for node in default_graph:
+    #         if isinstance(node, LogisticRegression) and node.name == 'default/LogisticRegression_0':
+    #             assert True
+    #             return
+    #     assert False
+    #
+    # def test_instantiate_two_with_same_name(self, teardown):
+    #     y0 = LogisticRegression(name='myclassifier')()
+    #     y1 = LogisticRegression(name='myclassifier')()
+    #     assert 'default/myclassifier_0/0' == y0.name
+    #     assert 'default/myclassifier_1/0' == y1.name
+    #
+    # def test_instantiate_two_without_name(self, teardown):
+    #     y0 = LogisticRegression()()
+    #     y1 = LogisticRegression()()
+    #     assert 'default/LogisticRegression_0/0' == y0.name
+    #     assert 'default/LogisticRegression_1/0' == y1.name
