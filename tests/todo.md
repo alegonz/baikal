@@ -7,11 +7,11 @@ Provide a Keras/TensorFlow like API to develop complex machine learning pipeline
 - API should be something like:
 
 ```python
-# x1, x2, x1 ... y are data placeholders with pointers to the actual results,
+# x1, x2, x1 ... y are Data objects with pointers to the actual results,
 # the actual results will be realized once the graph is run (feed_forward)
 # (conceptually, kinda similar to a Tensor in Tensorflow)
-x1 = ArrayNode(name='input1')
-x2 = ArrayNode(name='input2')
+x1 = Input(name='input1')
+x2 = Input(name='input2')
 
 z1 = SomePreprocessor(...)(x1)
 z2 = SomePreprocessor(...)(x2)
@@ -33,10 +33,10 @@ model.fit({'input1': x1_data,
 y_pred = model.predict([x1_data, x2_data])
 
 # Can also query specific outputs (and only give the necessary inputs)
-outs = model.feed_forward({'input1': x1_data}, outputs=['z1'])
+outs = model.predict({'input1': x1_data}, outputs=['z1'])
 ```
 
-- Graph should be built dynamically (like TensorFlow)
+- DiGraph should be built dynamically (like TensorFlow)
     - There should be a default graph
     - Nodes should be added to the graph on instantiation
     - Edges should be added on calls to node `__call__` (e.g. `SomeNode(...)([n1, n2])`)
@@ -46,7 +46,6 @@ outs = model.feed_forward({'input1': x1_data}, outputs=['z1'])
         - Define `__getstate__` and `__setstate__` API
     - Consider using joblib, yaml?
 - Should be able to use models as components of a bigger graph
-    - Models should be callable on `ArrayNode`s
 - A cache to avoid repeating the computations if the input data hasn't changed
 - Choose the type of output of classifiers (predicted label, predicted score)
     - Useful for model ensembling
@@ -54,27 +53,50 @@ outs = model.feed_forward({'input1': x1_data}, outputs=['z1'])
 - Should have a `set_params` and `get_params` for compatiblity with sklearn's GridSearch API.
 - Use `networkx` for graph stuff. After having a working API, replace with a in-house module.
     - We don't need much from `networkx`. Just the primitive classes and the topological sort algorithm.
+    
+## Implementation ideas
+- Represent graphs as dicts-of-sets (adjacency list)
+    - This is similar to the data structure used in networkx (dicts-of-dicts)
+    - Maybe only dicts (nodes) of sets (successors) are necessary
+        - Do we also need a similar structure with the predecessors?
+- The following abstractions should be made public to code:
+    - Processor
+        - A node of the graph
+        - Analogous to TensorFlow's Operation
+        - Internally derived from a Node class
+    - Data
+        - An semi-edge of the graph
+        - Analogous to TensorFlow's Tensor
+        - Internally derived from a Edge class
+    - Input
+        - An special node of the graph that allows inputting data (arrays, dataframes, etc) from client code
+            - At instantiation, internally it creates a special InputNode, and returns a Data object
+        - Analogous to TensorFlow's Placeholder and Input in Keras
+    - Model
+        - A graph (pf Processor's that pass Data along each other) with defined inputs and outputs.
+        - A graph with fit/predict functionalities
+        - Models should be callable on Data inputs
+        - Internally derived from a DiGraph class
+- feed_forward implemented with topological sort and a cache
 
-# Tests TODO list
+## Tests TODO list
 
-## Implementation TODO
-- [ ] Add a InstanceTracker metaclass to keep track of instances and issue names
-- [ ] refactor ArrayNode and ProcessorNodeMixin as subclasses of a Node class
-    - [ ] make issue_name a static method, or take it outside of the classes altogether
-- [ ] Use itertools count to get and id?
+### API test cases:
 
-## API test cases:
-
-- [x] Can create an ArrayNode with a name
-    - [x] Raises error if an ArrayNode is created with a name already used by another Node
+- [x] Can create an Input with a name 
     - [x] If name is not specified, a unique name should be generated
+        - [x] Input (Node) naming format: `graph_name/node_name`
+        - [x] Data (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
+    - [x] At instantiation:
+        - An InputNode is added to the default graph
+        - A Data object with the specified name is returned
     
 ```python
-x1 = ArrayNode(name='x1')
-y1 = ArrayNode(name='y1')
+x1 = Input(name='x1')
+x2 = Input(name='x2')
 ```
 
-- [x] Can extend a user-defined class by mixing with ProcessorNodeMixin.
+- [ ] Can extend a user-defined class by mixing with ProcessorMixin.
     - The user-defined class must implement the sklearn API:
         - fit/predict ( + predict_proba/decision_function)
         - fit/transform
@@ -83,45 +105,55 @@ y1 = ArrayNode(name='y1')
         - set_params
     - Though not implemented explicitly, any class that is extended with ProcessorNodeMixin will be referred as ProcessorNode hereafter.
 
-- [x] A ProcessorNode can be instantiated with a name.
-    - [x] If name is not specified, a unique name should be generated
-    - [x] Raises error if a Processor is created with a name already used by another Node
+- [ ] A Processor can be instantiated with a name.
+    - [ ] If name is not specified, a unique name should be generated
+    - [ ] Raises error if a Processor is created with a name already used by another Node
     
 ```python
-class ProcessorNode(SomeClass, ProcessorNodeMixin):
+class Processor(ProcessorMixin, SomeSklearnClass):
     pass
     
-p0 = ProcessorNode(name='p0')
-p1 = ProcessorNode(name='p1')
+p0 = Processor(name='p0')
+p1 = Processor(name='p1')
 ```
 
-- [ ] Can call a Processor component instance with two Arrays: X and y.
-    - The component must be defined by extending the original component with Processor mixin class
-    - A component can only be called with ArrayPlaceholders as inputs
-    - A component must return an ArrayNode
+- [ ] Can call a Processor component instance with (possibly several Data objects).
+    - A component must be defined by extending the original component with Processor mixin class
+    - A component can only be called with Data objects as inputs
+    - A call to Processor must return Data objects
 ```python
-y1_pred = SVC(...)(X=x1, y=y1)
+pred = SVC(...)(inputs=[x1, x2])
 ```
 
-- Can instantiate a Model with specified inputs and outputs
+- [ ] Can instantiate a Model with specified inputs and outputs (inputs and outputs are Data objects)
 ```python
-model = Model(inputs=x1, outputs=y1_pred)
+model = Model(inputs=[x1, x2], outputs=pred)
 ```
 
-- Can fit the model with a dictionary of numpy arrays
+- [ ] Can fit the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
 ```python
-model.fit({x1: ..., y1: ...})
+model.fit([x1_data, x2_data], pred_data)
 ```
 
-- Can call the model with a dictionary of numpy arrays for prediction and returns a dictionary with the outputs
+- [ ] Can fit the model a la TensorFlow, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
 ```python
-out = model.predict({x1: ...})
-# out
-# {y1_pred: ...}
+model.fit({'x1': ..., 'pred': ...})  # dictionary keys could also be the Data objects themselves?
 ```
 
-- model.fit fails if any of the required inputs was not passed in the dictionary
-    - Corollary: there is any learning component that 1) was not supplied y's AND 2) requires fit (and thus the y's).
+- [ ] Can predict with the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
+    - If multiple outputs were specified, a list of actual result data is returned
+```python
+out = model.predict([x1_data, x2_data])
+# out is actual result data (e.g. a numpy array) 
+```
 
-- model.predict fails if any of the required inputs is not in the input dictionary
+- [ ] Can predict with the model a la TensorFlow, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
+```python
+model.predict({'x1': ...})  # dictionary keys could also be the Data objects themselves?
+# out = {'pred': ...}
+```
 
+- [ ] model.fit fails if any of the required inputs was not passed in the dictionary
+    - This includes target data for outputs in the case of supervised learning
+
+- [ ] model.predict fails if any of the required inputs is not in the input dictionary

@@ -1,58 +1,55 @@
-def get_camelcase_humps(string):
-    return ''.join(char for char in string if char.isupper() or char.isdigit())
+def make_name(*parts, sep='/'):
+    return sep.join(parts)
 
 
-class ArrayNode:
-    _counter = 0
-    _arrays = []
+class DiGraph:
+    def __init__(self, name=None):
+        self._adjacency = dict()
+        self.name = name
 
-    def __init__(self, *, name=None):
+    def add_node(self, node):
+        self._adjacency[node] = set()  # successors
+
+    # TODO: define add_edge method
+
+    def __contains__(self, node):
+        return node in self._adjacency
+
+    def __iter__(self):
+        return iter(self._adjacency)
+
+    # TODO: define topological_sort method
+
+
+default_graph = DiGraph(name='default')
+
+
+class Data:
+    def __init__(self, name):
+        self.name = name
+
+
+class Input:
+    _names = dict()
+
+    def __init__(self, name=None):
+        graph = default_graph
 
         if name is None:
-            name = ArrayNode.issue_name()
+            name = self.__class__.__name__
 
-        if name in ArrayNode._arrays:
-            raise ValueError('An array called {} already exists'.format(name))
+        name = make_name(graph.name, name)
 
-        self.name = name
-        ArrayNode._arrays.append(name)
+        n_instances = self._names.get(name, 0)
+        self.name = '_'.join([name, str(n_instances)])
 
-    @classmethod
-    def clear_arrays(cls):
-        cls._arrays.clear()
-        cls._counter = 0
+        n_instances += 1
+        self._names[name] = n_instances
 
-    @classmethod
-    def issue_name(cls):
-        name = 'arr_{}'.format(cls._counter)
-        cls._counter += 1
-        return name
+        self.output = Data(make_name(self.name, '0'))
+        graph.add_node(self)
 
 
-class ProcessorNodeMixin:
-    _counter = 0
-    _processors = []
-
-    def __init__(self, *args, name=None, **kwargs):
-
-        if name is None:
-            name = self.issue_name()
-
-        if name in ProcessorNodeMixin._processors:
-            raise ValueError('A processor called {} already exists'.format(name))
-
-        self.name = name
-        ProcessorNodeMixin._processors.append(name)
-
-        super(ProcessorNodeMixin, self).__init__(*args, **kwargs)
-
-    @classmethod
-    def clear_processors(cls):
-        cls._processors.clear()
-        cls._counter = 0
-
-    def issue_name(self):
-        basename = get_camelcase_humps(self.__class__.__name__)
-        name = '{}_{}'.format(basename, ProcessorNodeMixin._counter)
-        ProcessorNodeMixin._counter += 1
-        return name
+def create_input(name=None):
+    input = Input(name)
+    return input.output
