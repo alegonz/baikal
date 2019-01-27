@@ -18,7 +18,15 @@ class DiGraph:
     def __iter__(self):
         return iter(self._adjacency)
 
+    def clear(self):
+        self._adjacency.clear()
+
+    @property
+    def nodes(self):
+        return list(self._adjacency.keys())
+
     # TODO: define topological_sort method
+    # TODO: maybe should have a check for acyclicity
 
 
 default_graph = DiGraph(name='default')
@@ -29,7 +37,7 @@ class Data:
         self.name = name
 
 
-class Input:
+class InputNode:
     _names = dict()
 
     def __init__(self, name=None):
@@ -50,6 +58,6 @@ class Input:
         graph.add_node(self)
 
 
-def create_input(name=None):
-    input = Input(name)
+def Input(name=None):
+    input = InputNode(name)
     return input.output
