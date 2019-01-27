@@ -5,9 +5,7 @@
 
 from setuptools import setup
 
-
 version = '0.1.0'
-
 
 setup(name='baikal',
       version=version,
@@ -16,4 +14,11 @@ setup(name='baikal',
       license='new BSD',
       author='Alejandro González Tineo',
       author_email='alejandrojgt@gmail.com',
+      python_requires='>=3.5',
+      extras_require={
+          'dev': [
+              'pytest',
+              'sklearn'
+          ]
+      },
       packages=['baikal'])
