@@ -5,6 +5,24 @@ def make_name(*parts, sep='/'):
     return sep.join([str(p) for p in parts])
 
 
+def listify(x):
+    if not isinstance(x, list):
+        x = [x]
+    return x
+
+
+class Data:
+    def __init__(self, shape, node, index=0):
+        self.shape = shape
+        self.node = node
+        self.index = index
+        self.name = make_name(node.name, index)
+
+
+def is_data_list(l):
+    return all([isinstance(e, Data) for e in l])
+
+
 class DiGraph:
     def __init__(self, name=None):
         self._adjacency = dict()
@@ -34,14 +52,6 @@ class DiGraph:
 
 
 default_graph = DiGraph(name='default')
-
-
-class Data:
-    def __init__(self, shape, node, index=0):
-        self.shape = shape
-        self.node = node
-        self.index = index
-        self.name = make_name(node.name, index)
 
 
 class Node:
@@ -76,13 +86,13 @@ class Node:
 class ProcessorMixin(Node):
     def __init__(self, name=None):
         super().__init__(name)
+        self.inputs = None
         self.outputs = None
 
     def __call__(self, inputs):
-        if not isinstance(inputs, list):
-            inputs = [inputs]
+        inputs = listify(inputs)
 
-        if any([not isinstance(i, Data) for i in inputs]):
+        if not is_data_list(inputs):
             raise ValueError('Processors must be called with Data inputs.')
 
         # Add edges
@@ -90,7 +100,9 @@ class ProcessorMixin(Node):
             predecessor = input.node
             self.graph.add_edge(predecessor, self)
 
+        self.inputs = inputs
         self.outputs = self._build_outputs(inputs)
+
         return self.outputs
 
     # TODO: We might need a check_inputs method as well (Concatenate, Split, Merge, etc will need it).
@@ -124,3 +136,15 @@ def Input(shape, name=None):
     # Maybe this can be implemented in InputNode.__new__
     input = InputNode(shape, name)
     return input.outputs
+
+
+class Model:
+    def __init__(self, inputs, outputs):
+        inputs = listify(inputs)
+        outputs = listify(outputs)
+
+        if not is_data_list(inputs) or not is_data_list(outputs):
+            raise ValueError('inputs and outputs must be of type Data.')
+
+        self.inputs = inputs
+        self.outputs = outputs

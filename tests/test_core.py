@@ -1,7 +1,9 @@
 import pytest
+import numpy as np
 import sklearn.linear_model.logistic
 
-from baikal.core import default_graph, Node, ProcessorMixin, Input, InputNode, Data
+from baikal.core import (default_graph, Node,
+                         Input, ProcessorMixin, Data, Model)
 
 
 @pytest.fixture
@@ -15,9 +17,6 @@ class TestInput:
     def test_instantiation(self, teardown):
         x0 = Input((10,))  # a 10-dimensional feature vector
 
-        node = default_graph.nodes[0]
-        assert isinstance(node, InputNode)
-        assert 'InputNode_0' == node.name
         assert isinstance(x0, Data)
         assert (10,) == x0.shape
         assert 'InputNode_0/0' == x0.name
@@ -37,19 +36,19 @@ class TestInput:
         assert 'InputNode_1/0' == x1.name
 
 
+@pytest.fixture
+def extended_sklearn_class():
+    class LogisticRegression(ProcessorMixin, sklearn.linear_model.logistic.LogisticRegression):
+        def build_output_shapes(self, input_shapes):
+            return [(1,)]
+
+        def compute(self, x):
+            return self.predict(x)
+
+    return LogisticRegression
+
+
 class TestProcessorMixin:
-
-    @classmethod
-    @pytest.fixture(scope='class')
-    def extended_sklearn_class(cls):
-        class LogisticRegression(ProcessorMixin, sklearn.linear_model.logistic.LogisticRegression):
-            def build_output_shapes(self, input_shapes):
-                return [(1,)]
-
-            def compute(self, x):
-                return self.predict(x)
-
-        return LogisticRegression
 
     def test_call(self, extended_sklearn_class, teardown):
         x = Input((10,), name='x')
@@ -90,3 +89,18 @@ class TestProcessorMixin:
 
         assert 'LogisticRegression_0/0' == y0.name
         assert 'LogisticRegression_1/0' == y1.name
+
+
+class TestModel:
+    def test_instantiation(self, extended_sklearn_class, teardown):
+        x = Input((10,), name='x')
+        y = extended_sklearn_class()(x)
+        model = Model(x, y)
+
+    def test_instantiation_with_wrong_input_type(self, extended_sklearn_class, teardown):
+        x = Input((10,), name='x')
+        y = extended_sklearn_class()(x)
+
+        x_wrong = np.zeros((10,))
+        with pytest.raises(ValueError):
+            model = Model(x_wrong, y)
