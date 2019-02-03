@@ -80,6 +80,7 @@ class ProcessorMixin(Node):
 
 class InputNode(Node):
     def __init__(self, name=None):
+        # TODO: add shape argument
         super().__init__(name)
         self.output = Data(make_name(self.name, '0'), self)
 

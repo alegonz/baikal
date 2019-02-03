@@ -36,25 +36,26 @@ y_pred = model.predict([x1_data, x2_data])
 outs = model.predict({'input1': x1_data}, outputs=['z1'])
 ```
 
-- DiGraph should be built dynamically (like TensorFlow)
-    - There should be a default graph
-    - Nodes should be added to the graph on instantiation
-    - Edges should be added on calls to node `__call__` (e.g. `SomeNode(...)([n1, n2])`)
+## Some desired features
 - Add model (graph) serialization and de-serialization
     - Something like `model.save(filename)` and `model.load(filename)`
     - Most likely pickle
         - Define `__getstate__` and `__setstate__` API
     - Consider using joblib, yaml?
 - Should be able to use models as components of a bigger graph
-- A cache to avoid repeating the computations if the input data hasn't changed
 - Choose the type of output of classifiers (predicted label, predicted score)
     - Useful for model ensembling
 - It should be possible to freeze models to avoid fitting (e.g. when we loaded a pretrained model)
 - Should have a `set_params` and `get_params` for compatiblity with sklearn's GridSearch API.
-- Use `networkx` for graph stuff. After having a working API, replace with a in-house module.
-    - We don't need much from `networkx`. Just the primitive classes and the topological sort algorithm.
-    
+- Provide a factory function to extend sklearn classes:
+    - e.g.: `LogisticRegression = make_sklearn_processor(sklearn.linear_model.logistic.LogisticRegression)`
+- A cache to avoid repeating the computations if the input data hasn't changed
+
 ## Implementation ideas
+- DiGraph should be built dynamically (like TensorFlow)
+    - There should be a default graph
+    - Nodes should be added to the graph on instantiation
+    - Edges should be added on calls to node `__call__` (e.g. `SomeNode(...)([n1, n2])`)
 - Represent graphs as dicts-of-sets (adjacency list)
     - This is similar to the data structure used in networkx (dicts-of-dicts)
     - Maybe only dicts (nodes) of sets (successors) are necessary
@@ -72,12 +73,30 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - An special node of the graph that allows inputting data (arrays, dataframes, etc) from client code
             - At instantiation, internally it creates a special InputNode, and returns a Data object
         - Analogous to TensorFlow's Placeholder and Input in Keras
+        - Must specify an input shape
     - Model
         - A graph (pf Processor's that pass Data along each other) with defined inputs and outputs.
-        - A graph with fit/predict functionalities
+        - A graph with fit/predict API
         - Models should be callable on Data inputs
         - Internally derived from a DiGraph class
-- feed_forward implemented with topological sort and a cache
+- Need to implement check/inference of input/output shapes
+    - Processors like Concatenate, Split and Merge need to know about the input shapes
+    - sklearn Processors inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
+    - Also necessary to infer the number of outputs of a Processor
+        - There is no way in Python to know a priori the type and number of outputs of a function
+    - Provide a `compute_output_shapes` API
+- Use `networkx` for graph stuff. After having a working API, replace with a in-house module.
+    - We don't need much from `networkx`. Just the primitive classes and the topological sort algorithm.
+
+### Compilation (i.e. call to `Model(...)`)
+- Do topological sort to get the order of execution of the processors.
+
+### Feedforward
+- Find the required processors with a recursive predecessor search
+    - Backtrace the predecesor nodes to find the inputs required to compute the specified outputs
+        - Stop a backtrace path if the node's output is found in the provided inputs
+- Execute the required processors according to the topological sort
+    - Use a results cache (just a dict)
 
 ## Tests TODO list
 
@@ -87,6 +106,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
     - [x] If name is not specified, a unique name should be generated
         - [x] Input (Node) naming format: `graph_name/node_name`
         - [x] Data (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
+    - [x] Creates another instance with an unique name if an Input is created with a name already used by another Input
     - [x] At instantiation:
         - An InputNode is added to the default graph
         - A Data object with the specified name is returned
@@ -96,18 +116,18 @@ x1 = Input(name='x1')
 x2 = Input(name='x2')
 ```
 
-- [ ] Can extend a user-defined class by mixing with ProcessorMixin.
+- [x] Can extend a user-defined class by mixing with ProcessorMixin.
     - The user-defined class must implement the sklearn API:
         - fit/predict ( + predict_proba/decision_function)
         - fit/transform
         - transform only (this is for nodes that do not require fit and just transform the data, e.g. Concatenate, Merge, Split, etc.)
         - get_params
         - set_params
-    - Though not implemented explicitly, any class that is extended with ProcessorNodeMixin will be referred as ProcessorNode hereafter.
+    - Though not implemented explicitly, any class that is extended with ProcessorMixin will be referred as Processor hereafter.
 
-- [ ] A Processor can be instantiated with a name.
-    - [ ] If name is not specified, a unique name should be generated
-    - [ ] Raises error if a Processor is created with a name already used by another Node
+- [x] A Processor can be instantiated with a name.
+    - [x] If name is not specified, a unique name should be generated
+    - [x] Creates another instance with a unique name if a Processor is created with a name already used by another Processor
     
 ```python
 class Processor(ProcessorMixin, SomeSklearnClass):
