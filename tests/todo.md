@@ -36,6 +36,10 @@ y_pred = model.predict([x1_data, x2_data])
 outs = model.predict({'input1': x1_data}, outputs=['z1'])
 ```
 
+## Processor abstract class
+```python
+```
+
 ## Some desired features
 - Add model (graph) serialization and de-serialization
     - Something like `model.save(filename)` and `model.load(filename)`
@@ -80,6 +84,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - Models should be callable on Data inputs
         - Internally derived from a DiGraph class
 - Need to implement check/inference of input/output shapes
+    - Shape information is delegated to Data class
     - Processors like Concatenate, Split and Merge need to know about the input shapes
     - sklearn Processors inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
     - Also necessary to infer the number of outputs of a Processor
@@ -102,14 +107,15 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
 
 ### API test cases:
 
-- [x] Can create an Input with a name 
+- [x] Can create an Input with a name
+    - [x] Takes a shape argument (mandatory). The shape should not include n_samples
     - [x] If name is not specified, a unique name should be generated
         - [x] Input (Node) naming format: `graph_name/node_name`
         - [x] Data (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
     - [x] Creates another instance with an unique name if an Input is created with a name already used by another Input
     - [x] At instantiation:
-        - An InputNode is added to the default graph
-        - A Data object with the specified name is returned
+        - [x] An InputNode is added to the default graph
+        - [ ] A Data object with the specified shape and name is returned
     
 ```python
 x1 = Input(name='x1')
@@ -128,6 +134,7 @@ x2 = Input(name='x2')
 - [x] A Processor can be instantiated with a name.
     - [x] If name is not specified, a unique name should be generated
     - [x] Creates another instance with a unique name if a Processor is created with a name already used by another Processor
+- [x] A Processor must check its inputs shapes and provide its output shapes
     
 ```python
 class Processor(ProcessorMixin, SomeSklearnClass):

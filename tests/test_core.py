@@ -12,57 +12,55 @@ def teardown():
 
 
 class TestInput:
-    def test_returns_data_instance(self, teardown):
-        x0 = Input()
-        assert isinstance(x0, Data)
+    def test_instantiation(self, teardown):
+        x0 = Input((10,))  # a 10-dimensional feature vector
 
-    def test_input_is_in_default_graph(self, teardown):
-        x0 = Input()
         node = default_graph.nodes[0]
         assert isinstance(node, InputNode)
-        assert node.name == 'default/InputNode_0'
+        assert 'default/InputNode_0' == node.name
+        assert isinstance(x0, Data)
+        assert (10,) == x0.shape
+        assert 'default/InputNode_0/0' == x0.name
 
     def test_instantiate_two_with_same_name(self, teardown):
-        x0 = Input(name='x')
-        x1 = Input(name='x')
-        # TODO: '/0' at the end is cumbersome and unnecessary
-        # TODO: Consider removing the graph name from the node name
+        x0 = Input((5,), name='x')
+        x1 = Input((2,), name='x')
         assert 'default/x_0/0' == x0.name
         assert 'default/x_1/0' == x1.name
 
     def test_instantiate_two_without_name(self, teardown):
-        x0 = Input()
-        x1 = Input()
+        x0 = Input((5,))
+        x1 = Input((2,))
         assert 'default/InputNode_0/0' == x0.name
         assert 'default/InputNode_1/0' == x1.name
 
 
 class LogisticRegression(ProcessorMixin, sklearn.linear_model.logistic.LogisticRegression):
-    pass
+    def build_outputs(self, inputs):
+        return Data((1,), self)
 
 
 class TestProcessorMixin:
-    def test_takes_and_returns_data_instances(self, teardown):
-        x = Input(name='x')
+    def test_call(self, teardown):
+        x = Input((10,), name='x')
         y = LogisticRegression()(x)
-        assert isinstance(y, Data)
-        assert y.name == 'default/LogisticRegression_0/0'
 
-    def test_processor_is_in_default_graph(self, teardown):
-        x0 = LogisticRegression()
         node = default_graph.nodes[0]
         assert isinstance(node, LogisticRegression)
-        assert node.name == 'default/LogisticRegression_0'
+        assert 'default/LogisticRegression_0' == node.name
+        assert isinstance(y, Data)
+        assert (1,) == y.shape
+        assert 'default/LogisticRegression_0/0' == y.name
 
     def test_instantiate_two_with_same_name(self, teardown):
-        x = Input(name='x')
+        x = Input((10,), name='x')
         y0 = LogisticRegression(name='myclassifier')(x)
         y1 = LogisticRegression(name='myclassifier')(x)
         assert 'default/myclassifier_0/0' == y0.name
         assert 'default/myclassifier_1/0' == y1.name
 
     def test_instantiate_two_without_name(self, teardown):
-        x = Input(name='x')
+        x = Input((10,), name='x')
         y0 = LogisticRegression()(x)
         y1 = LogisticRegression()(x)
         assert 'default/LogisticRegression_0/0' == y0.name
