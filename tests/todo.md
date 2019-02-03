@@ -115,7 +115,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
     - [x] Creates another instance with an unique name if an Input is created with a name already used by another Input
     - [x] At instantiation:
         - [x] An InputNode is added to the default graph
-        - [ ] A Data object with the specified shape and name is returned
+        - [x] A Data object with the specified shape and name is returned
     
 ```python
 x1 = Input(name='x1')
@@ -144,10 +144,10 @@ p0 = Processor(name='p0')
 p1 = Processor(name='p1')
 ```
 
-- [ ] Can call a Processor component instance with (possibly several Data objects).
-    - A component must be defined by extending the original component with Processor mixin class
-    - A component can only be called with Data objects as inputs
-    - A call to Processor must return Data objects
+- [x] Can call a Processor component instance with (possibly several Data objects).
+    - [x] A component must be defined by extending the original component with Processor mixin class
+    - [x] A component can only be called with Data objects as inputs
+    - [x] A call to Processor must return Data objects
 ```python
 pred = SVC(...)(inputs=[x1, x2])
 ```

@@ -65,6 +65,10 @@ class Node:
         n_instances += 1
         self._names[name] = n_instances
 
+    @classmethod
+    def clear_names(cls):
+        cls._names.clear()
+
 
 # TODO: maybe should rename Processor to something more expressive: Component? Operation? Transformer?
 class ProcessorMixin(Node):
@@ -95,6 +99,8 @@ class ProcessorMixin(Node):
         # TODO: Maybe should be build_output_shapes.
         # It is not necessary to make the user import and use Data when extending this abstract mixin
         raise NotImplementedError
+
+    # TODO: add compute abstract method
 
 
 class InputNode(Node):
