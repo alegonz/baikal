@@ -83,10 +83,9 @@ class Node:
         cls._names.clear()
 
 
-# TODO: maybe should rename Processor to something more expressive: Component? Operation? Transformer?
-class ProcessorMixin(Node):
+class Step(Node):
     def __init__(self, *args, name=None, **kwargs):
-        super(ProcessorMixin, self).__init__(*args, name=name, **kwargs)
+        super(Step, self).__init__(*args, name=name, **kwargs)
         self.inputs = None
         self.outputs = None
 
@@ -94,7 +93,7 @@ class ProcessorMixin(Node):
         inputs = listify(inputs)
 
         if not is_data_list(inputs):
-            raise ValueError('Processors must be called with Data inputs.')
+            raise ValueError('Steps must be called with Data inputs.')
 
         # Add edges
         for input in inputs:
@@ -107,7 +106,7 @@ class ProcessorMixin(Node):
         return self.outputs
 
     # TODO: We might need a check_inputs method as well (Concatenate, Split, Merge, etc will need it).
-    # Also, sklearn-based Processors can accept only shapes of length 1
+    # Also, sklearn-based Steps can accept only shapes of length 1
     # (ignoring the samples, the dimensionality of the feature vector)
 
     def _build_outputs(self, inputs: List[Data]) -> Union[Data, List[Data]]:

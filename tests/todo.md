@@ -13,8 +13,8 @@ Provide a Keras/TensorFlow like API to develop complex machine learning pipeline
 x1 = Input(name='input1')
 x2 = Input(name='input2')
 
-z1 = SomePreprocessor(...)(x1)
-z2 = SomePreprocessor(...)(x2)
+z1 = SomeStep(...)(x1)
+z2 = SomeStep(...)(x2)
 c = Concatenate(...)([z1, z2])
 y = SVM(..., name='y')(c)
 
@@ -36,10 +36,6 @@ y_pred = model.predict([x1_data, x2_data])
 outs = model.predict({'input1': x1_data}, outputs=['z1'])
 ```
 
-## Processor abstract class
-```python
-```
-
 ## Some desired features
 - Add model (graph) serialization and de-serialization
     - Something like `model.save(filename)` and `model.load(filename)`
@@ -52,7 +48,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
 - It should be possible to freeze models to avoid fitting (e.g. when we loaded a pretrained model)
 - Should have a `set_params` and `get_params` for compatiblity with sklearn's GridSearch API.
 - Provide a factory function to extend sklearn classes:
-    - e.g.: `LogisticRegression = make_sklearn_processor(sklearn.linear_model.logistic.LogisticRegression)`
+    - e.g.: `LogisticRegression = make_sklearn_step(sklearn.linear_model.logistic.LogisticRegression)`
 - A cache to avoid repeating the computations if the input data hasn't changed
 
 ## Implementation ideas
@@ -65,7 +61,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
     - Maybe only dicts (nodes) of sets (successors) are necessary
         - Do we also need a similar structure with the predecessors?
 - The following abstractions should be made public to code:
-    - Processor
+    - Step
         - A node of the graph
         - Analogous to TensorFlow's Operation
         - Internally derived from a Node class
@@ -79,7 +75,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - Analogous to TensorFlow's Placeholder and Input in Keras
         - Must specify an input shape
     - Model
-        - A graph (pf Processor's that pass Data along each other) with defined inputs and outputs.
+        - A graph (of Step's that pass Data along each other) with defined inputs and outputs.
         - A graph with fit/predict API
         - Models should be callable on Data inputs
         - Internally derived from a DiGraph class
@@ -92,22 +88,22 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
                 - While the Model API specifies only the final outputs and provides its target data via the Model.fit method, any intermediate trainable steps can take its required target data via a extra_targets argument in Model.fit.
 - Need to implement check/inference of input/output shapes
     - Shape information is delegated to Data class
-    - Processors like Concatenate, Split and Merge need to know about the input shapes
-    - sklearn Processors inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
-    - Also necessary to infer the number of outputs of a Processor
+    - Steps like Concatenate, Split and Merge need to know about the input shapes
+    - sklearn Steps' inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
+    - Also necessary to infer the number of outputs of a Step
         - There is no way in Python to know a priori the type and number of outputs of a function
     - Provide a `compute_output_shapes` API
 - Use `networkx` for graph stuff. After having a working API, replace with a in-house module.
     - We don't need much from `networkx`. Just the primitive classes and the topological sort algorithm.
 
 ### Compilation (i.e. call to `Model(...)`)
-- Do topological sort to get the order of execution of the processors.
+- Do topological sort to get the order of execution of the steps.
 
 ### Feedforward
-- Find the required processors with a recursive predecessor search
+- Find the required steps with a recursive predecessor search
     - Backtrace the predecesor nodes to find the inputs required to compute the specified outputs
         - Stop a backtrace path if the node's output is found in the provided inputs
-- Execute the required processors according to the topological sort
+- Execute the required steps according to the topological sort
     - Use a results cache (just a dict)
 
 ## Tests TODO list
@@ -129,32 +125,32 @@ x1 = Input(name='x1')
 x2 = Input(name='x2')
 ```
 
-- [x] Can extend a user-defined class by mixing with ProcessorMixin.
+- [x] Can extend a user-defined class by mixing with Step.
     - The user-defined class must implement the sklearn API:
         - fit/predict ( + predict_proba/decision_function)
         - fit/transform
         - transform only (this is for nodes that do not require fit and just transform the data, e.g. Concatenate, Merge, Split, etc.)
         - get_params
         - set_params
-    - Though not implemented explicitly, any class that is extended with ProcessorMixin will be referred as Processor hereafter.
+    - Though not implemented explicitly, any class that is extended with Step will be referred as Step hereafter.
 
-- [x] A Processor can be instantiated with a name.
+- [x] A Step can be instantiated with a name.
     - [x] If name is not specified, a unique name should be generated
-    - [x] Creates another instance with a unique name if a Processor is created with a name already used by another Processor
-- [x] A Processor must check its inputs shapes and provide its output shapes
+    - [x] Creates another instance with a unique name if a Step is created with a name already used by another Step
+- [x] A Step must check its inputs shapes and provide its output shapes
     
 ```python
-class Processor(ProcessorMixin, SomeSklearnClass):
+class SomeStep(Step, SomeSklearnClass):
     pass
     
-p0 = Processor(name='p0')
-p1 = Processor(name='p1')
+p0 = SomeStep(name='p0')
+p1 = SomeStep(name='p1')
 ```
 
-- [x] Can call a Processor component instance with (possibly several Data objects).
-    - [x] A component must be defined by extending the original component with Processor mixin class
+- [x] Can call a Step component instance with (possibly several Data objects).
+    - [x] A component must be defined by extending the original component with Step mixin class
     - [x] A component can only be called with Data objects as inputs
-    - [x] A call to Processor must return Data objects
+    - [x] A call to Step must return Data objects
 ```python
 pred = SVC(...)(inputs=[x1, x2])
 ```

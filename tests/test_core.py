@@ -4,7 +4,7 @@ import sklearn.linear_model.logistic
 from sklearn import datasets
 
 from baikal.core import (default_graph, Node,
-                         Input, ProcessorMixin, Data, Model)
+                         Input, Step, Data, Model)
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ class TestInput:
 
 @pytest.fixture
 def extended_sklearn_class():
-    class LogisticRegression(ProcessorMixin, sklearn.linear_model.logistic.LogisticRegression):
+    class LogisticRegression(Step, sklearn.linear_model.logistic.LogisticRegression):
         def __init__(self, *args, name=None, **kwargs):
             super(LogisticRegression, self).__init__(*args, name=name, **kwargs)
 
@@ -52,7 +52,7 @@ def extended_sklearn_class():
     return LogisticRegression
 
 
-class TestProcessorMixin:
+class TestStep:
 
     def test_call(self, extended_sklearn_class, teardown):
         x = Input((10,), name='x')
@@ -63,20 +63,20 @@ class TestProcessorMixin:
         assert 'LogisticRegression_0/0' == y.name
 
     def test_call_with_two_inputs(self, teardown):
-        class MIMOProcessor(ProcessorMixin):
+        class MIMOStep(Step):
             def build_output_shapes(self, input_shapes):
                 return [(1,), (1,)]
 
         x0 = Input((10,), name='x')
         x1 = Input((10,), name='x')
-        y0, y1 = MIMOProcessor()([x0, x1])
+        y0, y1 = MIMOStep()([x0, x1])
 
         assert isinstance(y0, Data)
         assert isinstance(y1, Data)
         assert (1,) == y0.shape
         assert (1,) == y1.shape
-        assert 'MIMOProcessor_0/0' == y0.name
-        assert 'MIMOProcessor_0/1' == y1.name
+        assert 'MIMOStep_0/0' == y0.name
+        assert 'MIMOStep_0/1' == y1.name
 
     def test_instantiate_two_with_same_name(self, extended_sklearn_class, teardown):
         x = Input((10,), name='x')
