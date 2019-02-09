@@ -20,7 +20,7 @@ class Data:
 
 
 def is_data_list(l):
-    return all([isinstance(e, Data) for e in l])
+    return all([isinstance(d, Data) for d in l])
 
 
 class DiGraph:
@@ -59,7 +59,8 @@ class Node:
     # a dict-of-dicts with graph and name as keys.
     _names = dict()
 
-    def __init__(self, name=None):
+    def __init__(self, *args, name=None, **kwargs):
+        super(Node, self).__init__(*args, **kwargs)
         # Maybe graph should be passed as a keyword argument
         graph = default_graph
         self.graph = graph
@@ -84,8 +85,8 @@ class Node:
 
 # TODO: maybe should rename Processor to something more expressive: Component? Operation? Transformer?
 class ProcessorMixin(Node):
-    def __init__(self, name=None):
-        super().__init__(name)
+    def __init__(self, *args, name=None, **kwargs):
+        super(ProcessorMixin, self).__init__(*args, name=name, **kwargs)
         self.inputs = None
         self.outputs = None
 
@@ -127,7 +128,7 @@ class ProcessorMixin(Node):
 
 class InputNode(Node):
     def __init__(self, shape, name=None):
-        super().__init__(name)
+        super(InputNode, self).__init__(name=name)
         # TODO: Maybe '/0' at the end is cumbersome and unnecessary in InputNode's
         self.outputs = Data(shape, self)
 
@@ -148,3 +149,7 @@ class Model:
 
         self.inputs = inputs
         self.outputs = outputs
+        # TODO: Get list of necessary steps (topological sort)
+
+    def fit(self, inputs, outputs):
+        pass

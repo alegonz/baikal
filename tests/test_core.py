@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import sklearn.linear_model.logistic
+from sklearn import datasets
 
 from baikal.core import (default_graph, Node,
                          Input, ProcessorMixin, Data, Model)
@@ -39,6 +40,9 @@ class TestInput:
 @pytest.fixture
 def extended_sklearn_class():
     class LogisticRegression(ProcessorMixin, sklearn.linear_model.logistic.LogisticRegression):
+        def __init__(self, *args, name=None, **kwargs):
+            super(LogisticRegression, self).__init__(*args, name=name, **kwargs)
+
         def build_output_shapes(self, input_shapes):
             return [(1,)]
 
@@ -104,3 +108,19 @@ class TestModel:
         x_wrong = np.zeros((10,))
         with pytest.raises(ValueError):
             model = Model(x_wrong, y)
+
+    def test_fit(self, extended_sklearn_class, teardown):
+        # Based on the example in
+        # https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
+
+        # import some data to play with
+        iris = datasets.load_iris()
+
+        X = iris.data[:, :2]  # we only take the first two features.
+        y = iris.target
+
+        x = Input((2,), name='x')
+        yp = extended_sklearn_class(multi_class='multinomial')(x)
+
+        model = Model(x, yp)
+        model.fit(X, y)

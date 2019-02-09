@@ -83,6 +83,13 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - A graph with fit/predict API
         - Models should be callable on Data inputs
         - Internally derived from a DiGraph class
+        - Model fitting:
+            - To fit a graph we need to:
+                1. Filter the necessary steps depending on the provided inputs and outputs
+                2. For each step (in topological order), we fit and then do transform/predict on the inputs, and store the result (node output) in the cache. This has to handle two cases:
+                    1. The step is a transformer (Concatenate, Split, PCA, Scaler, etc). In this case we do not need target data, and we do fit_transform. The result of fit_transform becomes the node output.
+                    2. The step is a Estimator (LogisticRegression, DecisionTree, etc). In this case we need target data, and we do fit and then predict. The result of predict becomes the node output.
+                - While the Model API specifies only the final outputs and provides its target data via the Model.fit method, any intermediate trainable steps can take its required target data via a extra_targets argument in Model.fit.
 - Need to implement check/inference of input/output shapes
     - Shape information is delegated to Data class
     - Processors like Concatenate, Split and Merge need to know about the input shapes
@@ -152,7 +159,7 @@ p1 = Processor(name='p1')
 pred = SVC(...)(inputs=[x1, x2])
 ```
 
-- [ ] Can instantiate a Model with specified inputs and outputs (inputs and outputs are Data objects)
+- [x] Can instantiate a Model with specified inputs and outputs (inputs and outputs are Data objects)
 ```python
 model = Model(inputs=[x1, x2], outputs=pred)
 ```
