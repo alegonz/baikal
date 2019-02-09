@@ -3,8 +3,10 @@ import numpy as np
 import sklearn.linear_model.logistic
 from sklearn import datasets
 
-from baikal.core import (default_graph, Node,
-                         Input, Step, Data, Model)
+from baikal.core.data import Data
+from baikal.core.digraph import default_graph, Node
+from baikal.core.step import Input, Step
+from baikal.core.model import Model
 
 
 @pytest.fixture
@@ -112,8 +114,6 @@ class TestModel:
     def test_fit(self, extended_sklearn_class, teardown):
         # Based on the example in
         # https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
-
-        # import some data to play with
         iris = datasets.load_iris()
 
         X = iris.data[:, :2]  # we only take the first two features.
