@@ -4,7 +4,7 @@ import sklearn.linear_model.logistic
 from sklearn import datasets
 
 from baikal.core.data import Data
-from baikal.core.digraph import default_graph, Node
+from baikal.core.digraph import default_graph, Node, DiGraph
 from baikal.core.step import Input, Step
 from baikal.core.model import Model
 
@@ -124,3 +124,45 @@ class TestModel:
 
         model = Model(x, yp)
         model.fit(X, y)
+
+        assert hasattr(extended_sklearn_class, 'coef_')
+
+
+class TestDiGraph:
+    def test_add_node(self):
+        graph = DiGraph()
+        graph.add_node('A')
+        assert 'A' in graph.nodes
+
+    def test_add_edge(self):
+        graph = DiGraph()
+        graph.add_node('A')
+        graph.add_node('B')
+        graph.add_edge('A', 'B')
+        assert 'B' in graph.successors('A') and 'A' in graph.predecessors('B')
+
+    def test_add_edge_with_nonexistent_node(self):
+        graph = DiGraph()
+        graph.add_node('A')
+        with pytest.raises(KeyError):
+            graph.add_edge('A', 'B')
+
+    def test_topological_sort(self):
+        # Example randomly generated with
+        # https://www.cs.usfca.edu/~galles/visualization/TopoSortDFS.html
+        graph = DiGraph()
+        nodes = range(8)
+        for node in nodes:
+            graph.add_node(node)
+
+        graph.add_edge(0, 2)
+        graph.add_edge(0, 3)
+        graph.add_edge(2, 4)
+        graph.add_edge(2, 6)
+        graph.add_edge(4, 7)
+        graph.add_edge(6, 7)
+        graph.add_edge(3, 5)
+        graph.add_edge(1, 5)
+        graph.add_edge(3, 7)
+
+        assert [1, 0, 3, 5, 2, 6, 4, 7] == graph.topological_sort()
