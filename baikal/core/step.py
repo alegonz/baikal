@@ -12,6 +12,7 @@ class Step(Node):
         self.outputs = None
 
     def __call__(self, inputs):
+        # TODO: Add a target keyword argument to specify inputs that are only required at fit time
         inputs = listify(inputs)
 
         if not is_data_list(inputs):
@@ -35,10 +36,12 @@ class Step(Node):
         input_shapes = [input.shape for input in inputs]
         output_shapes = self.build_output_shapes(input_shapes)
 
-        if len(output_shapes) == 1:
-            return Data(output_shapes[0], self, 0)
+        outputs = [Data(shape, self, i) for i, shape in enumerate(output_shapes)]
 
-        return [Data(shape, self, i) for i, shape in enumerate(output_shapes)]
+        if len(outputs) == 1:
+            outputs = outputs[0]
+
+        return outputs
 
     def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
         raise NotImplementedError
