@@ -166,3 +166,24 @@ class TestDiGraph:
         graph.add_edge(3, 7)
 
         assert [1, 0, 3, 5, 2, 6, 4, 7] == graph.topological_sort()
+
+    def test_topological_sort_empty_graph(self):
+        graph = DiGraph()
+        assert [] == graph.topological_sort()
+
+    def test_topological_sort_single_node(self):
+        graph = DiGraph()
+        graph.add_node(0)
+        assert [0] == graph.topological_sort()
+
+    def test_topological_sort_cyclic_graph(self):
+        graph = DiGraph()
+        for node in [0, 1, 2]:
+            graph.add_node(node)
+
+        graph.add_edge(0, 1)
+        graph.add_edge(1, 2)
+        graph.add_edge(2, 0)
+
+        with pytest.raises(ValueError):
+            graph.topological_sort()
