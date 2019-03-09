@@ -65,6 +65,8 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - A node of the graph
         - Analogous to TensorFlow's Operation
         - Internally derived from a Node class
+        - A step is callable on Data inputs
+            - Provide a special 'target' argument for inputs required only at fit time. This allow us to treat label data as Inputs, transform them and connect them to e.g. classifier Steps. 
     - Data
         - An semi-edge of the graph
         - Analogous to TensorFlow's Tensor
@@ -77,7 +79,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
     - Model
         - A graph (of Step's that pass Data along each other) with defined inputs and outputs.
         - A graph with fit/predict API
-        - Models should be callable on Data inputs
+        - Models must be defined (`__init__`) with Data inputs and outputs
         - Internally derived from a DiGraph class
         - Model fitting:
             - To fit a graph we need to:
@@ -86,6 +88,17 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
                     1. The step is a transformer (Concatenate, Split, PCA, Scaler, etc). In this case we do not need target data, and we do fit_transform. The result of fit_transform becomes the node output.
                     2. The step is a Estimator (LogisticRegression, DecisionTree, etc). In this case we need target data, and we do fit and then predict. The result of predict becomes the node output.
                 - While the Model API specifies only the final outputs and provides its target data via the Model.fit method, any intermediate trainable steps can take its required target data via a extra_targets argument in Model.fit.
+        - Model persistence:
+            - Should be able to save models to a file
+                - Persist the whole parent graph? or only the sub-graph?
+        - A Model can be reused as a Step
+            - Possibly in another graph? (in this case we would need to persist the graph with the Model)
+            - Implement `__call__` method
+                - Differs with Step `__call__`:
+                    - Inputs (shapes) should match with those used at `__init__`
+                    - Output is already known from `__init__`
+                    - Should compose Model graph into caller graph
+        
 - Need to implement check/inference of input/output shapes
     - Shape information is delegated to Data class
     - Steps like Concatenate, Split and Merge need to know about the input shapes
