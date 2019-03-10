@@ -34,7 +34,8 @@ class DiGraph:
 
     def add_edge(self, from_node, to_node):
         if self.has_edge(from_node, to_node):
-            raise MultiEdgeError('An edge between {} and {} already exists (multiedges are not allowed)!'.format(from_node, to_node))
+            raise MultiEdgeError(
+                'An edge between {} and {} already exists (multiedges are not allowed)!'.format(from_node, to_node))
 
         self._successors[from_node].add(to_node)
         self._predecessors[to_node].add(from_node)
@@ -67,6 +68,16 @@ class DiGraph:
     def predecessors(self, node):
         return self._predecessors[node]
 
+    def ancestors(self, node):
+        if node not in self:
+            raise NodeNotFoundError('{} is not in the graph!'.format(node))
+
+        ancestors = set()
+        for predecessor in self._predecessors[node]:
+            ancestors.add(predecessor)
+            ancestors |= self.ancestors(predecessor)
+        return ancestors
+
     def topological_sort(self):
         # Implemented using depth-first search
         # Also works as a test of acyclicity
@@ -77,6 +88,7 @@ class DiGraph:
         unvisited_nodes = deque(sorted(self._predecessors,
                                        key=lambda k: len(self._predecessors[k])),
                                 maxlen=n_nodes)
+
         # It is not mandatory, but to have more intuitive orderings,
         # we start depth-first search from nodes without predecessors (inputs)
 

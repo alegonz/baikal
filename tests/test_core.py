@@ -218,12 +218,61 @@ class TestDiGraph:
         with pytest.raises(MultiEdgeError):
             graph.add_edge('A', 'B')
 
+    def test_ancestors(self):
+        graph = DiGraph()
+
+        with pytest.raises(NodeNotFoundError):
+            graph.ancestors(0)
+
+        # Case 1:
+        #  +--> [1] --> [3] --> [5]
+        #  |                     ^
+        # [0]                    |
+        #  |                     |
+        #  +--> [2] --> [4] -----+
+        for node in range(6):
+            graph.add_node(node)
+
+        graph.add_edge(0, 1)
+        graph.add_edge(1, 3)
+        graph.add_edge(3, 5)
+
+        graph.add_edge(0, 2)
+        graph.add_edge(2, 4)
+        graph.add_edge(4, 5)
+
+        assert set() == graph.ancestors(0)
+        assert {0, 2} == graph.ancestors(4)
+        assert {0, 1, 2, 3, 4} == graph.ancestors(5)
+
+        # Case 2:
+        #  [0] --> [1] --> [4]
+        #           ^       ^
+        #           |       |
+        #   + ------+       |
+        #   |               |
+        #  [2] --> [3] -----+
+        graph = DiGraph()
+        for node in range(5):
+            graph.add_node(node)
+
+        graph.add_edge(0, 1)
+        graph.add_edge(1, 4)
+
+        graph.add_edge(2, 1)
+        graph.add_edge(2, 3)
+        graph.add_edge(3, 4)
+
+        assert set() == graph.ancestors(0)
+        assert {0, 2} == graph.ancestors(1)
+        assert {2} == graph.ancestors(3)
+        assert {0, 1, 2, 3} == graph.ancestors(4)
+
     def test_topological_sort(self):
         # Example randomly generated with
         # https://www.cs.usfca.edu/~galles/visualization/TopoSortDFS.html
         graph = DiGraph()
-        nodes = range(8)
-        for node in nodes:
+        for node in range(8):
             graph.add_node(node)
 
         graph.add_edge(0, 2)
