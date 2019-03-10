@@ -57,7 +57,7 @@ def sklearn_classifier_step():
         @property
         def fitted(self):
             try:
-                return check_is_fitted(self, ['coef_'], all_or_any=all)
+                return check_is_fitted(self, ['coef_'], all_or_any=all) is None
             except NotFittedError:
                 return False
 
@@ -81,7 +81,7 @@ def sklearn_transformer_step():
         @property
         def fitted(self):
             try:
-                return check_is_fitted(self, ['mean_', 'components_'], all_or_any=all)
+                return check_is_fitted(self, ['mean_', 'components_'], all_or_any=all) is None
             except NotFittedError:
                 return False
 
@@ -154,24 +154,13 @@ class TestModel:
         y_data = iris.target
 
         x = Input((2,), name='x')
-        y = sklearn_classifier_step(multi_class='multinomial')(x)
+        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(x)
 
         model = Model(x, y)
 
         # Style 1: pass data as in instantiation
         model.fit(X_data, y_data)
         assert y.step.fitted
-
-        # FIXME: These will likely pass if the above passes.
-        # Split into separate tests (init a new model everytime)
-
-        # Style 2: pass a dict keyed by Data instances
-        # model.fit({x: X_data, y: y_data})
-        # assert y.step.fitted
-        #
-        # # Style 3: pass a dict keyed by Data instances names
-        # model.fit({'x': X_data, 'LogisticRegression_0/0': y_data})
-        # assert y.step.fitted
 
     def test_fit_transformer(self, sklearn_transformer_step, teardown):
         iris = datasets.load_iris()
@@ -182,7 +171,7 @@ class TestModel:
 
         model = Model(x, xt)
         model.fit(X_data)
-        assert y.node.fitted
+        assert xt.step.fitted
 
 
 class TestDiGraph:

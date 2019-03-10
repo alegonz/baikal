@@ -26,7 +26,10 @@ class Step(Node):
         self.inputs = inputs
         self.outputs = self._build_outputs(inputs)
 
-        return self.outputs
+        if len(self.outputs) == 1:
+            return self.outputs[0]
+        else:
+            return self.outputs
 
     # TODO: We might need a check_inputs method as well (Concatenate, Split, Merge, etc will need it).
     # Also, sklearn-based Steps can accept only shapes of length 1
@@ -37,10 +40,6 @@ class Step(Node):
         output_shapes = self.build_output_shapes(input_shapes)
 
         outputs = [Data(shape, self, i) for i, shape in enumerate(output_shapes)]
-
-        if len(outputs) == 1:
-            outputs = outputs[0]
-
         return outputs
 
     def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
