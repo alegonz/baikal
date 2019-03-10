@@ -20,7 +20,7 @@ class Step(Node):
 
         # Add edges
         for input in inputs:
-            predecessor = input.node
+            predecessor = input.step
             self.graph.add_edge(predecessor, self)
 
         self.inputs = inputs
@@ -50,14 +50,14 @@ class Step(Node):
         raise NotImplementedError
 
 
-class InputNode(Node):
+class InputStep(Node):
     def __init__(self, shape, name=None):
-        super(InputNode, self).__init__(name=name)
-        # TODO: Maybe '/0' at the end is cumbersome and unnecessary in InputNode's
+        super(InputStep, self).__init__(name=name)
+        # TODO: Maybe '/0' at the end is cumbersome and unnecessary in InputStep's
         self.outputs = Data(shape, self)
 
 
 def Input(shape, name=None):
-    # Maybe this can be implemented in InputNode.__new__
-    input = InputNode(shape, name)
+    # Maybe this can be implemented in InputStep.__new__
+    input = InputStep(shape, name)
     return input.outputs

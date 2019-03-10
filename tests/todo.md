@@ -73,7 +73,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - Internally derived from a Edge class
     - Input
         - An special node of the graph that allows inputting data (arrays, dataframes, etc) from client code
-            - At instantiation, internally it creates a special InputNode, and returns a Data object
+            - At instantiation, internally it creates a special InputStep, and returns a Data object
         - Analogous to TensorFlow's Placeholder and Input in Keras
         - Must specify an input shape
     - Model
@@ -130,7 +130,7 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
         - [x] Data (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
     - [x] Creates another instance with an unique name if an Input is created with a name already used by another Input
     - [x] At instantiation:
-        - [x] An InputNode is added to the default graph
+        - [x] An InputStep is added to the default graph
         - [x] A Data object with the specified shape and name is returned
     
 ```python
@@ -178,11 +178,6 @@ model = Model(inputs=[x1, x2], outputs=pred)
 model.fit([x1_data, x2_data], pred_data)
 ```
 
-- [ ] Can fit the model a la TensorFlow, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
-```python
-model.fit({'x1': ..., 'pred': ...})  # dictionary keys could also be the Data objects themselves?
-```
-
 - [ ] Can predict with the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
     - If multiple outputs were specified, a list of actual result data is returned
 ```python
@@ -196,7 +191,7 @@ model.predict({'x1': ...})  # dictionary keys could also be the Data objects the
 # out = {'pred': ...}
 ```
 
-- [ ] model.fit fails if any of the required inputs was not passed in the dictionary
+- [ ] model.fit fails if any of the required inputs was not passed in
     - This includes target data for outputs in the case of supervised learning
 
 - [ ] model.predict fails if any of the required inputs is not in the input dictionary

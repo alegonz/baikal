@@ -25,7 +25,7 @@ class TestInput:
 
         assert isinstance(x0, Data)
         assert (10,) == x0.shape
-        assert 'InputNode_0/0' == x0.name
+        assert 'InputStep_0/0' == x0.name
 
     def test_instantiate_two_with_same_name(self, teardown):
         x0 = Input((5,), name='x')
@@ -38,8 +38,8 @@ class TestInput:
         x0 = Input((5,))
         x1 = Input((2,))
 
-        assert 'InputNode_0/0' == x0.name
-        assert 'InputNode_1/0' == x1.name
+        assert 'InputStep_0/0' == x0.name
+        assert 'InputStep_1/0' == x1.name
 
 
 @pytest.fixture
@@ -160,18 +160,18 @@ class TestModel:
 
         # Style 1: pass data as in instantiation
         model.fit(X_data, y_data)
-        assert y.node.fitted
+        assert y.step.fitted
 
         # FIXME: These will likely pass if the above passes.
         # Split into separate tests (init a new model everytime)
 
         # Style 2: pass a dict keyed by Data instances
         # model.fit({x: X_data, y: y_data})
-        # assert y.node.fitted
+        # assert y.step.fitted
         #
         # # Style 3: pass a dict keyed by Data instances names
         # model.fit({'x': X_data, 'LogisticRegression_0/0': y_data})
-        # assert y.node.fitted
+        # assert y.step.fitted
 
     def test_fit_transformer(self, sklearn_transformer_step, teardown):
         iris = datasets.load_iris()

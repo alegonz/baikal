@@ -6,8 +6,8 @@ def is_data_list(l):
 
 
 class Data:
-    def __init__(self, shape, node, index=0):
+    def __init__(self, shape, step, index=0):
         self.shape = shape
-        self.node = node
+        self.step = step
         self.index = index
-        self.name = make_name(node.name, index)
+        self.name = make_name(step.name, index)
