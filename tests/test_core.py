@@ -7,7 +7,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 
 from baikal.core.data import Data
-from baikal.core.digraph import default_graph, Node, DiGraph
+from baikal.core.digraph import default_graph, Node, DiGraph, NodeNotFoundError, MultiEdgeError
 from baikal.core.step import Input, Step
 from baikal.core.model import Model
 
@@ -191,6 +191,12 @@ class TestDiGraph:
         graph.add_node('A')
         assert 'A' in graph.nodes
 
+    def test_add_same_node_twice(self):
+        graph = DiGraph()
+        graph.add_node('A')
+        graph.add_node('A')
+        assert 'A' in graph.nodes
+
     def test_add_edge(self):
         graph = DiGraph()
         graph.add_node('A')
@@ -201,7 +207,15 @@ class TestDiGraph:
     def test_add_edge_with_nonexistent_node(self):
         graph = DiGraph()
         graph.add_node('A')
-        with pytest.raises(KeyError):
+        with pytest.raises(NodeNotFoundError):
+            graph.add_edge('A', 'B')
+
+    def test_add_multiedge(self):
+        graph = DiGraph()
+        graph.add_node('A')
+        graph.add_node('B')
+        graph.add_edge('A', 'B')
+        with pytest.raises(MultiEdgeError):
             graph.add_edge('A', 'B')
 
     def test_topological_sort(self):

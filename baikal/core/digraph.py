@@ -3,6 +3,17 @@ from collections import deque
 from baikal.core.utils import make_name
 
 
+class NodeNotFoundError(Exception):
+    """Exception raised when attempting to operate on a node that
+    does not exist in the graph.
+    """
+
+
+class MultiEdgeError(Exception):
+    """Exception raised when attempting to add an edge that already exists.
+    """
+
+
 class DiGraph:
     def __init__(self, name=None):
         self._successors = dict()
@@ -10,11 +21,16 @@ class DiGraph:
         self.name = name
 
     def add_node(self, node):
+        if node in self:
+            # If node already exists in the graph, return silently.
+            return
         self._successors[node] = set()
         self._predecessors[node] = set()
 
     def add_edge(self, from_node, to_node):
-        # TODO: Add check for existence of node and raise error appropriately
+        if self.has_edge(from_node, to_node):
+            raise MultiEdgeError('An edge between {} and {} already exists (multiedges are not allowed)!'.format(from_node, to_node))
+
         self._successors[from_node].add(to_node)
         self._predecessors[to_node].add(from_node)
 
@@ -23,6 +39,14 @@ class DiGraph:
 
     def __iter__(self):
         return iter(self._successors)
+
+    def has_edge(self, from_node, to_node):
+        if from_node not in self:
+            raise NodeNotFoundError('{} is not in the graph!'.format(from_node))
+        if to_node not in self:
+            raise NodeNotFoundError('{} is not in the graph!'.format(to_node))
+
+        return to_node in self._successors[from_node]
 
     def clear(self):
         self._successors.clear()
@@ -80,7 +104,7 @@ class Node:
     _names = dict()
 
     def __init__(self, *args, name=None, **kwargs):
-        super(Node, self).__init__(*args, **kwargs)
+        super(Node, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
         # Maybe graph should be passed as a keyword argument
         graph = default_graph
         self.graph = graph
