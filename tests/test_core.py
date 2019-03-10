@@ -7,7 +7,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 
 from baikal.core.data import Data
-from baikal.core.digraph import default_graph, Node, DiGraph, NodeNotFoundError, MultiEdgeError
+from baikal.core.digraph import default_graph, Node, DiGraph, NodeNotFoundError, MultiEdgeError, CyclicDiGraphError
 from baikal.core.step import Input, Step
 from baikal.core.model import Model
 
@@ -256,5 +256,5 @@ class TestDiGraph:
         graph.add_edge(1, 2)
         graph.add_edge(2, 0)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(CyclicDiGraphError):
             graph.topological_sort()

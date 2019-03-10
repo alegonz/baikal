@@ -14,6 +14,11 @@ class MultiEdgeError(Exception):
     """
 
 
+class CyclicDiGraphError(Exception):
+    """Exception raised when graph has cycles.
+    """
+
+
 class DiGraph:
     def __init__(self, name=None):
         self._successors = dict()
@@ -79,7 +84,7 @@ class DiGraph:
             if node in sorted_nodes:
                 return
             if node in visited_nodes:
-                raise ValueError('DiGraph is not acyclic!')  # TODO: Define custom error?
+                raise CyclicDiGraphError('DiGraph is not acyclic!')
 
             visited_nodes.add(node)
             for successor in self._successors[node]:
