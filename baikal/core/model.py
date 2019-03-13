@@ -49,34 +49,71 @@ class Model(Step):
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
 
-        input_data = listify(input_data)
-        target_data = listify(target_data)
-
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
-        cache.update(zip(self.inputs, input_data))  # FIXME: Raise error if lengths do not match
-        cache.update(zip(self.outputs, target_data))  # FIXME: Raise error if lengths do not match
+
+        input_data = listify(input_data)
+        if len(input_data) != len(self.inputs):
+            raise ValueError('The number of training data arrays does not match the number of inputs!')
+        cache.update(zip(self.inputs, input_data))
+
+        if target_data is not None:
+            # FIXME: This should check only the outputs that require target_data
+            target_data = listify(target_data)
+            if len(target_data) != len(self.outputs):
+                raise ValueError('The number of target data arrays does not match the number of outputs!')
+            cache.update(zip(self.outputs, target_data))
+
+        # cache.update(extra_targets)
 
         for step in self._steps:
-            # 1) Fit step
-            #     check signature of fit method
-            #     if fit only needs X, retrieve it from cache
-            #     it fit also needs y, retrieve it from extra_targets
+            # 1) Fit phase
             Xs = [cache[i] for i in step.inputs]
+            ys = [cache[o] for o in step.outputs if o in cache]
+            step.fit(*Xs, *ys)
 
-            if 'y' in signature(step.fit).parameters:
-                ys = [cache[o] for o in step.outputs]
-                output_data = step.fit(*Xs, *ys)
+            # 2) predict/transform phase
+            # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
+            # https://scikit-learn.org/stable/glossary.html#term-predict
+            if hasattr(step, 'predict'):
+                output_data = step.predict(*Xs)
+            elif hasattr(step, 'transform'):
+                output_data = step.transform(*Xs)
             else:
-                output_data = step.fit(*Xs)
+                raise TypeError('{} does not implement predict or transform!'.format(step.name))
 
-            # 2) Compute outputs
-            #     predict if step is an estimator
-            #     transform if step is a transformer
+            cache.update(zip(step.outputs, listify(output_data)))
 
-    # TODO: Implement compute method. Should call predict inside.
-    # TODO: Implement build_output_shapes method. Should call predict inside.
+    def predict(self, input_data):
+        cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
+
+        input_data = listify(input_data)
+        if len(input_data) != len(self.inputs):
+            raise ValueError('The number of training data arrays does not match the number of inputs!')
+        cache.update(zip(self.inputs, input_data))
+
+        for step in self._steps:
+            # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
+            # https://scikit-learn.org/stable/glossary.html#term-predict
+            Xs = [cache[i] for i in step.inputs]
+            if hasattr(step, 'predict'):
+                output_data = step.predict(*Xs)
+            elif hasattr(step, 'transform'):
+                output_data = step.transform(*Xs)
+            else:
+                raise TypeError('{} does not implement predict or transform!'.format(step.name))
+
+            cache.update(zip(step.outputs, listify(output_data)))
+
+        output_data = [cache[o] for o in self.outputs]
+        if len(output_data) == 1:
+            return output_data[0]
+        else:
+            return output_data
+
+    # TODO: Implement build_output_shapes method.
     # TODO: Override __call__ method
     # TODO: Implement predict method
     # predict: inputs (outputs) can be either: a list of arrays
     # (interpreted as 1to1 correspondence with inputs (outputs) passed at __init__),
     # or a dictionary keyed by Data instances or their names with array values. We need input normalization for this.
+    # Also, check that all of requested output keys exist in the Model (sub)graph (not the parent graph!)

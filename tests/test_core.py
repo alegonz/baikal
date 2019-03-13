@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from numpy.testing import assert_array_equal
 from sklearn import datasets
 import sklearn.decomposition
 import sklearn.linear_model.logistic
@@ -172,6 +173,42 @@ class TestModel:
         model = Model(x, xt)
         model.fit(X_data)
         assert xt.step.fitted
+
+    def test_fit_pipeline(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
+        iris = datasets.load_iris()
+        X_data = iris.data
+        y_data = iris.target
+
+        x = Input((4,), name='x')
+        xt = sklearn_transformer_step(n_components=2)(x)
+        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(xt)
+
+        model = Model(x, y)
+        model.fit(X_data, y_data)
+        assert xt.step.fitted and y.step.fitted
+
+    def test_fit_predict_pipeline(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
+        iris = datasets.load_iris()
+        X_data = iris.data
+        y_data = iris.target
+
+        # baikal way
+        x = Input((4,), name='x')
+        xt = sklearn_transformer_step(n_components=2)(x)
+        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(xt)
+
+        model = Model(x, y)
+        model.fit(X_data, y_data)
+        y_pred_baikal = model.predict(X_data)
+
+        # traditional way
+        pca = sklearn.decomposition.PCA(n_components=2)
+        logreg = sklearn.linear_model.logistic.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+        X_data_transformed = pca.fit_transform(X_data)
+        logreg.fit(X_data_transformed, y_data)
+        y_pred_traditional = logreg.predict(X_data_transformed)
+
+        assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
 class TestDiGraph:

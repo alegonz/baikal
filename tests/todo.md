@@ -173,7 +173,7 @@ pred = SVC(...)(inputs=[x1, x2])
 model = Model(inputs=[x1, x2], outputs=pred)
 ```
 
-- [ ] Can fit the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
+- [x] Can fit the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
 ```python
 model.fit([x1_data, x2_data], pred_data)
 ```
@@ -182,16 +182,16 @@ model.fit([x1_data, x2_data], pred_data)
     - If multiple outputs were specified, a list of actual result data is returned
 ```python
 out = model.predict([x1_data, x2_data])
-# out is actual result data (e.g. a numpy array) 
+# out is actual result data (e.g. a numpy array or a list of numpy arrays) 
 ```
 
-- [ ] Can predict with the model a la TensorFlow, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
+- [ ] Can query the model a la graphkit, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
 ```python
-model.predict({'x1': ...})  # dictionary keys could also be the Data objects themselves?
+model.query({'x1': ...})  # dictionary keys can be either Data objects or their name strings
 # out = {'pred': ...}
 ```
 
-- [ ] model.fit fails if any of the required inputs was not passed in
+- [x] model.fit fails if any of the required inputs was not passed in
     - This includes target data for outputs in the case of supervised learning
 
 - [ ] model.predict fails if any of the required inputs is not in the input dictionary
