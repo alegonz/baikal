@@ -115,6 +115,7 @@ class DiGraph:
 default_graph = DiGraph(name='default')
 
 
+# TODO: Decouple graph from Node class. Keep track of only Node parents.
 class Node:
     # used to keep track of number of instances and make unique names
     # a dict-of-dicts with graph and name as keys.

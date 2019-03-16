@@ -90,7 +90,40 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
                 - While the Model API specifies only the final outputs and provides its target data via the Model.fit method, any intermediate trainable steps can take its required target data via a extra_targets argument in Model.fit.
         - Model persistence:
             - Should be able to save models to a file
-                - Persist the whole parent graph? or only the sub-graph?
+            - Method 1:
+                - Dumping:
+                    - Persist the graph steps and their connections, but not the graph itself
+                        - Persist only the sub-graph
+                        - Perhaps in yaml/json or dot format. Preferably json (json is a python built-in module).
+                    - Persist the steps coefficients/weights and their params
+                    - This is similar to what Keras's `Model.save_model` does
+                - Loading:
+                    - Must regenerate the steps and add them to the client code's graph
+                    - Must also load any coefficients/weights and params of each step (e.g. regression coefs, PCA components, etc)
+                - Pros:
+                    - More secure than pickle/joblib since does not execute any code.
+                - Cons:
+                    - Preferably models should be dumped/loaded like in scikit-learn:
+                        - `dump(clf, 'filename.joblib'); clf = load('filename.joblib')`
+                    - scikit-learn does not provide an API for persisting coefficients/weights independently.
+            - Method 2:
+                - Dumping:
+                    - Trim parent graph to Model's subgraph and persist everything to a pickle/joblib.
+                        - Don't need to trim anything if we decouple the graph from the steps and add make it an internal attribute of Model.
+                - Loading:
+                    - Load model into a separate graph and merge this graph with the client when doing `Model.__call__`
+                - Pros:
+                    - Rather straightforward
+                - Cons:
+                    - Have to make sure the Model internals are pickle-able.
+                    - Inherent security issues of pickle/joblib.
+            - Other considerations:
+                - Models should freeze any fitted steps prior to saving to a file.
+                    - Introduce an optional argument in `load_model`: `unfreeze_steps=False` 
+                - If the user wants to re-train the whole model:
+                    - Load the model with `unfreeze_steps=True`. This will unfreeze all the steps.
+                - If the user wants to re-train some steps:
+                    - Load the model and unfreeze the desired steps
         - A Model can be reused as a Step
             - Possibly in another graph? (in this case we would need to persist the graph with the Model)
             - Implement `__call__` method
@@ -98,6 +131,8 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
                     - Inputs (shapes) should match with those used at `__init__`
                     - Output is already known from `__init__`
                     - Should compose Model graph into caller graph
+        - Model visualization
+            - Include a plot function that plots the model graph
         
 - Need to implement check/inference of input/output shapes
     - Shape information is delegated to Data class
@@ -169,13 +204,24 @@ pred = SVC(...)(inputs=[x1, x2])
 ```
 
 - [x] Can instantiate a Model with specified inputs and outputs (inputs and outputs are Data objects)
+    - Both inputs and outputs are mandatory arguments
 ```python
-model = Model(inputs=[x1, x2], outputs=pred)
+model = Model(inputs=[x1, x2], outputs=[y1, y2])
 ```
 
 - [x] Can fit the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
+    - [ ] There are three cases for the target data:
+        - All outputs require target data
+            - `target_data` must match the number of outputs.
+            - `target_data` must be a list if several outputs were specified. 
+        - Some outputs require target data
+            - Same as above, but we allow the elements of the outputs that do not require target data to be None.
+        - None of the outputs require target data (for example, model only has transformers and/or unsupervised learning steps)
+            - Same as above, but we also allow `target_data=None` even if multiple outputs were specified.
+    - [ ] Steps that do not implement a fit method should be skipped
+    - [ ] Steps that are set to freeze (e.g. loaded a pretrained model) should be skipped
 ```python
-model.fit([x1_data, x2_data], pred_data)
+model.fit([x1_data, x2_data], [y1_target_data, y2_target_data])
 ```
 
 - [ ] Can predict with the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
@@ -187,8 +233,10 @@ out = model.predict([x1_data, x2_data])
 
 - [ ] Can query the model a la graphkit, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
 ```python
-model.query({'x1': ...})  # dictionary keys can be either Data objects or their name strings
-# out = {'pred': ...}
+# input_data dictionary keys can be either Data objects or their name strings
+# outputs can be a list of Data objects or their name strings
+model.query(input_data={'x1': ...}, outputs=[z1, y2])
+# out = {'pred': ...}  # output dictionary keys should be name strings by default?
 ```
 
 - [x] model.fit fails if any of the required inputs was not passed in

@@ -19,6 +19,9 @@ class Model(Step):
         self.outputs = outputs
         self._steps = self._get_required_steps()
 
+        # TODO: Add private graph attribute.
+        # This graph is the data structure used by Model to store and operate on its Data and Steps.
+
     def _get_required_steps(self):
         all_steps_sorted = self.graph.topological_sort()
 
@@ -35,6 +38,8 @@ class Model(Step):
             required_steps.add(output.step)
             required_steps |= self.graph.ancestors(output.step)
 
+        # TODO: Raise error if there are outputs whose roots are not found in inputs
+
         # We do not need to compute the step associated with each input and its ancestors
         for input in self.inputs:
             required_steps.remove(input.step)
@@ -43,6 +48,8 @@ class Model(Step):
         return [step for step in all_steps_sorted if step in required_steps]
 
     def fit(self, input_data, target_data=None):
+        # TODO: target_data must match the number of inputs.
+        # For outputs that do not require target data their corresponding list element must be None.
         # TODO: add extra_targets keyword argument
         # TODO: Add **fit_params argument (like sklearn's Pipeline.fit)
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
