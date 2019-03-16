@@ -78,6 +78,12 @@ class DiGraph:
             ancestors |= self.ancestors(predecessor)
         return ancestors
 
+    def in_degree(self, node):
+        if node not in self:
+            raise NodeNotFoundError('{} is not in the graph!'.format(node))
+
+        return len(self._predecessors[node])
+
     def topological_sort(self):
         # Implemented using depth-first search
         # Also works as a test of acyclicity

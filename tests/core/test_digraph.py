@@ -36,6 +36,18 @@ class TestDiGraph:
         with pytest.raises(MultiEdgeError):
             graph.add_edge('A', 'B')
 
+    def test_in_degree(self):
+        graph = DiGraph()
+        nodes = range(4)
+        for node in nodes:
+            graph.add_node(node)
+
+        graph.add_edge(0, 1)
+        graph.add_edge(1, 3)
+        graph.add_edge(2, 3)
+
+        assert [0, 1, 0, 2] == [graph.in_degree(node) for node in nodes]
+
     def test_ancestors(self):
         graph = DiGraph()
 
