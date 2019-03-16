@@ -45,9 +45,6 @@ class Step(Node):
     def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
         raise NotImplementedError
 
-    def compute(self, *inputs):
-        raise NotImplementedError
-
 
 class InputStep(Node):
     def __init__(self, shape, name=None):

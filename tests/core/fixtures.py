@@ -24,9 +24,6 @@ def sklearn_classifier_step():
         def build_output_shapes(self, input_shapes):
             return [(1,)]
 
-        def compute(self, x):
-            return self.predict(x)
-
         @property
         def fitted(self):
             try:
@@ -47,9 +44,6 @@ def sklearn_transformer_step():
             # TODO: How to handle when n_components is determined during fit?
             # This occurs when passed as a percentage of total variance (0 < n_components < 1)
             return [(self.n_components,)]
-
-        def compute(self, x):
-            return self.transform(x)
 
         @property
         def fitted(self):
