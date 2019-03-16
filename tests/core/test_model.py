@@ -88,3 +88,13 @@ class TestModel:
         y_pred_traditional = logreg.predict(X_data_transformed)
 
         assert_array_equal(y_pred_baikal, y_pred_traditional)
+
+    def test_lazy_model(self, teardown):
+        X_data = np.array([[1, 2], [3, 4]])
+
+        x = Input((2,), name='x')
+        model = Model(x, x)
+        model.fit(X_data)
+        X_pred = model.predict(X_data)
+
+        assert_array_equal(X_pred, X_data)
