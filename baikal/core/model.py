@@ -1,3 +1,4 @@
+import warnings
 from inspect import signature
 
 from baikal.core.data import is_data_list
@@ -22,8 +23,9 @@ class Model(Step):
         # TODO: Add private graph attribute.
         # This graph is the data structure used by Model to store and operate on its Data and Steps.
 
+    # TODO: Refactor as an independent function
     def _get_required_steps(self):
-        all_steps_sorted = self.graph.topological_sort()
+        all_steps_sorted = self.graph.topological_sort()  # Fail early if graph is acyclic
 
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
@@ -31,19 +33,39 @@ class Model(Step):
         # We assume a DAG (guaranteed by success of topological_sort) and with no
         # multiedges (guaranteed by success of add_edge).
 
-        required_steps = set()
-
         # We need to compute the step associated with each output and its ancestors
+        required_steps = set()
         for output in self.outputs:
             required_steps.add(output.step)
             required_steps |= self.graph.ancestors(output.step)
 
-        # TODO: Raise error if there are outputs whose roots are not found in inputs
-
         # We do not need to compute the step associated with each input and its ancestors
-        for input in self.inputs:
-            required_steps.remove(input.step)
-            required_steps -= self.graph.ancestors(input.step)
+        inputs = self.inputs[:]
+        not_required_steps = set()
+        for step in required_steps:
+            if all([o in inputs for o in step.outputs]):
+                # A step and its ancestors can be removed if and only if all of its outputs are in the inputs
+                not_required_steps.add(step)
+                not_required_steps |= self.graph.ancestors(step)
+
+            for o in step.outputs:
+                if o in inputs:
+                    inputs.remove(o)
+
+        required_steps -= not_required_steps
+
+        for input in inputs:
+            warnings.warn('Input {} was provided but it is not required to compute the specified outputs.'.format(input.name), RuntimeWarning)
+
+        # Check for missing inputs
+        missing_inputs = []
+        for step in required_steps:
+            if self.graph.in_degree(step) == 0:
+                missing_inputs.extend(step.outputs)
+
+        if missing_inputs:
+            raise ValueError('The following inputs are required but were not specified!:\n'
+                             '{}'.format(','.join([input.name for input in missing_inputs])))
 
         return [step for step in all_steps_sorted if step in required_steps]
 
@@ -88,6 +110,8 @@ class Model(Step):
             else:
                 raise TypeError('{} does not implement predict or transform!'.format(step.name))
 
+            # TODO: Raise warning if computed output is already in cache.
+            # This happens when recomputing a step that had some of its outputs already passed in the inputs.
             cache.update(zip(step.outputs, listify(output_data)))
 
     def predict(self, input_data):
@@ -109,6 +133,8 @@ class Model(Step):
             else:
                 raise TypeError('{} does not implement predict or transform!'.format(step.name))
 
+            # TODO: Raise warning if computed output is already in cache.
+            # This happens when recomputing a step that had some of its outputs already passed in the inputs.
             cache.update(zip(step.outputs, listify(output_data)))
 
         output_data = [cache[o] for o in self.outputs]

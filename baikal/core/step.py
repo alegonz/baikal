@@ -35,7 +35,7 @@ class Step(Node):
     # Also, sklearn-based Steps can accept only shapes of length 1
     # (ignoring the samples, the dimensionality of the feature vector)
 
-    def _build_outputs(self, inputs: List[Data]) -> Union[Data, List[Data]]:
+    def _build_outputs(self, inputs: List[Data]) -> List[Data]:
         input_shapes = [input.shape for input in inputs]
         output_shapes = self.build_output_shapes(input_shapes)
 
@@ -50,10 +50,10 @@ class InputStep(Node):
     def __init__(self, shape, name=None):
         super(InputStep, self).__init__(name=name)
         # TODO: Maybe '/0' at the end is cumbersome and unnecessary in InputStep's
-        self.outputs = Data(shape, self)
+        self.outputs = [Data(shape, self)]
 
 
 def Input(shape, name=None):
     # Maybe this can be implemented in InputStep.__new__
     input = InputStep(shape, name)
-    return input.outputs
+    return input.outputs[0]  # Input produces exactly one Data output

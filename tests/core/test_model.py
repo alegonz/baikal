@@ -98,3 +98,10 @@ class TestModel:
         X_pred = model.predict(X_data)
 
         assert_array_equal(X_pred, X_data)
+
+    def test_missing_input(self, teardown):
+        x1 = Input((2,), name='x1')
+        x2 = Input((2,), name='x2')
+
+        with pytest.raises(ValueError):
+            model = Model(x1, x2)
