@@ -136,6 +136,17 @@ class TestModel:
 
         assert_array_equal(y_pred_baikal, y_pred_traditional)
 
+    def test_missing_input_in_predict(self):
+        x1 = Input((1,), name='x1')
+        x2 = Input((1,), name='x2')
+        y = DummyMISO()([x1, x2])
+
+        model = Model([x1, x2], y)
+
+        x1_data = np.array([1, 2])
+        with pytest.raises(ValueError):
+            model.predict(x1_data)
+
     def test_lazy_model(self, teardown):
         X_data = np.array([[1, 2], [3, 4]])
 
