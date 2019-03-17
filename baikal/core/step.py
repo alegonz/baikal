@@ -50,6 +50,7 @@ class InputStep(Node):
     def __init__(self, shape, name=None):
         super(InputStep, self).__init__(name=name)
         # TODO: Maybe '/0' at the end is cumbersome and unnecessary in InputStep's
+        self.inputs = []
         self.outputs = [Data(shape, self)]
 
 

@@ -9,17 +9,46 @@ from baikal.core.model import Model
 from baikal.core.step import Input
 
 from fixtures import sklearn_classifier_step, sklearn_transformer_step, teardown
+from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO
 
 
 class TestModel:
-    def test_instantiation(self, sklearn_classifier_step, teardown):
-        x = Input((10,), name='x')
-        y = sklearn_classifier_step()(x)
-        model = Model(x, y)
+    def test_instantiation(self, teardown):
+        x1 = Input((1,), name='x1')
+        x2 = Input((1,), name='x2')
 
-    def test_instantiation_with_wrong_input_type(self, sklearn_classifier_step, teardown):
+        z1 = DummySISO()(x1)
+        z2, z3 = DummySIMO()(x2)
+        z4 = DummyMISO()([z1, z2])
+        z5, z6 = DummyMIMO()([z4, z3])
+
+        # Should not raise errors nor warnings
+        # model = Model(x1, z1)
+        # model = Model(x1, x1)
+        model = Model([x1, x2], [z5, z6])
+        model = Model([z3, z4], z5)
+
+        with pytest.raises(ValueError):
+            model = Model(x1, x2)
+
+        with pytest.raises(ValueError):
+            model = Model(z1, z4)
+
+        with pytest.raises(ValueError):
+            model = Model([z1, z2], z5)
+
+        with pytest.warns(RuntimeWarning):
+            model = Model([x1, x2], z1)
+
+        with pytest.warns(RuntimeWarning):
+            model = Model([z1, z2, x1], z4)
+
+        with pytest.warns(RuntimeWarning):
+            model = Model([z1, z2, x2], z4)
+
+    def test_instantiation_with_wrong_input_type(self, teardown):
         x = Input((10,), name='x')
-        y = sklearn_classifier_step()(x)
+        y = DummySISO()(x)
 
         x_wrong = np.zeros((10,))
         with pytest.raises(ValueError):
@@ -98,10 +127,3 @@ class TestModel:
         X_pred = model.predict(X_data)
 
         assert_array_equal(X_pred, X_data)
-
-    def test_missing_input(self, teardown):
-        x1 = Input((2,), name='x1')
-        x2 = Input((2,), name='x2')
-
-        with pytest.raises(ValueError):
-            model = Model(x1, x2)

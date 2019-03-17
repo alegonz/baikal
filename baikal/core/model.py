@@ -33,41 +33,44 @@ class Model(Step):
         # We assume a DAG (guaranteed by success of topological_sort) and with no
         # multiedges (guaranteed by success of add_edge).
 
-        # We need to compute the step associated with each output and its ancestors
-        required_steps = set()
+        all_required_steps = set()
+        inputs_found = []
+
+        def backtrack(output):
+            required_steps = set()
+
+            if output in self.inputs:
+                inputs_found.append(output)
+                return required_steps
+
+            parent_step = output.step
+            if parent_step in all_required_steps:
+                return required_steps
+
+            required_steps = {parent_step}
+            for input in parent_step.inputs:
+                required_steps |= backtrack(input)
+            return required_steps
+
         for output in self.outputs:
-            required_steps.add(output.step)
-            required_steps |= self.graph.ancestors(output.step)
+            all_required_steps |= backtrack(output)
 
-        # We do not need to compute the step associated with each input and its ancestors
-        inputs = self.inputs[:]
-        not_required_steps = set()
-        for step in required_steps:
-            if all([o in inputs for o in step.outputs]):
-                # A step and its ancestors can be removed if and only if all of its outputs are in the inputs
-                not_required_steps.add(step)
-                not_required_steps |= self.graph.ancestors(step)
-
-            for o in step.outputs:
-                if o in inputs:
-                    inputs.remove(o)
-
-        required_steps -= not_required_steps
-
-        for input in inputs:
-            warnings.warn('Input {} was provided but it is not required to compute the specified outputs.'.format(input.name), RuntimeWarning)
+        # Check for any unused inputs
+        for input in self.inputs:
+            if input not in inputs_found:
+                warnings.warn('Input {} was provided but it is not required to compute the specified outputs.'.format(input.name), RuntimeWarning)
 
         # Check for missing inputs
         missing_inputs = []
-        for step in required_steps:
+        for step in all_required_steps:
             if self.graph.in_degree(step) == 0:
                 missing_inputs.extend(step.outputs)
 
         if missing_inputs:
-            raise ValueError('The following inputs are required but were not specified!:\n'
+            raise ValueError('The following inputs are required but were not specified:\n'
                              '{}'.format(','.join([input.name for input in missing_inputs])))
 
-        return [step for step in all_steps_sorted if step in required_steps]
+        return [step for step in all_steps_sorted if step in all_required_steps]
 
     def fit(self, input_data, target_data=None):
         # TODO: target_data must match the number of inputs.
