@@ -23,17 +23,12 @@ model = Model([x1, x2], y)  # Could also be a sub-graph
 
 # Train model a la Keras:
 model.fit([x1_data, x2_data], y_data)
-
-# or a la TensorFlow:
-model.fit({'input1': x1_data,
-           'input2': x2_data,
-           'y': y_data})
              
 # predict and feed_forward return concrete data (numpy arrays, pandas dataframes, etc)
 y_pred = model.predict([x1_data, x2_data])
 
 # Can also query specific outputs (and only give the necessary inputs)
-outs = model.predict({'input1': x1_data}, outputs=['z1'])
+outs = model.query({'input1': x1_data}, outputs=['z1'])
 ```
 
 ## Some desired features
@@ -52,10 +47,8 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
 - A cache to avoid repeating the computations if the input data hasn't changed
 
 ## Implementation ideas
-- DiGraph should be built dynamically (like TensorFlow)
-    - There should be a default graph
-    - Nodes should be added to the graph on instantiation
-    - Edges should be added on calls to node `__call__` (e.g. `SomeNode(...)([n1, n2])`)
+- DiGraph is the internal representation of the Data and Steps that belong to a Model.
+    - It is build on Model instantiation. 
 - Represent graphs as dicts-of-sets (adjacency list)
     - This is similar to the data structure used in networkx (dicts-of-dicts)
     - Maybe only dicts (nodes) of sets (successors) are necessary
@@ -93,7 +86,6 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
             - Method 1:
                 - Dumping:
                     - Persist the graph steps and their connections, but not the graph itself
-                        - Persist only the sub-graph
                         - Perhaps in yaml/json or dot format. Preferably json (json is a python built-in module).
                     - Persist the steps coefficients/weights and their params
                     - This is similar to what Keras's `Model.save_model` does
@@ -108,13 +100,13 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
                     - scikit-learn does not provide an API for persisting coefficients/weights independently.
             - Method 2:
                 - Dumping:
-                    - Trim parent graph to Model's subgraph and persist everything to a pickle/joblib.
-                        - Don't need to trim anything if we decouple the graph from the steps and add make it an internal attribute of Model.
+                    - Dump entire Model to a pickle/joblib like you would do with a sklearn object.
                 - Loading:
-                    - Load model into a separate graph and merge this graph with the client when doing `Model.__call__`
+                    - Load entire Model to a pickle/joblib like you would do with a sklearn object.
                 - Pros:
                     - Rather straightforward
                 - Cons:
+                    - What happens with the names of the loaded Steps and any already existing Steps?
                     - Have to make sure the Model internals are pickle-able.
                     - Inherent security issues of pickle/joblib.
             - Other considerations:
@@ -135,23 +127,21 @@ outs = model.predict({'input1': x1_data}, outputs=['z1'])
             - Include a plot function that plots the model graph
         
 - Need to implement check/inference of input/output shapes
-    - Shape information is delegated to Data class
     - Steps like Concatenate, Split and Merge need to know about the input shapes
     - sklearn Steps' inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
-    - Also necessary to infer the number of outputs of a Step
+    - [x] Shape information is delegated to Data class
+    - [x] Also necessary to infer the number of outputs of a Step
         - There is no way in Python to know a priori the type and number of outputs of a function
-    - Provide a `compute_output_shapes` API
-- Use `networkx` for graph stuff. After having a working API, replace with a in-house module.
-    - We don't need much from `networkx`. Just the primitive classes and the topological sort algorithm.
+        - [x] Provide a `build_output_shapes` API
 
 ### Compilation (i.e. call to `Model(...)`)
-- Do topological sort to get the order of execution of the steps.
+- [x] Do topological sort to get the order of execution of the steps.
 
 ### Feedforward
-- Find the required steps with a recursive predecessor search
+- [x] Find the required steps with a recursive predecessor search
     - Backtrace the predecesor nodes to find the inputs required to compute the specified outputs
         - Stop a backtrace path if the node's output is found in the provided inputs
-- Execute the required steps according to the topological sort
+- [x] Execute the required steps according to the topological sort
     - Use a results cache (just a dict)
 
 ## Tests TODO list
@@ -224,7 +214,7 @@ model = Model(inputs=[x1, x2], outputs=[y1, y2])
 model.fit([x1_data, x2_data], [y1_target_data, y2_target_data])
 ```
 
-- [ ] Can predict with the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
+- [x] Can predict with the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
     - If multiple outputs were specified, a list of actual result data is returned
 ```python
 out = model.predict([x1_data, x2_data])
@@ -242,4 +232,4 @@ model.query(input_data={'x1': ...}, outputs=[z1, y2])
 - [x] model.fit fails if any of the required inputs was not passed in
     - This includes target data for outputs in the case of supervised learning
 
-- [ ] model.predict fails if any of the required inputs is not in the input dictionary
+- [x] model.predict fails if any of the required inputs is not in the provided inputs
