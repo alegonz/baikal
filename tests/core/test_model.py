@@ -14,7 +14,18 @@ from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO
 
 
 class TestModel:
-    def test_instantiation(self, teardown):
+    @pytest.mark.parametrize('inputs,outputs,error_warning',
+                             [(['x1'], ['z1'], None),
+                              (['x1'], ['x1'], None),
+                              (['x1', 'x2'], ['z5', 'z6'], None),
+                              (['z3', 'z4'], ['z5'], None),
+                              (['x1'], ['x2'], ValueError),
+                              (['z1'], ['z4'], ValueError),
+                              (['z1', 'z2'], ['z5'], ValueError),
+                              (['x1', 'x2'], ['z1'], RuntimeWarning),
+                              (['z1', 'z2', 'x1'], ['z4'], RuntimeWarning),
+                              (['z1', 'z2', 'x2'], ['z4'], RuntimeWarning)])
+    def test_instantiation(self, inputs, outputs, error_warning, teardown):
         x1 = Input((1,), name='x1')
         x2 = Input((1,), name='x2')
 
@@ -23,29 +34,24 @@ class TestModel:
         z4 = DummyMISO()([z1, z2])
         z5, z6 = DummyMIMO()([z4, z3])
 
-        # Should not raise errors nor warnings
-        model = Model(x1, z1)
-        model = Model(x1, x1)
-        model = Model([x1, x2], [z5, z6])
-        model = Model([z3, z4], z5)
+        data = {'x1': x1, 'x2': x2,
+                'z1': z1, 'z2': z2,
+                'z3': z3, 'z4': z4,
+                'z5': z5, 'z6': z6}
 
-        with pytest.raises(ValueError):
-            model = Model(x1, x2)
+        inputs = [data[i] for i in inputs]
+        outputs = [data[o] for o in outputs]
 
-        with pytest.raises(ValueError):
-            model = Model(z1, z4)
+        if error_warning is ValueError:
+            with pytest.raises(error_warning):
+                Model(inputs, outputs)
 
-        with pytest.raises(ValueError):
-            model = Model([z1, z2], z5)
+        elif error_warning is RuntimeWarning:
+            with pytest.warns(error_warning):
+                Model(inputs, outputs)
 
-        with pytest.warns(RuntimeWarning):
-            model = Model([x1, x2], z1)
-
-        with pytest.warns(RuntimeWarning):
-            model = Model([z1, z2, x1], z4)
-
-        with pytest.warns(RuntimeWarning):
-            model = Model([z1, z2, x2], z4)
+        else:
+            Model(inputs, outputs)
 
     def test_multiedge(self):
         x = Input((1,), name='x')
