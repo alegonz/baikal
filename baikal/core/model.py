@@ -1,7 +1,7 @@
 import warnings
-from inspect import signature
 
 from baikal.core.data import is_data_list
+from baikal.core.digraph import DiGraph
 from baikal.core.step import Step
 from baikal.core.utils import listify
 
@@ -18,15 +18,34 @@ class Model(Step):
 
         self.inputs = inputs
         self.outputs = outputs
+        self._graph = self._build_graph()
         self._steps = self._get_required_steps()
 
-        # TODO: Add private graph attribute.
-        # This graph is the data structure used by Model to store and operate on its Data and Steps.
+    def _build_graph(self):
+        # Model uses the DiGraph data structure to store and operate on its Data and Steps.
+        graph = DiGraph()
 
-    # TODO: Refactor as an independent function
+        # Add nodes (steps)
+        def collect_steps_from(output):
+            parent_step = output.step
+            graph.add_node(parent_step)
+            for input in parent_step.inputs:
+                collect_steps_from(input)
+
+        for output in self.outputs:
+            collect_steps_from(output)
+
+        # Add edges (data)
+        for step in graph:
+            for input in step.inputs:
+                graph.add_edge(input.step, step)
+
+        return graph
+
     def _get_required_steps(self):
-        all_steps_sorted = self.graph.topological_sort()  # Fail early if graph is acyclic
+        all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
 
+        # TODO: Do we really need to forbid multiedges?
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
         # Raise an error if there is an ancestor whose input is not in the specified inputs.
@@ -36,6 +55,7 @@ class Model(Step):
         all_required_steps = set()
         inputs_found = []
 
+        # Depth-first search
         def backtrack(output):
             required_steps = set()
 
@@ -58,12 +78,14 @@ class Model(Step):
         # Check for any unused inputs
         for input in self.inputs:
             if input not in inputs_found:
-                warnings.warn('Input {} was provided but it is not required to compute the specified outputs.'.format(input.name), RuntimeWarning)
+                warnings.warn(
+                    'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name),
+                    RuntimeWarning)
 
         # Check for missing inputs
         missing_inputs = []
         for step in all_required_steps:
-            if self.graph.in_degree(step) == 0:
+            if self._graph.in_degree(step) == 0:
                 missing_inputs.extend(step.outputs)
 
         if missing_inputs:
@@ -153,3 +175,7 @@ class Model(Step):
     # (interpreted as 1to1 correspondence with inputs (outputs) passed at __init__),
     # or a dictionary keyed by Data instances or their names with array values. We need input normalization for this.
     # Also, check that all of requested output keys exist in the Model (sub)graph (not the parent graph!)
+
+    @property
+    def graph(self):
+        return self._graph

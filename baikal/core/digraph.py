@@ -129,27 +129,17 @@ class Node:
 
     def __init__(self, *args, name=None, **kwargs):
         super(Node, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
-        # Maybe graph should be passed as a keyword argument
-        graph = default_graph
-        self.graph = graph
-        self.graph.add_node(self)
-
-        if graph not in self._names:
-            self._names[graph] = {}
-
         self.name = self._generate_unique_name(name)
 
     def _generate_unique_name(self, name):
-        graph = self.graph
-
         if name is None:
             name = self.__class__.__name__
 
-        n_instances = self._names[graph].get(name, 0)
+        n_instances = self._names.get(name, 0)
         unique_name = make_name(name, n_instances, sep='_')
 
         n_instances += 1
-        self._names[graph][name] = n_instances
+        self._names[name] = n_instances
 
         return unique_name
 

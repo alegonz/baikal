@@ -18,11 +18,6 @@ class Step(Node):
         if not is_data_list(inputs):
             raise ValueError('Steps must be called with Data inputs.')
 
-        # Add edges
-        for input in inputs:
-            predecessor = input.step
-            self.graph.add_edge(predecessor, self)
-
         self.inputs = inputs
         self.outputs = self._build_outputs(inputs)
 

@@ -5,6 +5,7 @@ from sklearn import datasets
 import sklearn.decomposition
 import sklearn.linear_model
 
+from baikal.core.digraph import MultiEdgeError
 from baikal.core.model import Model
 from baikal.core.step import Input
 
@@ -23,8 +24,8 @@ class TestModel:
         z5, z6 = DummyMIMO()([z4, z3])
 
         # Should not raise errors nor warnings
-        # model = Model(x1, z1)
-        # model = Model(x1, x1)
+        model = Model(x1, z1)
+        model = Model(x1, x1)
         model = Model([x1, x2], [z5, z6])
         model = Model([z3, z4], z5)
 
@@ -45,6 +46,14 @@ class TestModel:
 
         with pytest.warns(RuntimeWarning):
             model = Model([z1, z2, x2], z4)
+
+    def test_multiedge(self):
+        x = Input((1,), name='x')
+        z1, z2 = DummySIMO()(x)
+        y = DummyMISO()([z1, z2])
+
+        with pytest.raises(MultiEdgeError):
+            model = Model(x, y)
 
     def test_instantiation_with_wrong_input_type(self, teardown):
         x = Input((10,), name='x')
