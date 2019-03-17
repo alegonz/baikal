@@ -1,6 +1,6 @@
 import pytest
 
-from baikal.core.digraph import DiGraph, NodeNotFoundError, MultiEdgeError, CyclicDiGraphError
+from baikal.core.digraph import DiGraph, NodeNotFoundError, CyclicDiGraphError
 
 
 class TestDiGraph:
@@ -28,13 +28,17 @@ class TestDiGraph:
         with pytest.raises(NodeNotFoundError):
             graph.add_edge('A', 'B')
 
-    def test_add_multiedge(self):
+    def test_can_add_same_node(self):
+        graph = DiGraph()
+        graph.add_node('A')
+        graph.add_node('A')
+
+    def test_can_add_same_edge(self):
         graph = DiGraph()
         graph.add_node('A')
         graph.add_node('B')
         graph.add_edge('A', 'B')
-        with pytest.raises(MultiEdgeError):
-            graph.add_edge('A', 'B')
+        graph.add_edge('A', 'B')
 
     def test_in_degree(self):
         graph = DiGraph()

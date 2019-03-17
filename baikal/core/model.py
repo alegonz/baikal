@@ -45,12 +45,10 @@ class Model(Step):
     def _get_required_steps(self):
         all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
 
-        # TODO: Do we really need to forbid multiedges?
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
         # Raise an error if there is an ancestor whose input is not in the specified inputs.
-        # We assume a DAG (guaranteed by success of topological_sort) and with no
-        # multiedges (guaranteed by success of add_edge).
+        # We assume a DAG (guaranteed by success of topological_sort).
 
         all_required_steps = set()
         inputs_found = []
@@ -170,7 +168,6 @@ class Model(Step):
 
     # TODO: Implement build_output_shapes method.
     # TODO: Override __call__ method
-    # TODO: Implement predict method
     # predict: inputs (outputs) can be either: a list of arrays
     # (interpreted as 1to1 correspondence with inputs (outputs) passed at __init__),
     # or a dictionary keyed by Data instances or their names with array values. We need input normalization for this.

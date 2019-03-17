@@ -9,11 +9,6 @@ class NodeNotFoundError(Exception):
     """
 
 
-class MultiEdgeError(Exception):
-    """Exception raised when attempting to add an edge that already exists.
-    """
-
-
 class CyclicDiGraphError(Exception):
     """Exception raised when graph has cycles.
     """
@@ -33,9 +28,10 @@ class DiGraph:
         self._predecessors[node] = set()
 
     def add_edge(self, from_node, to_node):
-        if self.has_edge(from_node, to_node):
-            raise MultiEdgeError(
-                'An edge between {} and {} already exists (multiedges are not allowed)!'.format(from_node, to_node))
+        if from_node not in self:
+            raise NodeNotFoundError('{} is not in the graph!'.format(from_node))
+        if to_node not in self:
+            raise NodeNotFoundError('{} is not in the graph!'.format(to_node))
 
         self._successors[from_node].add(to_node)
         self._predecessors[to_node].add(from_node)
@@ -45,14 +41,6 @@ class DiGraph:
 
     def __iter__(self):
         return iter(self._successors)
-
-    def has_edge(self, from_node, to_node):
-        if from_node not in self:
-            raise NodeNotFoundError('{} is not in the graph!'.format(from_node))
-        if to_node not in self:
-            raise NodeNotFoundError('{} is not in the graph!'.format(to_node))
-
-        return to_node in self._successors[from_node]
 
     def clear(self):
         self._successors.clear()
@@ -121,7 +109,6 @@ class DiGraph:
 default_graph = DiGraph(name='default')
 
 
-# TODO: Decouple graph from Node class. Keep track of only Node parents.
 class Node:
     # used to keep track of number of instances and make unique names
     # a dict-of-dicts with graph and name as keys.

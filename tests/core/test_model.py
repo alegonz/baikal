@@ -5,7 +5,6 @@ from sklearn import datasets
 import sklearn.decomposition
 import sklearn.linear_model
 
-from baikal.core.digraph import MultiEdgeError
 from baikal.core.model import Model
 from baikal.core.step import Input
 
@@ -18,6 +17,7 @@ class TestModel:
                              [(['x1'], ['z1'], None),
                               (['x1'], ['x1'], None),
                               (['x1', 'x2'], ['z5', 'z6'], None),
+                              (['x1', 'x2'], ['z1', 'z2'], None),
                               (['z3', 'z4'], ['z5'], None),
                               (['x1'], ['x2'], ValueError),
                               (['z1'], ['z4'], ValueError),
@@ -57,9 +57,12 @@ class TestModel:
         x = Input((1,), name='x')
         z1, z2 = DummySIMO()(x)
         y = DummyMISO()([z1, z2])
+        model = Model(x, y)
 
-        with pytest.raises(MultiEdgeError):
-            model = Model(x, y)
+        X_data = np.array([1, 2])
+        y_out = model.predict(X_data)
+
+        assert_array_equal(y_out, np.array([2, 4]))
 
     def test_instantiation_with_wrong_input_type(self, teardown):
         x = Input((10,), name='x')

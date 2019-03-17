@@ -3,6 +3,10 @@ def make_name(*parts, sep='/'):
 
 
 def listify(x):
-    if not isinstance(x, list):
+    if isinstance(x, list):
+        pass
+    elif isinstance(x, tuple):
+        x = list(x)
+    else:
         x = [x]
     return x
