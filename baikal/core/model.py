@@ -93,8 +93,6 @@ class Model(Step):
         return [step for step in all_steps_sorted if step in all_required_steps]
 
     def fit(self, input_data, target_data=None):
-        # TODO: target_data must match the number of inputs.
-        # For outputs that do not require target data their corresponding list element must be None.
         # TODO: add extra_targets keyword argument
         # TODO: Add **fit_params argument (like sklearn's Pipeline.fit)
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
@@ -108,20 +106,24 @@ class Model(Step):
             raise ValueError('The number of training data arrays does not match the number of inputs!')
         cache.update(zip(self.inputs, input_data))
 
-        if target_data is not None:
-            # FIXME: This should check only the outputs that require target_data
+        if target_data is None:
+            target_data = [None] * len(self.outputs)
+        else:
             target_data = listify(target_data)
-            if len(target_data) != len(self.outputs):
-                raise ValueError('The number of target data arrays does not match the number of outputs!')
-            cache.update(zip(self.outputs, target_data))
+
+        if len(target_data) != len(self.outputs):
+            raise ValueError('The number of target data arrays does not match the number of outputs!')
+        cache.update(zip(self.outputs, target_data))
 
         # cache.update(extra_targets)
 
         for step in self._steps:
             # 1) Fit phase
             Xs = [cache[i] for i in step.inputs]
-            ys = [cache[o] for o in step.outputs if o in cache]
-            step.fit(*Xs, *ys)
+            if hasattr(step, 'fit'):
+                # Filtering out None target_data allow us to define fit methods without y=None.
+                ys = [cache[o] for o in step.outputs if o in cache and cache[o] is not None]
+                step.fit(*Xs, *ys)
 
             # 2) predict/transform phase
             # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
@@ -131,7 +133,7 @@ class Model(Step):
             elif hasattr(step, 'transform'):
                 output_data = step.transform(*Xs)
             else:
-                raise TypeError('{} does not implement predict or transform!'.format(step.name))
+                raise TypeError('{} must implement either predict or transform!'.format(step.name))
 
             # TODO: Raise warning if computed output is already in cache.
             # This happens when recomputing a step that had some of its outputs already passed in the inputs.
@@ -168,10 +170,9 @@ class Model(Step):
 
     # TODO: Implement build_output_shapes method.
     # TODO: Override __call__ method
-    # predict: inputs (outputs) can be either: a list of arrays
-    # (interpreted as 1to1 correspondence with inputs (outputs) passed at __init__),
-    # or a dictionary keyed by Data instances or their names with array values. We need input normalization for this.
-    # Also, check that all of requested output keys exist in the Model (sub)graph (not the parent graph!)
+    # query: inputs (outputs) can be a dictionary keyed by Data instances or
+    # their names, with array values. We need input normalization for this.
+    # Also, check that all of requested output keys exist in the Model graph.
 
     @property
     def graph(self):

@@ -156,3 +156,19 @@ class TestModel:
         X_pred = model.predict(X_data)
 
         assert_array_equal(X_pred, X_data)
+
+    def test_fit_and_predict_model_with_no_fittable_steps(self, teardown):
+        X1_data = np.array([[1, 2], [3, 4]])
+        X2_data = np.array([[5, 6], [7, 8]])
+        y_expected = np.array([[12, 16], [20, 24]])
+
+        x1 = Input((1,), name='x1')
+        x2 = Input((1,), name='x2')
+        z = DummyMISO()([x1, x2])
+        y = DummySISO()(z)
+
+        model = Model([x1, x2], y)
+        model.fit([X1_data, X2_data])
+        y_pred = model.predict([X1_data, X2_data])
+
+        assert_array_equal(y_pred, y_expected)
