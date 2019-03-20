@@ -62,10 +62,10 @@ class TestModel:
         y = DummyMISO()([z1, z2])
         model = Model(x, y)
 
-        X_data = np.array([1, 2])
+        X_data = np.array([[1], [2]])
         y_out = model.predict(X_data)
 
-        assert_array_equal(y_out, np.array([2, 4]))
+        assert_array_equal(y_out, np.array([[2], [4]]))
 
     def test_instantiation_with_wrong_input_type(self, teardown):
         x = Input((10,), name='x')
@@ -73,7 +73,7 @@ class TestModel:
 
         x_wrong = np.zeros((10,))
         with pytest.raises(ValueError):
-            model = Model(x_wrong, y)
+            Model(x_wrong, y)
 
     def test_instantiation_with_steps_with_duplicated_names(self, teardown):
         x = Input((10,), name='x')
@@ -81,7 +81,7 @@ class TestModel:
         y = DummySISO(name='duplicated-name')(x)
 
         with pytest.raises(RuntimeError):
-            model = Model(x, y)
+            Model(x, y)
 
     def test_lazy_model(self, teardown):
         X_data = np.array([[1, 2], [3, 4]])
@@ -100,7 +100,7 @@ class TestModel:
 
         model = Model([x1, x2], y)
 
-        x1_data = np.array([1, 2])
+        x1_data = np.array([[1], [2]])
         with pytest.raises(ValueError):
             model.predict(x1_data)
 
@@ -113,8 +113,8 @@ class TestModel:
         X2_data = np.array([[5, 6], [7, 8]])
         y_expected = np.array([[12, 16], [20, 24]])
 
-        x1 = Input((1,), name='x1')
-        x2 = Input((1,), name='x2')
+        x1 = Input((2,), name='x1')
+        x2 = Input((2,), name='x2')
         z = DummyMISO()([x1, x2])
         y = DummySISO()(z)
 
