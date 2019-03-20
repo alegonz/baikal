@@ -10,14 +10,14 @@ class TestInput:
 
         assert isinstance(x0, Data)
         assert (10,) == x0.shape
-        assert 'InputStep_0/0' == x0.name
+        assert 'InputStep_0' == x0.name
 
     def test_instantiate_two_without_name(self, teardown):
         x0 = Input((5,))
         x1 = Input((2,))
 
-        assert 'InputStep_0/0' == x0.name
-        assert 'InputStep_1/0' == x1.name
+        assert 'InputStep_0' == x0.name
+        assert 'InputStep_1' == x1.name
 
 
 class TestStep:

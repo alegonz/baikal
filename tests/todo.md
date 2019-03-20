@@ -241,9 +241,37 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [x] Test raises `NotFittedError` when predict is run before fit.
     - [x] Add check for step name uniqueness (and hence their outputs) when building
         - Raise error if duplicated names are found
-    - [ ] Implement `query` method
+    - [ ] Extend `predict` method to handle input_data and request outputs other than those specified at instantiation 
         - Need inputs/outputs normalization
-        - Unify API with `predict` method
+            - Normalized to `Dict[Data, Any]`
+            - Cases:
+                - `Any` stands for array-like
+                - `fit`:
+                    - `input_data`:
+                        - `Any`
+                        - `List[Any]`
+                        - `Dict[str, Any]`
+                        - `Dict[Data, Any]`
+                    - `target_data`:
+                        - `Optional`
+                            - `Any`
+                            - `List[Any]`
+                            - `Dict[str, Any]`
+                            - `Dict[Data, Any]`
+                        - If None, set a list with None's for each output
+                - `predict`:
+                    - `input_data`:
+                        - `Any`
+                        - `List[Any]`
+                        - `Dict[str, Any]`
+                        - `Dict[Data, Any]`
+                    - `outputs`:
+                        - `Optional`
+                            - `str`
+                            - `List[str]`
+                            - `Data`
+                            - `List[Data]`
+                        - If None, return the outputs defined at instantiation    
     - [ ] Implement `extra_targets` argument in `Model.fit`
         - Test with a simple ensemble
     - [ ] Implement `Model.__call__`

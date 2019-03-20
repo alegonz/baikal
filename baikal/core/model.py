@@ -1,6 +1,7 @@
 import warnings
+from typing import Union, List, Any, Dict
 
-from baikal.core.data import is_data_list
+from baikal.core.data import is_data_list, Data
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step
 from baikal.core.utils import listify
@@ -106,12 +107,40 @@ class Model(Step):
 
         return [step for step in all_steps_sorted if step in all_required_steps]
 
-    def _sanitize_input_data(self, input_data):
-        input_data = listify(input_data)
-        if len(input_data) != len(self.inputs):
+    def _normalize_input_data(self, input_data: Union[Any, List[Any], Dict[Data, Any], Dict[str, Any]]) -> Dict[Data, Any]:
+
+        if isinstance(input_data, dict):
+            input_data_norm = {}
+            for key, value in input_data.items():
+                if isinstance(key, Data):
+                    key_norm = key
+                elif isinstance(key, str):
+                    key_norm = self._get_data(key)
+                else:
+                    raise ValueError('When passing data in a dictionary, keys must be either of type str or Data.\n'
+                                     'Got {}'.format(type(key)))
+                input_data_norm[key_norm] = value
+
+        else:
+            # User passed either an array-like directly (case of one input)
+            # or passed a list of array-like
+            input_data_norm = dict(zip(self.inputs, listify(input_data)))
+
+        # FIXME: This should decision should consider the required outputs too
+        if len(input_data_norm) != len(self.inputs):
             raise ValueError('The number of training data arrays does not match the number of inputs!\n'
-                             'Expected {} but got {}'.format(len(self.inputs), len(input_data)))
-        return input_data
+                             'Expected {} but got {}'.format(len(self.inputs), len(input_data_norm)))
+
+        return input_data_norm
+
+    def _get_data(self, name: str) -> Data:
+        # Steps are assumed to have unique names
+        # If the step names are unique, so are the data names
+        for step in self._graph:
+            for output in step.outputs:
+                if output.name == name:
+                    return output
+        raise ValueError('{} was not found in the model!'.format(name))
 
     def fit(self, input_data, target_data=None):
         # TODO: add extra_targets keyword argument
@@ -122,8 +151,8 @@ class Model(Step):
 
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
 
-        input_data = self._sanitize_input_data(input_data)
-        cache.update(zip(self.inputs, input_data))
+        input_data = self._normalize_input_data(input_data)
+        cache.update(input_data)
 
         if target_data is None:
             target_data = [None] * len(self.outputs)
@@ -145,17 +174,17 @@ class Model(Step):
                 step.fit(*Xs, *ys)
 
             # 2) predict/transform phase
-            self._compute_step(Xs, cache, step)
+            self._compute_step(step, Xs, cache)
 
     def predict(self, input_data):
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
 
-        input_data = self._sanitize_input_data(input_data)
-        cache.update(zip(self.inputs, input_data))
+        input_data = self._normalize_input_data(input_data)
+        cache.update(input_data)
 
         for step in self._steps:
             Xs = [cache[i] for i in step.inputs]
-            self._compute_step(Xs, cache, step)
+            self._compute_step(step, Xs, cache)
 
         output_data = [cache[o] for o in self.outputs]
         if len(output_data) == 1:
@@ -164,8 +193,8 @@ class Model(Step):
             return output_data
 
     @staticmethod
-    def _compute_step(Xs, cache, step):
-        # TODO: Check number of outputs is equal to the expected number
+    def _compute_step(step, Xs, cache):
+        # TODO: Check that number and shape of inputs/outputs is equal to the expected number and shapes
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.

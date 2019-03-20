@@ -11,6 +11,8 @@ from baikal.core.step import Input
 
 from fixtures import sklearn_classifier_step, sklearn_transformer_step, teardown
 from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
+from utils import datatuple2list, datatuple2datadict, datatuple2strdict
+
 
 iris = datasets.load_iris()
 
@@ -45,6 +47,7 @@ class TestModel:
         inputs = [data[i] for i in inputs]
         outputs = [data[o] for o in outputs]
 
+        # TODO: Refactor as with expection pattern in pytest docs
         if error_warning is ValueError:
             with pytest.raises(error_warning):
                 Model(inputs, outputs)
@@ -93,6 +96,25 @@ class TestModel:
 
         assert_array_equal(X_pred, X_data)
 
+    @pytest.mark.parametrize('reshape_function', [datatuple2list, datatuple2datadict, datatuple2strdict])
+    def test_predict(self, reshape_function, teardown):
+        x1 = Input((1,), name='x1')
+        x2 = Input((1,), name='x2')
+        y = DummyMISO(name='y')([x1, x2])
+
+        model = Model([x1, x2], y)
+
+        x1_data = np.array([[1], [2]])
+        x2_data = np.array([[3], [4]])
+        y_expected = np.array([[4], [6]])
+        datatuple = [(x1, x1_data),
+                     (x2, x2_data)]
+
+        input_data = reshape_function(datatuple)
+        y_pred = model.predict(input_data)
+
+        assert_array_equal(y_pred, y_expected)
+
     def test_predict_with_missing_input(self, teardown):
         x1 = Input((1,), name='x1')
         x2 = Input((1,), name='x2')
@@ -104,7 +126,7 @@ class TestModel:
         with pytest.raises(ValueError):
             model.predict(x1_data)
 
-    def test_predict_with_nonexisting_outputs(self, teardown):
+    def test_predict_with_non_existing_outputs(self, teardown):
         # Should raise ValueError
         pass
 
@@ -119,7 +141,7 @@ class TestModel:
         y = DummySISO()(z)
 
         model = Model([x1, x2], y)
-        model.fit([X1_data, X2_data])
+        model.fit([X1_data, X2_data])  # nothing to fit
         y_pred = model.predict([X1_data, X2_data])
 
         assert_array_equal(y_pred, y_expected)

@@ -1,8 +1,8 @@
-from typing import List, Union, Tuple
+from typing import List, Tuple
 
 from baikal.core.data import Data, is_data_list
 from baikal.core.digraph import Node
-from baikal.core.utils import listify
+from baikal.core.utils import listify, make_name
 
 
 class Step(Node):
@@ -34,7 +34,10 @@ class Step(Node):
         input_shapes = [input.shape for input in inputs]
         output_shapes = self.build_output_shapes(input_shapes)
 
-        outputs = [Data(shape, self, i) for i, shape in enumerate(output_shapes)]
+        outputs = []
+        for i, shape in enumerate(output_shapes):
+            name = make_name(self.name, i)
+            outputs.append(Data(shape, self, name))
         return outputs
 
     def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
@@ -44,9 +47,8 @@ class Step(Node):
 class InputStep(Node):
     def __init__(self, shape, name=None):
         super(InputStep, self).__init__(name=name)
-        # TODO: Maybe '/0' at the end is cumbersome and unnecessary in InputStep's
         self.inputs = []
-        self.outputs = [Data(shape, self)]
+        self.outputs = [Data(shape, self, self.name)]
 
 
 def Input(shape, name=None):
