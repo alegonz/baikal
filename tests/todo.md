@@ -200,7 +200,7 @@ model = Model(inputs=[x1, x2], outputs=[y1, y2])
 ```
 
 - [x] Can fit the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
-    - [ ] There are three cases for the target data:
+    - [x] There are three cases for the target data:
         - All outputs require target data
             - `target_data` must match the number of outputs.
             - `target_data` must be a list if several outputs were specified. 
@@ -208,7 +208,7 @@ model = Model(inputs=[x1, x2], outputs=[y1, y2])
             - Same as above, but we allow the elements of the outputs that do not require target data to be None.
         - None of the outputs require target data (for example, model only has transformers and/or unsupervised learning steps)
             - Same as above, but we also allow `target_data=None` even if multiple outputs were specified.
-    - [ ] Steps that do not implement a fit method should be skipped
+    - [x] Steps that do not implement a fit method should be skipped
     - [ ] Steps that are set to freeze (e.g. loaded a pretrained model) should be skipped
 ```python
 model.fit([x1_data, x2_data], [y1_target_data, y2_target_data])
@@ -233,3 +233,65 @@ model.query(input_data={'x1': ...}, outputs=[z1, y2])
     - This includes target data for outputs in the case of supervised learning
 
 - [x] model.predict fails if any of the required inputs is not in the provided inputs
+
+
+### TODO 2019/03/20
+- [ ] `Model`
+    - [ ] Fix huge bug in cache update in `fit`
+    - [ ] Implement `query` method
+        - Need inputs/outputs normalization
+    - [ ] Implement `extra_targets` argument in `Model.fit`
+        - Test with a simple ensemble
+    - [ ] Add check for step name uniqueness (and hence their outputs) when building
+        - Raise error if duplicated names are found
+    - [ ] Implement `Model.__call__`
+        - Rename outputs?
+    - [ ] Extend graph building to handle `Model` steps
+    - [ ] Implement serialization
+- [ ] `Step`
+    - [ ] Implement `check_input_shapes`
+        - Used in `__call__` (building) phase
+        - Used in `predict`/`transform` phase
+        - Raise a error
+    - [ ] Implement `check_output_shapes`
+        - Used for results of `predict/transform` phase.
+        - Needed for steps whose outputs cannot be known a priori
+            - e.g. PCA with n_components defined as percentage of total variance
+        - Raise a warning
+    - [ ] Move somewhere else the `_names` variable
+        - Need to delete any names that were created prior to failure
+            - Use a context manager for this
+            
+### TODO 2019/03/XX
+- [x] Check if `joblib.Parallel` allows nested calls
+    - Apparently it does :)
+    - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
+- [ ] `Model`
+    - [ ] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
+    - [ ] Implement `get_params` and `set_params` API for compatibility with ``
+    - [ ] Add targets via inputs
+        - Useful for implementing transformation pipelines for target data
+        - Added via a optional argument in `Step.__call__`
+            - e.g. `LogisticRegression()(inputs=x1, target_data=y_trans)  # y_trans is a Data object output from another Step`
+            - When fitting, look for target_data in results cache instead of the provided `target_data`
+    - [ ] Handle extra options in predict method
+        - Some regressors have extra options in their predict method, and they return a tuple of arrays.
+        - See: https://scikit-learn.org/stable/glossary.html#term-predict
+        - Idea:
+            - Add `**predict_params` argument to `Step.__call__`
+                - This will add extra outputs.
+                - This however, is class dependent
+                - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays
+                    - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
+                    - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
+    - [ ] Add parallelization with joblib (`Parallel` API)
+    - [ ] Add results caching with joblib (`Memory` API)
+
+### TODO sometime
+- [ ] Add typing
+- [ ] Write documentation
+- [ ] Extend API to handle more kind of step computations?
+    - `predict_proba`, `score`, `sample`, etc.
+    - This perhaps could be chosen at `__call__` time.
+        - For example a `function` argument that takes the name of the function (or functions) used at predict time.
+        - `y_pred, y_proba = LogisticRegression()(x1, function=['predict', 'predict_proba'])`

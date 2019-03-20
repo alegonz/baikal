@@ -135,8 +135,10 @@ class Model(Step):
             else:
                 raise TypeError('{} must implement either predict or transform!'.format(step.name))
 
+            # TODO: Check number of outputs is equal to the expected number
             # TODO: Raise warning if computed output is already in cache.
-            # This happens when recomputing a step that had some of its outputs already passed in the inputs.
+            # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
+            # FIXME: Huge bug! target_data is being overwritten!
             cache.update(zip(step.outputs, listify(output_data)))
 
     def predict(self, input_data):
