@@ -113,7 +113,7 @@ class Model(Step):
 
         if len(target_data) != len(self.outputs):
             raise ValueError('The number of target data arrays does not match the number of outputs!')
-        cache.update(zip(self.outputs, target_data))
+        target_data = dict(zip(self.outputs, target_data))
 
         # cache.update(extra_targets)
 
@@ -122,7 +122,7 @@ class Model(Step):
             Xs = [cache[i] for i in step.inputs]
             if hasattr(step, 'fit'):
                 # Filtering out None target_data allow us to define fit methods without y=None.
-                ys = [cache[o] for o in step.outputs if o in cache and cache[o] is not None]
+                ys = [target_data[o] for o in step.outputs if o in target_data and target_data[o] is not None]
                 step.fit(*Xs, *ys)
 
             # 2) predict/transform phase
@@ -138,7 +138,6 @@ class Model(Step):
             # TODO: Check number of outputs is equal to the expected number
             # TODO: Raise warning if computed output is already in cache.
             # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
-            # FIXME: Huge bug! target_data is being overwritten!
             cache.update(zip(step.outputs, listify(output_data)))
 
     def predict(self, input_data):
