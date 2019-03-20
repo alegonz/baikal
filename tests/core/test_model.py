@@ -3,6 +3,7 @@ from numpy.testing import assert_array_equal
 import pytest
 from sklearn import datasets
 import sklearn.decomposition
+from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
 
 from baikal.core.model import Model
@@ -10,6 +11,8 @@ from baikal.core.step import Input
 
 from fixtures import sklearn_classifier_step, sklearn_transformer_step, teardown
 from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO
+
+iris = datasets.load_iris()
 
 
 class TestModel:
@@ -53,7 +56,7 @@ class TestModel:
         else:
             Model(inputs, outputs)
 
-    def test_multiedge(self):
+    def test_multiedge(self, teardown):
         x = Input((1,), name='x')
         z1, z2 = DummySIMO()(x)
         y = DummyMISO()([z1, z2])
@@ -72,11 +75,61 @@ class TestModel:
         with pytest.raises(ValueError):
             model = Model(x_wrong, y)
 
+    def test_lazy_model(self, teardown):
+        X_data = np.array([[1, 2], [3, 4]])
+
+        x = Input((2,), name='x')
+        model = Model(x, x)
+        model.fit(X_data)
+        X_pred = model.predict(X_data)
+
+        assert_array_equal(X_pred, X_data)
+
+    def test_predict_with_missing_input(self, teardown):
+        x1 = Input((1,), name='x1')
+        x2 = Input((1,), name='x2')
+        y = DummyMISO()([x1, x2])
+
+        model = Model([x1, x2], y)
+
+        x1_data = np.array([1, 2])
+        with pytest.raises(ValueError):
+            model.predict(x1_data)
+
+    def test_predict_with_nonexisting_outputs(self, teardown):
+        # Should raise ValueError
+        pass
+
+    def test_fit_and_predict_model_with_no_fittable_steps(self, teardown):
+        X1_data = np.array([[1, 2], [3, 4]])
+        X2_data = np.array([[5, 6], [7, 8]])
+        y_expected = np.array([[12, 16], [20, 24]])
+
+        x1 = Input((1,), name='x1')
+        x2 = Input((1,), name='x2')
+        z = DummyMISO()([x1, x2])
+        y = DummySISO()(z)
+
+        model = Model([x1, x2], y)
+        model.fit([X1_data, X2_data])
+        y_pred = model.predict([X1_data, X2_data])
+
+        assert_array_equal(y_pred, y_expected)
+
+    def test_predict_with_not_fitted_steps(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
+        X_data = iris.data
+
+        x = Input((4,), name='x')
+        xt = sklearn_transformer_step(n_components=2)(x)
+        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(xt)
+
+        model = Model(x, y)
+        with pytest.raises(NotFittedError):
+            model.predict(X_data)
+
     def test_fit_classifier(self, sklearn_classifier_step, teardown):
         # Based on the example in
         # https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
-        iris = datasets.load_iris()
-
         X_data = iris.data[:, :2]  # we only take the first two features.
         y_data = iris.target
 
@@ -90,7 +143,6 @@ class TestModel:
         assert y.step.fitted
 
     def test_fit_transformer(self, sklearn_transformer_step, teardown):
-        iris = datasets.load_iris()
         X_data = iris.data
 
         x = Input((4,), name='x')
@@ -101,7 +153,6 @@ class TestModel:
         assert xt.step.fitted
 
     def test_fit_pipeline(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
-        iris = datasets.load_iris()
         X_data = iris.data
         y_data = iris.target
 
@@ -114,7 +165,6 @@ class TestModel:
         assert xt.step.fitted and y.step.fitted
 
     def test_fit_predict_pipeline(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
-        iris = datasets.load_iris()
         X_data = iris.data
         y_data = iris.target
 
@@ -135,40 +185,3 @@ class TestModel:
         y_pred_traditional = logreg.predict(X_data_transformed)
 
         assert_array_equal(y_pred_baikal, y_pred_traditional)
-
-    def test_missing_input_in_predict(self):
-        x1 = Input((1,), name='x1')
-        x2 = Input((1,), name='x2')
-        y = DummyMISO()([x1, x2])
-
-        model = Model([x1, x2], y)
-
-        x1_data = np.array([1, 2])
-        with pytest.raises(ValueError):
-            model.predict(x1_data)
-
-    def test_lazy_model(self, teardown):
-        X_data = np.array([[1, 2], [3, 4]])
-
-        x = Input((2,), name='x')
-        model = Model(x, x)
-        model.fit(X_data)
-        X_pred = model.predict(X_data)
-
-        assert_array_equal(X_pred, X_data)
-
-    def test_fit_and_predict_model_with_no_fittable_steps(self, teardown):
-        X1_data = np.array([[1, 2], [3, 4]])
-        X2_data = np.array([[5, 6], [7, 8]])
-        y_expected = np.array([[12, 16], [20, 24]])
-
-        x1 = Input((1,), name='x1')
-        x2 = Input((1,), name='x2')
-        z = DummyMISO()([x1, x2])
-        y = DummySISO()(z)
-
-        model = Model([x1, x2], y)
-        model.fit([X1_data, X2_data])
-        y_pred = model.predict([X1_data, X2_data])
-
-        assert_array_equal(y_pred, y_expected)
