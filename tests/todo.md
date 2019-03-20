@@ -239,13 +239,13 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 - [ ] `Model`
     - [x] Fix huge bug in cache update in `fit`
     - [x] Test raises `NotFittedError` when predict is run before fit.
+    - [x] Add check for step name uniqueness (and hence their outputs) when building
+        - Raise error if duplicated names are found
     - [ ] Implement `query` method
         - Need inputs/outputs normalization
         - Unify API with `predict` method
     - [ ] Implement `extra_targets` argument in `Model.fit`
         - Test with a simple ensemble
-    - [ ] Add check for step name uniqueness (and hence their outputs) when building
-        - Raise error if duplicated names are found
     - [ ] Implement `Model.__call__`
         - Rename outputs?
     - [ ] Extend graph building to handle `Model` steps

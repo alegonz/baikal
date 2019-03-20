@@ -116,11 +116,11 @@ class Node:
 
     def __init__(self, *args, name=None, **kwargs):
         super(Node, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
-        self.name = self._generate_unique_name(name)
+        # Use name as is if it was specified by the user, to avoid the user a surprise
+        self.name = name if name is not None else self._generate_unique_name()
 
-    def _generate_unique_name(self, name):
-        if name is None:
-            name = self.__class__.__name__
+    def _generate_unique_name(self):
+        name = self.__class__.__name__
 
         n_instances = self._names.get(name, 0)
         unique_name = make_name(name, n_instances, sep='_')

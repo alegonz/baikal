@@ -40,6 +40,20 @@ class Model(Step):
             for input in step.inputs:
                 graph.add_edge(input.step, step)
 
+        # Check for any nodes (steps) with duplicated names
+        seen_names = {}
+        for step in graph:
+            if step.name not in seen_names:
+                seen_names[step.name] = 1
+            else:
+                seen_names[step.name] += 1
+        duplicated_names = [name for name, count in seen_names.items() if count > 1]
+
+        if duplicated_names:
+            raise RuntimeError('A Model cannot contain steps with duplicated names!\n'
+                               'Found the following duplicates:\n'
+                               '{}'.format(duplicated_names))
+
         return graph
 
     def _get_required_steps(self):

@@ -12,13 +12,6 @@ class TestInput:
         assert (10,) == x0.shape
         assert 'InputStep_0/0' == x0.name
 
-    def test_instantiate_two_with_same_name(self, teardown):
-        x0 = Input((5,), name='x')
-        x1 = Input((2,), name='x')
-
-        assert 'x_0/0' == x0.name
-        assert 'x_1/0' == x1.name
-
     def test_instantiate_two_without_name(self, teardown):
         x0 = Input((5,))
         x1 = Input((2,))
@@ -52,14 +45,6 @@ class TestStep:
         assert (1,) == y1.shape
         assert 'MIMOStep_0/0' == y0.name
         assert 'MIMOStep_0/1' == y1.name
-
-    def test_instantiate_two_with_same_name(self, sklearn_classifier_step, teardown):
-        x = Input((10,), name='x')
-        y0 = sklearn_classifier_step(name='myclassifier')(x)
-        y1 = sklearn_classifier_step(name='myclassifier')(x)
-
-        assert 'myclassifier_0/0' == y0.name
-        assert 'myclassifier_1/0' == y1.name
 
     def test_instantiate_two_without_name(self, sklearn_classifier_step, teardown):
         x = Input((10,), name='x')

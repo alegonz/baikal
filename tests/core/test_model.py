@@ -75,6 +75,14 @@ class TestModel:
         with pytest.raises(ValueError):
             model = Model(x_wrong, y)
 
+    def test_instantiation_with_steps_with_duplicated_names(self, teardown):
+        x = Input((10,), name='x')
+        x = DummySISO(name='duplicated-name')(x)
+        y = DummySISO(name='duplicated-name')(x)
+
+        with pytest.raises(RuntimeError):
+            model = Model(x, y)
+
     def test_lazy_model(self, teardown):
         X_data = np.array([[1, 2], [3, 4]])
 
