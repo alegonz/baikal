@@ -51,3 +51,13 @@ class DummyMIMO(Step):
 
     def build_output_shapes(self, input_shapes):
         return input_shapes
+
+
+class DummyWithoutTransform(Step):
+    """Dummy step that lacks transform method.
+    """
+    def __init__(self, name=None):
+        super(DummyWithoutTransform, self).__init__(name=name)
+
+    def build_output_shapes(self, input_shapes):
+        return input_shapes

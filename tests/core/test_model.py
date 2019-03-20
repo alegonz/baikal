@@ -10,7 +10,7 @@ from baikal.core.model import Model
 from baikal.core.step import Input
 
 from fixtures import sklearn_classifier_step, sklearn_transformer_step, teardown
-from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO
+from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
 
 iris = datasets.load_iris()
 
@@ -133,6 +133,16 @@ class TestModel:
 
         model = Model(x, y)
         with pytest.raises(NotFittedError):
+            model.predict(X_data)
+
+    def test_predict_using_step_without_transform(self, teardown):
+        X_data = np.array([[1], [2]])
+
+        x = Input((1,), name='x')
+        y = DummyWithoutTransform()(x)
+
+        model = Model(x, y)
+        with pytest.raises(TypeError):
             model.predict(X_data)
 
     def test_fit_classifier(self, sklearn_classifier_step, teardown):
