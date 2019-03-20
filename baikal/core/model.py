@@ -106,6 +106,13 @@ class Model(Step):
 
         return [step for step in all_steps_sorted if step in all_required_steps]
 
+    def _sanitize_input_data(self, input_data):
+        input_data = listify(input_data)
+        if len(input_data) != len(self.inputs):
+            raise ValueError('The number of training data arrays does not match the number of inputs!\n'
+                             'Expected {} but got {}'.format(len(self.inputs), len(input_data)))
+        return input_data
+
     def fit(self, input_data, target_data=None):
         # TODO: add extra_targets keyword argument
         # TODO: Add **fit_params argument (like sklearn's Pipeline.fit)
@@ -115,9 +122,7 @@ class Model(Step):
 
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
 
-        input_data = listify(input_data)
-        if len(input_data) != len(self.inputs):
-            raise ValueError('The number of training data arrays does not match the number of inputs!')
+        input_data = self._sanitize_input_data(input_data)
         cache.update(zip(self.inputs, input_data))
 
         if target_data is None:
@@ -140,48 +145,39 @@ class Model(Step):
                 step.fit(*Xs, *ys)
 
             # 2) predict/transform phase
-            # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
-            # https://scikit-learn.org/stable/glossary.html#term-predict
-            if hasattr(step, 'predict'):
-                output_data = step.predict(*Xs)
-            elif hasattr(step, 'transform'):
-                output_data = step.transform(*Xs)
-            else:
-                raise TypeError('{} must implement either predict or transform!'.format(step.name))
-
-            # TODO: Check number of outputs is equal to the expected number
-            # TODO: Raise warning if computed output is already in cache.
-            # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
-            cache.update(zip(step.outputs, listify(output_data)))
+            self._compute_step(Xs, cache, step)
 
     def predict(self, input_data):
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
 
-        input_data = listify(input_data)
-        if len(input_data) != len(self.inputs):
-            raise ValueError('The number of training data arrays does not match the number of inputs!')
+        input_data = self._sanitize_input_data(input_data)
         cache.update(zip(self.inputs, input_data))
 
         for step in self._steps:
-            # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
-            # https://scikit-learn.org/stable/glossary.html#term-predict
             Xs = [cache[i] for i in step.inputs]
-            if hasattr(step, 'predict'):
-                output_data = step.predict(*Xs)
-            elif hasattr(step, 'transform'):
-                output_data = step.transform(*Xs)
-            else:
-                raise TypeError('{} does not implement predict or transform!'.format(step.name))
-
-            # TODO: Raise warning if computed output is already in cache.
-            # This happens when recomputing a step that had some of its outputs already passed in the inputs.
-            cache.update(zip(step.outputs, listify(output_data)))
+            self._compute_step(Xs, cache, step)
 
         output_data = [cache[o] for o in self.outputs]
         if len(output_data) == 1:
             return output_data[0]
         else:
             return output_data
+
+    @staticmethod
+    def _compute_step(Xs, cache, step):
+        # TODO: Check number of outputs is equal to the expected number
+        # TODO: Raise warning if computed output is already in cache.
+        # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
+        # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
+        # https://scikit-learn.org/stable/glossary.html#term-predict
+        if hasattr(step, 'predict'):
+            output_data = step.predict(*Xs)
+        elif hasattr(step, 'transform'):
+            output_data = step.transform(*Xs)
+        else:
+            raise TypeError('{} must implement either predict or transform!'.format(step.name))
+
+        cache.update(zip(step.outputs, listify(output_data)))
 
     # TODO: Implement build_output_shapes method.
     # TODO: Override __call__ method
