@@ -4,6 +4,7 @@ from typing import Union, List, Any, Dict
 from baikal.core.data import is_data_list, Data
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step
+from baikal.core.typing import ArrayLike
 from baikal.core.utils import listify
 
 
@@ -20,7 +21,7 @@ class Model(Step):
         self.inputs = inputs
         self.outputs = outputs
         self._graph = self._build_graph()
-        self._steps = self._get_required_steps()
+        self._steps = self._get_required_steps(self._graph, self.inputs, self.outputs)
 
     def _build_graph(self):
         # Model uses the DiGraph data structure to store and operate on its Data and Steps.
@@ -57,8 +58,9 @@ class Model(Step):
 
         return graph
 
-    def _get_required_steps(self):
-        all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
+    @staticmethod
+    def _get_required_steps(graph, inputs, outputs):
+        all_steps_sorted = graph.topological_sort()  # Fail early if graph is acyclic
 
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
@@ -72,7 +74,7 @@ class Model(Step):
         def backtrack(output):
             required_steps = set()
 
-            if output in self.inputs:
+            if output in inputs:
                 inputs_found.append(output)
                 return required_steps
 
@@ -85,11 +87,11 @@ class Model(Step):
                 required_steps |= backtrack(input)
             return required_steps
 
-        for output in self.outputs:
+        for output in outputs:
             all_required_steps |= backtrack(output)
 
         # Check for any unused inputs
-        for input in self.inputs:
+        for input in inputs:
             if input not in inputs_found:
                 warnings.warn(
                     'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name),
@@ -98,7 +100,7 @@ class Model(Step):
         # Check for missing inputs
         missing_inputs = []
         for step in all_required_steps:
-            if self._graph.in_degree(step) == 0:
+            if graph.in_degree(step) == 0:
                 missing_inputs.extend(step.outputs)
 
         if missing_inputs:
@@ -107,29 +109,60 @@ class Model(Step):
 
         return [step for step in all_steps_sorted if step in all_required_steps]
 
-    def _normalize_input_data(self, input_data: Union[Any, List[Any], Dict[Data, Any], Dict[str, Any]]) -> Dict[Data, Any]:
-
-        if isinstance(input_data, dict):
-            input_data_norm = {}
-            for key, value in input_data.items():
-                if isinstance(key, Data):
-                    key_norm = key
-                elif isinstance(key, str):
-                    key_norm = self._get_data(key)
-                else:
-                    raise ValueError('When passing data in a dictionary, keys must be either of type str or Data.\n'
-                                     'Got {}'.format(type(key)))
-                input_data_norm[key_norm] = value
-
+    def _normalize_given_data(self, given_data, kind) -> Dict[Data, ArrayLike]:
+        if isinstance(given_data, dict):
+            input_data_norm = self._normalize_dict(given_data)
         else:
-            # User passed either an array-like directly (case of one input)
-            # or passed a list of array-like
-            input_data_norm = dict(zip(self.inputs, listify(input_data)))
+            dataobjs = self.inputs if kind == 'input' else self.outputs
+            expand_none = kind == 'target'
+            input_data_norm = self._normalize_list(given_data, dataobjs, expand_none)
 
-        # FIXME: This should decision should consider the required outputs too
-        if len(input_data_norm) != len(self.inputs):
+        return input_data_norm
+
+    def _normalize_required_outputs(self, outputs: Union[str, Data, List[str], List[Data]]) -> List[Data]:
+        if outputs is None:
+            return self.outputs
+
+        outputs = listify(outputs)
+        outputs_norm = []
+        for output in outputs:
+            if isinstance(output, Data):
+                pass
+            elif isinstance(output, str):
+                output = self._get_data(output)
+            else:
+                raise ValueError('Outputs must be either of type str or Data.\n'
+                                 'Got {}'.format(type(output)))
+            outputs_norm.append(output)
+        return outputs_norm
+
+    def _normalize_dict(self, data_dict: Union[Dict[Data, ArrayLike], Dict[str, ArrayLike]]) -> Dict[Data, ArrayLike]:
+        data_dict_norm = {}
+        for key, value in data_dict.items():
+            if isinstance(key, Data):
+                pass
+            elif isinstance(key, str):
+                key = self._get_data(key)
+            else:
+                raise ValueError('When passing data in a dictionary, keys must be either of type str or Data.\n'
+                                 'Got {}'.format(type(key)))
+            data_dict_norm[key] = value
+        return data_dict_norm
+
+    def _normalize_list(self, data_list: Union[ArrayLike, List[ArrayLike]], dataobjs, expand_none) -> Dict[Data, ArrayLike]:
+        # User passed either an array-like directly (case of one input)
+        # or passed a list of array-like.
+        # In this case, it must match the number of inputs specified at instantiation
+        data_list = listify(data_list)
+
+        if len(data_list) == 1 and data_list[0] is None and expand_none:
+            data_list = [None] * len(dataobjs)
+
+        if len(data_list) != len(dataobjs):
             raise ValueError('The number of training data arrays does not match the number of inputs!\n'
-                             'Expected {} but got {}'.format(len(self.inputs), len(input_data_norm)))
+                             'Expected {} but got {}'.format(len(dataobjs), len(data_list)))
+
+        input_data_norm = dict(zip(dataobjs, data_list))
 
         return input_data_norm
 
@@ -148,24 +181,16 @@ class Model(Step):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
+        input_data = self._normalize_given_data(input_data, 'input')
+        target_data = self._normalize_given_data(target_data, 'target')
+
+        steps = self._get_required_steps(self._graph, input_data.keys(), target_data.keys())
 
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
-
-        input_data = self._normalize_input_data(input_data)
         cache.update(input_data)
-
-        if target_data is None:
-            target_data = [None] * len(self.outputs)
-        else:
-            target_data = listify(target_data)
-
-        if len(target_data) != len(self.outputs):
-            raise ValueError('The number of target data arrays does not match the number of outputs!')
-        target_data = dict(zip(self.outputs, target_data))
-
         # cache.update(extra_targets)
 
-        for step in self._steps:
+        for step in steps:
             # 1) Fit phase
             Xs = [cache[i] for i in step.inputs]
             if hasattr(step, 'fit'):
@@ -176,17 +201,20 @@ class Model(Step):
             # 2) predict/transform phase
             self._compute_step(step, Xs, cache)
 
-    def predict(self, input_data):
+    def predict(self, input_data, outputs=None):
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
 
-        input_data = self._normalize_input_data(input_data)
+        input_data = self._normalize_given_data(input_data, 'input')
+        outputs = self._normalize_required_outputs(outputs)
+        steps = self._get_required_steps(self._graph, input_data.keys(), outputs)
+
         cache.update(input_data)
 
-        for step in self._steps:
+        for step in steps:
             Xs = [cache[i] for i in step.inputs]
             self._compute_step(step, Xs, cache)
 
-        output_data = [cache[o] for o in self.outputs]
+        output_data = [cache[o] for o in outputs]
         if len(output_data) == 1:
             return output_data[0]
         else:
