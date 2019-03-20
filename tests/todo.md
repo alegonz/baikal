@@ -225,7 +225,7 @@ out = model.predict([x1_data, x2_data])
 ```python
 # input_data dictionary keys can be either Data objects or their name strings
 # outputs can be a list of Data objects or their name strings
-model.query(input_data={'x1': ...}, outputs=[z1, y2])
+model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 # out = {'pred': ...}  # output dictionary keys should be name strings by default?
 ```
 
@@ -237,9 +237,11 @@ model.query(input_data={'x1': ...}, outputs=[z1, y2])
 
 ### TODO 2019/03/20
 - [ ] `Model`
-    - [ ] Fix huge bug in cache update in `fit`
+    - [x] Fix huge bug in cache update in `fit`
+    - [x] Test raises `NotFittedError` when predict is run before fit.
     - [ ] Implement `query` method
         - Need inputs/outputs normalization
+        - Unify API with `predict` method
     - [ ] Implement `extra_targets` argument in `Model.fit`
         - Test with a simple ensemble
     - [ ] Add check for step name uniqueness (and hence their outputs) when building
