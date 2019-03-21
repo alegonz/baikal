@@ -1,3 +1,6 @@
+from baikal.core.utils import make_repr
+
+
 def is_data_list(l):
     return all([isinstance(d, Data) for d in l])
 
@@ -7,4 +10,7 @@ class Data:
         self.shape = shape
         self.step = step
         self.name = name
-    # TODO: Implement __str__ and __repr__
+
+    def __repr__(self):
+        attrs = ['shape', 'step', 'name']
+        return make_repr(self, attrs)
