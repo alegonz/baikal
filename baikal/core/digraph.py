@@ -1,6 +1,6 @@
 from collections import deque
 
-from baikal.core.utils import make_name
+from baikal.core.utils import make_name, make_repr
 
 
 class NodeNotFoundError(Exception):
@@ -133,3 +133,6 @@ class Node:
     @classmethod
     def clear_names(cls):
         cls._names.clear()
+
+    def __repr__(self):
+        return make_repr(self, ['name'])

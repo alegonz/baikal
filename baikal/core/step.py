@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from baikal.core.data import Data, is_data_list
 from baikal.core.digraph import Node
-from baikal.core.utils import listify, make_name, make_repr
+from baikal.core.utils import listify, make_name
 
 
 class Step(Node):
@@ -42,9 +42,6 @@ class Step(Node):
 
     def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
         raise NotImplementedError
-
-    def __repr__(self):
-        return make_repr(self, ['name'])
 
 
 class InputStep(Node):
