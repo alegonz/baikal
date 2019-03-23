@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import numpy as np
 from numpy.testing import assert_array_equal
 import pytest
@@ -9,219 +11,334 @@ import sklearn.linear_model
 from baikal.core.model import Model
 from baikal.core.step import Input
 
-from fixtures import sklearn_classifier_step, sklearn_transformer_step, teardown
+from fixtures import teardown
+from sklearn_steps import LogisticRegression, PCA
 from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
-from utils import datatuple2list, datatuple2datadict, datatuple2strdict
 
 
 iris = datasets.load_iris()
 
 
-class TestModel:
-    @pytest.mark.parametrize('inputs,outputs,error_warning',
-                             [(['x1'], ['z1'], None),
-                              (['x1'], ['x1'], None),
-                              (['x1', 'x2'], ['z5', 'z6'], None),
-                              (['x1', 'x2'], ['z1', 'z2'], None),
-                              (['z3', 'z4'], ['z5'], None),
-                              (['x1'], ['x2'], ValueError),
-                              (['z1'], ['z4'], ValueError),
-                              (['z1', 'z2'], ['z5'], ValueError),
-                              (['x1', 'x2'], ['z1'], RuntimeWarning),
-                              (['z1', 'z2', 'x1'], ['z4'], RuntimeWarning),
-                              (['z1', 'z2', 'x2'], ['z4'], RuntimeWarning)])
-    def test_instantiation(self, inputs, outputs, error_warning, teardown):
-        x1 = Input((1,), name='x1')
-        x2 = Input((1,), name='x2')
+@contextmanager
+def does_not_raise():
+    yield
 
-        z1 = DummySISO()(x1)
-        z2, z3 = DummySIMO()(x2)
-        z4 = DummyMISO()([z1, z2])
-        z5, z6 = DummyMIMO()([z4, z3])
 
-        data = {'x1': x1, 'x2': x2,
-                'z1': z1, 'z2': z2,
-                'z3': z3, 'z4': z4,
-                'z5': z5, 'z6': z6}
+@pytest.fixture
+def dummy_model_data_and_arrays():
+    x1 = Input((1,), name='x1')
+    x2 = Input((1,), name='x2')
 
-        inputs = [data[i] for i in inputs]
-        outputs = [data[o] for o in outputs]
+    z1 = DummySISO()(x1)
+    z2, z3 = DummySIMO()(x2)
+    z4 = DummyMISO()([z1, z2])
+    z5, z6 = DummyMIMO()([z4, z3])
 
-        # TODO: Refactor as with expection pattern in pytest docs
-        if error_warning is ValueError:
-            with pytest.raises(error_warning):
-                Model(inputs, outputs)
+    data = {'x1': x1,
+            'x2': x2,
+            'z1': z1,
+            'z2': z2,
+            'z3': z3,
+            'z4': z4,
+            'z5': z5,
+            'z6': z6}
 
-        elif error_warning is RuntimeWarning:
-            with pytest.warns(error_warning):
-                Model(inputs, outputs)
+    # arrays have explicit sample (rows) and feature (columns) axes
+    arrays = {'x1': np.array([[1]]),
+              'x2': np.array([[2]]),
+              'z1': np.array([[2]]),
+              'z2': np.array([[2]]),
+              'z3': np.array([[0]]),
+              'z4': np.array([[4]]),
+              'z5': np.array([[40]]),
+              'z6': np.array([[0]])}
 
-        else:
-            Model(inputs, outputs)
+    return data, arrays
 
-    def test_multiedge(self, teardown):
-        x = Input((1,), name='x')
-        z1, z2 = DummySIMO()(x)
-        y = DummyMISO()([z1, z2])
-        model = Model(x, y)
 
-        X_data = np.array([[1], [2]])
-        y_out = model.predict(X_data)
+@pytest.mark.parametrize('inputs,outputs,expectation',
+                         [(['x1'], ['z1'], does_not_raise()),
+                          (['x1'], ['x1'], does_not_raise()),
+                          (['x1', 'x2'], ['z5', 'z6'], does_not_raise()),
+                          (['x1', 'x2'], ['z1', 'z2'], does_not_raise()),
+                          (['z3', 'z4'], ['z5'], does_not_raise()),
+                          (['x1', 'x1'], ['z1'], pytest.raises(ValueError)),  # duplicated input
+                          (['x1'], ['z1', 'z1'], pytest.raises(ValueError)),  # duplicated output
+                          (['x1'], ['x2'], pytest.raises(RuntimeError)),
+                          (['z1'], ['z4'], pytest.raises(RuntimeError)),
+                          (['z1', 'z2'], ['z5'], pytest.raises(RuntimeError)),
+                          (['x1', 'x2'], ['z1'], pytest.raises(RuntimeError)),
+                          (['z1', 'z2', 'x1'], ['z4'], pytest.raises(RuntimeError)),
+                          (['z1', 'z2', 'x2'], ['z4'], pytest.raises(RuntimeError))])
+def test_instantiation(inputs, outputs, expectation,
+                       dummy_model_data_and_arrays, teardown):
+    data, _ = dummy_model_data_and_arrays
 
-        assert_array_equal(y_out, np.array([[2], [4]]))
+    inputs = [data[i] for i in inputs]
+    outputs = [data[o] for o in outputs]
 
-    def test_instantiation_with_wrong_input_type(self, teardown):
-        x = Input((10,), name='x')
-        y = DummySISO()(x)
+    with expectation:
+        Model(inputs, outputs)
 
-        x_wrong = np.zeros((10,))
-        with pytest.raises(ValueError):
-            Model(x_wrong, y)
 
-    def test_instantiation_with_steps_with_duplicated_names(self, teardown):
-        x = Input((10,), name='x')
-        x = DummySISO(name='duplicated-name')(x)
-        y = DummySISO(name='duplicated-name')(x)
+def test_fit_call(teardown):
+    x1 = Input((2,), name='x1')
+    x2 = Input((2,), name='x2')
+    y1 = LogisticRegression()(x1)
+    y2 = PCA()(x2)
+    model = Model([x1, x2], [y1, y2])
 
-        with pytest.raises(RuntimeError):
-            Model(x, y)
+    x1_data = iris.data[:, :2]
+    x2_data = iris.data[:, 2:]
+    y1_target_data = iris.target
 
-    def test_lazy_model(self, teardown):
-        X_data = np.array([[1, 2], [3, 4]])
+    # ------ Correct calls. Should not raise errors.
+    # Call with lists
+    model.fit([x1_data, x2_data], [y1_target_data, None])
 
-        x = Input((2,), name='x')
-        model = Model(x, x)
-        model.fit(X_data)
-        X_pred = model.predict(X_data)
+    # Call with dicts (data keys)
+    model.fit({x1: x1_data, x2: x2_data}, {y1: y1_target_data, y2: None})
 
-        assert_array_equal(X_pred, X_data)
+    # Call with dicts (name (str) keys)
+    model.fit({'x1': x1_data, 'x2': x2_data}, {'LogisticRegression_0/0': y1_target_data, 'PCA_0/0': None})
 
-    @pytest.mark.parametrize('reshape_function', [datatuple2list, datatuple2datadict, datatuple2strdict])
-    def test_predict(self, reshape_function, teardown):
-        x1 = Input((1,), name='x1')
-        x2 = Input((1,), name='x2')
-        y = DummyMISO(name='y')([x1, x2])
+    # ------ Missing input
+    # Call with lists
+    with pytest.raises(ValueError):
+        model.fit([x1_data], [y1_target_data, None])
 
-        model = Model([x1, x2], y)
+    # Call with dicts (data keys)
+    with pytest.raises(ValueError):
+        model.fit({x1: x1_data}, {y1: y1_target_data, y2: None})
 
-        x1_data = np.array([[1], [2]])
-        x2_data = np.array([[3], [4]])
-        y_expected = np.array([[4], [6]])
-        datatuple = [(x1, x1_data),
-                     (x2, x2_data)]
+    # Call with dicts (name (str) keys)
+    with pytest.raises(ValueError):
+        model.fit({'x1': x1_data}, {'LogisticRegression_0/0': y1_target_data, 'PCA_0/0': None})
 
-        input_data = reshape_function(datatuple)
-        y_pred = model.predict(input_data)
+    # ------ Missing output
+    # Call with lists
+    with pytest.raises(ValueError):
+        model.fit([x1_data, x2_data], [None])
 
-        assert_array_equal(y_pred, y_expected)
+    # Call with dicts (data keys)
+    with pytest.raises(ValueError):
+        model.fit({x1: x1_data, x2: x2_data}, {y2: None})
 
-    def test_predict_with_missing_input(self, teardown):
-        x1 = Input((1,), name='x1')
-        x2 = Input((1,), name='x2')
-        y = DummyMISO()([x1, x2])
+    # Call with dicts (name (str) keys)
+    with pytest.raises(ValueError):
+        model.fit({'x1': x1_data, 'x2': x2_data}, {'PCA_0/0': None})
 
-        model = Model([x1, x2], y)
+    # ------ Non-existing inputs
+    with pytest.raises(ValueError):
+        model.fit({'x1': x1_data, 'x3': x2_data}, {'LogisticRegression_0/0': y1_target_data, 'PCA_0/0': None})
 
-        x1_data = np.array([[1], [2]])
-        with pytest.raises(ValueError):
-            model.predict(x1_data)
+    # ------ Non-existing outputs
+    with pytest.raises(ValueError):
+        model.fit({'x1': x1_data, 'x2': x2_data}, {'non-existing-output': y1_target_data, 'PCA_0/0': None})
 
-    def test_predict_with_non_existing_outputs(self, teardown):
-        # Should raise ValueError
-        pass
 
-    def test_fit_and_predict_model_with_no_fittable_steps(self, teardown):
-        X1_data = np.array([[1, 2], [3, 4]])
-        X2_data = np.array([[5, 6], [7, 8]])
-        y_expected = np.array([[12, 16], [20, 24]])
+def test_predict_call(teardown):
+    x1 = Input((2,), name='x1')
+    x2 = Input((2,), name='x2')
+    y1 = LogisticRegression()(x1)
+    y2 = PCA()(x2)
+    model = Model([x1, x2], [y1, y2])
 
-        x1 = Input((2,), name='x1')
-        x2 = Input((2,), name='x2')
-        z = DummyMISO()([x1, x2])
-        y = DummySISO()(z)
+    x1_data = iris.data[:, :2]
+    x2_data = iris.data[:, 2:]
+    y1_target_data = iris.target
 
-        model = Model([x1, x2], y)
-        model.fit([X1_data, X2_data])  # nothing to fit
-        y_pred = model.predict([X1_data, X2_data])
+    model.fit([x1_data, x2_data], [y1_target_data, None])
 
-        assert_array_equal(y_pred, y_expected)
+    # ------ Correct calls. Should not raise errors.
+    # Call with list input. Get all outputs.
+    y1_pred, y2_pred = model.predict([x1_data, x2_data])
 
-    def test_predict_with_not_fitted_steps(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
-        X_data = iris.data
+    # Call with dict input (data keys). Get all outputs.
+    y1_pred, y2_pred = model.predict({x1: x1_data, x2: x2_data})
 
-        x = Input((4,), name='x')
-        xt = sklearn_transformer_step(n_components=2)(x)
-        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(xt)
+    # Call with dict input (name (str) keys). Get all outputs.
+    y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data})
 
-        model = Model(x, y)
-        with pytest.raises(NotFittedError):
-            model.predict(X_data)
+    # Call with list input. Get an specific output. Call with just the needed input
+    y1_pred = model.predict(x1_data, 'LogisticRegression_0/0')
 
-    def test_predict_using_step_without_transform(self, teardown):
-        X_data = np.array([[1], [2]])
+    # ------ Missing input
+    # Call with list input. Get all outputs.
+    with pytest.raises(RuntimeError):
+        y1_pred, y2_pred = model.predict(x1_data)
 
-        x = Input((1,), name='x')
-        y = DummyWithoutTransform()(x)
+    # Call with dict input (data keys). Get all outputs.
+    with pytest.raises(RuntimeError):
+        y1_pred, y2_pred = model.predict({x1: x1_data})
 
-        model = Model(x, y)
-        with pytest.raises(TypeError):
-            model.predict(X_data)
+    # Call with dict input (name (str) keys). Get all outputs.
+    with pytest.raises(RuntimeError):
+        y1_pred, y2_pred = model.predict({'x1': x1_data})
 
-    def test_fit_classifier(self, sklearn_classifier_step, teardown):
-        # Based on the example in
-        # https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
-        X_data = iris.data[:, :2]  # we only take the first two features.
-        y_data = iris.target
+    # ------ Non-existing inputs
+    with pytest.raises(ValueError):
+        y1_pred, y2_pred = model.predict({'x1': x1_data, 'x3': x2_data})
 
-        x = Input((2,), name='x')
-        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(x)
+    # ------ Non-existing outputs
+    with pytest.raises(ValueError):
+        y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data}, ['non-existing-output', 'PCA_0/0'])
 
-        model = Model(x, y)
+    # ------ Unnecessary inputs
+    with pytest.raises(RuntimeError):
+        y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data}, 'PCA_0/0')
 
-        # Style 1: pass data as in instantiation
-        model.fit(X_data, y_data)
-        assert y.step.fitted
 
-    def test_fit_transformer(self, sklearn_transformer_step, teardown):
-        X_data = iris.data
+def test_multiedge(teardown):
+    x = Input((1,), name='x')
+    z1, z2 = DummySIMO()(x)
+    y = DummyMISO()([z1, z2])
+    model = Model(x, y)
 
-        x = Input((4,), name='x')
-        xt = sklearn_transformer_step(n_components=2)(x)
+    X_data = np.array([[1], [2]])
+    y_out = model.predict(X_data)
 
-        model = Model(x, xt)
-        model.fit(X_data)
-        assert xt.step.fitted
+    assert_array_equal(y_out, np.array([[2], [4]]))
 
-    def test_fit_pipeline(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
-        X_data = iris.data
-        y_data = iris.target
 
-        x = Input((4,), name='x')
-        xt = sklearn_transformer_step(n_components=2)(x)
-        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(xt)
+def test_instantiation_with_wrong_input_type(teardown):
+    x = Input((10,), name='x')
+    y = DummySISO()(x)
 
-        model = Model(x, y)
-        model.fit(X_data, y_data)
-        assert xt.step.fitted and y.step.fitted
+    x_wrong = np.zeros((10,))
+    with pytest.raises(ValueError):
+        Model(x_wrong, y)
 
-    def test_fit_predict_pipeline(self, sklearn_classifier_step, sklearn_transformer_step, teardown):
-        X_data = iris.data
-        y_data = iris.target
 
-        # baikal way
-        x = Input((4,), name='x')
-        xt = sklearn_transformer_step(n_components=2)(x)
-        y = sklearn_classifier_step(multi_class='multinomial', solver='lbfgs')(xt)
+def test_instantiation_with_steps_with_duplicated_names(teardown):
+    x = Input((10,), name='x')
+    x = DummySISO(name='duplicated-name')(x)
+    y = DummySISO(name='duplicated-name')(x)
 
-        model = Model(x, y)
-        model.fit(X_data, y_data)
-        y_pred_baikal = model.predict(X_data)
+    with pytest.raises(RuntimeError):
+        Model(x, y)
 
-        # traditional way
-        pca = sklearn.decomposition.PCA(n_components=2)
-        logreg = sklearn.linear_model.logistic.LogisticRegression(multi_class='multinomial', solver='lbfgs')
-        X_data_transformed = pca.fit_transform(X_data)
-        logreg.fit(X_data_transformed, y_data)
-        y_pred_traditional = logreg.predict(X_data_transformed)
 
-        assert_array_equal(y_pred_baikal, y_pred_traditional)
+def test_lazy_model(teardown):
+    X_data = np.array([[1, 2], [3, 4]])
+
+    x = Input((2,), name='x')
+    model = Model(x, x)
+    model.fit(X_data)
+    X_pred = model.predict(X_data)
+
+    assert_array_equal(X_pred, X_data)
+
+
+def test_predict_with_missing_input(teardown):
+    x1 = Input((1,), name='x1')
+    x2 = Input((1,), name='x2')
+    y = DummyMISO()([x1, x2])
+
+    model = Model([x1, x2], y)
+
+    x1_data = np.array([[1], [2]])
+    with pytest.raises(RuntimeError):
+        model.predict(x1_data)
+
+
+def test_fit_and_predict_model_with_no_fittable_steps(teardown):
+    X1_data = np.array([[1, 2], [3, 4]])
+    X2_data = np.array([[5, 6], [7, 8]])
+    y_expected = np.array([[12, 16], [20, 24]])
+
+    x1 = Input((2,), name='x1')
+    x2 = Input((2,), name='x2')
+    z = DummyMISO()([x1, x2])
+    y = DummySISO()(z)
+
+    model = Model([x1, x2], y)
+    model.fit([X1_data, X2_data])  # nothing to fit
+    y_pred = model.predict([X1_data, X2_data])
+
+    assert_array_equal(y_pred, y_expected)
+
+
+def test_predict_with_not_fitted_steps(teardown):
+    X_data = iris.data
+
+    x = Input((4,), name='x')
+    xt = PCA(n_components=2)(x)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
+
+    model = Model(x, y)
+    with pytest.raises(NotFittedError):
+        model.predict(X_data)
+
+
+def test_predict_using_step_without_transform(teardown):
+    X_data = np.array([[1], [2]])
+
+    x = Input((1,), name='x')
+    y = DummyWithoutTransform()(x)
+
+    model = Model(x, y)
+    with pytest.raises(TypeError):
+        model.predict(X_data)
+
+
+def test_fit_classifier(teardown):
+    # Based on the example in
+    # https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
+    X_data = iris.data[:, :2]  # we only take the first two features.
+    y_data = iris.target
+
+    x = Input((2,), name='x')
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(x)
+
+    model = Model(x, y)
+
+    model.fit(X_data, y_data)
+    assert y.step.fitted
+
+
+def test_fit_transformer(teardown):
+    X_data = iris.data
+
+    x = Input((4,), name='x')
+    xt = PCA(n_components=2)(x)
+
+    model = Model(x, xt)
+    model.fit(X_data)
+    assert xt.step.fitted
+
+
+def test_fit_pipeline(teardown):
+    X_data = iris.data
+    y_data = iris.target
+
+    x = Input((4,), name='x')
+    xt = PCA(n_components=2)(x)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
+
+    model = Model(x, y)
+    model.fit(X_data, y_data)
+    assert xt.step.fitted and y.step.fitted
+
+
+def test_fit_predict_pipeline(teardown):
+    X_data = iris.data
+    y_data = iris.target
+
+    # baikal way
+    x = Input((4,), name='x')
+    xt = PCA(n_components=2)(x)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
+
+    model = Model(x, y)
+    model.fit(X_data, y_data)
+    y_pred_baikal = model.predict(X_data)
+
+    # traditional way
+    pca = sklearn.decomposition.PCA(n_components=2)
+    logreg = sklearn.linear_model.logistic.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    X_data_transformed = pca.fit_transform(X_data)
+    logreg.fit(X_data_transformed, y_data)
+    y_pred_traditional = logreg.predict(X_data_transformed)
+
+    assert_array_equal(y_pred_baikal, y_pred_traditional)

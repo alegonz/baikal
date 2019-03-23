@@ -1,11 +1,10 @@
-import warnings
-from typing import Union, List, Any, Dict
+from typing import Union, List, Dict
 
 from baikal.core.data import is_data_list, Data
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step
 from baikal.core.typing import ArrayLike
-from baikal.core.utils import listify
+from baikal.core.utils import listify, find_duplicated_items
 
 
 class Model(Step):
@@ -13,15 +12,24 @@ class Model(Step):
         super(Step, self).__init__(name=name)
 
         inputs = listify(inputs)
-        outputs = listify(outputs)
+        if not is_data_list(inputs):
+            raise ValueError('inputs must be of type Data.')
+        if len(set(inputs)) != len(inputs):
+            raise ValueError('inputs must be unique.')
 
-        if not is_data_list(inputs) or not is_data_list(outputs):
-            raise ValueError('inputs and outputs must be of type Data.')
+        outputs = listify(outputs)
+        if not is_data_list(outputs):
+            raise ValueError('outputs must be of type Data.')
+        if len(set(outputs)) != len(outputs):
+            raise ValueError('inputs must be unique.')
 
         self.inputs = inputs
         self.outputs = outputs
         self._graph = self._build_graph()
-        self._steps = self._get_required_steps(self._graph, self.inputs, self.outputs)
+        self._data = self._collect_data(self._graph)
+        self._default_steps = self._get_required_steps(self._graph, self.inputs, self.outputs)
+        # TODO: Implement a steps_cache keyed by tuple(tuple(inputs), tuple(outputs)).
+        # inputs and outputs must be sortable (implement __lt__, etc)
 
     def _build_graph(self):
         # Model uses the DiGraph data structure to store and operate on its Data and Steps.
@@ -43,13 +51,7 @@ class Model(Step):
                 graph.add_edge(input.step, step)
 
         # Check for any nodes (steps) with duplicated names
-        seen_names = {}
-        for step in graph:
-            if step.name not in seen_names:
-                seen_names[step.name] = 1
-            else:
-                seen_names[step.name] += 1
-        duplicated_names = [name for name, count in seen_names.items() if count > 1]
+        duplicated_names = find_duplicated_items([step.name for step in graph])
 
         if duplicated_names:
             raise RuntimeError('A Model cannot contain steps with duplicated names!\n'
@@ -57,6 +59,14 @@ class Model(Step):
                                '{}'.format(duplicated_names))
 
         return graph
+
+    @staticmethod
+    def _collect_data(graph):
+        data = set()
+        for step in graph:
+            for output in step.outputs:
+                data.add(output)
+        return data
 
     @staticmethod
     def _get_required_steps(graph, inputs, outputs):
@@ -90,13 +100,6 @@ class Model(Step):
         for output in outputs:
             all_required_steps |= backtrack(output)
 
-        # Check for any unused inputs
-        for input in inputs:
-            if input not in inputs_found:
-                warnings.warn(
-                    'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name),
-                    RuntimeWarning)
-
         # Check for missing inputs
         missing_inputs = []
         for step in all_required_steps:
@@ -104,8 +107,14 @@ class Model(Step):
                 missing_inputs.extend(step.outputs)
 
         if missing_inputs:
-            raise ValueError('The following inputs are required but were not specified:\n'
-                             '{}'.format(','.join([input.name for input in missing_inputs])))
+            raise RuntimeError('The following inputs are required but were not specified:\n'
+                               '{}'.format(','.join([input.name for input in missing_inputs])))
+
+        # Check for any unused inputs
+        for input in inputs:
+            if input not in inputs_found:
+                raise RuntimeError(
+                    'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name))
 
         return [step for step in all_steps_sorted if step in all_required_steps]
 
@@ -126,26 +135,14 @@ class Model(Step):
         outputs = listify(outputs)
         outputs_norm = []
         for output in outputs:
-            if isinstance(output, Data):
-                pass
-            elif isinstance(output, str):
-                output = self._get_data(output)
-            else:
-                raise ValueError('Outputs must be either of type str or Data.\n'
-                                 'Got {}'.format(type(output)))
+            output = self._check_data(output)
             outputs_norm.append(output)
         return outputs_norm
 
     def _normalize_dict(self, data_dict: Union[Dict[Data, ArrayLike], Dict[str, ArrayLike]]) -> Dict[Data, ArrayLike]:
         data_dict_norm = {}
         for key, value in data_dict.items():
-            if isinstance(key, Data):
-                pass
-            elif isinstance(key, str):
-                key = self._get_data(key)
-            else:
-                raise ValueError('When passing data in a dictionary, keys must be either of type str or Data.\n'
-                                 'Got {}'.format(type(key)))
+            key = self._check_data(key)
             data_dict_norm[key] = value
         return data_dict_norm
 
@@ -153,27 +150,32 @@ class Model(Step):
         # User passed either an array-like directly (case of one input)
         # or passed a list of array-like.
         # In this case, it must match the number of inputs specified at instantiation
-        data_list = listify(data_list)
-
-        if len(data_list) == 1 and data_list[0] is None and expand_none:
+        if data_list is None and expand_none:
             data_list = [None] * len(dataobjs)
 
-        if len(data_list) != len(dataobjs):
-            raise ValueError('The number of training data arrays does not match the number of inputs!\n'
-                             'Expected {} but got {}'.format(len(dataobjs), len(data_list)))
+        data_list = listify(data_list)
+
+        # if len(data_list) != len(dataobjs):
+        #     raise ValueError('The number of training data arrays does not match the number of inputs!\n'
+        #                      'Expected {} but got {}'.format(len(dataobjs), len(data_list)))
 
         input_data_norm = dict(zip(dataobjs, data_list))
 
         return input_data_norm
 
-    def _get_data(self, name: str) -> Data:
+    def _check_data(self, data: Union[str, Data]) -> Data:
         # Steps are assumed to have unique names
         # If the step names are unique, so are the data names
-        for step in self._graph:
-            for output in step.outputs:
-                if output.name == name:
-                    return output
-        raise ValueError('{} was not found in the model!'.format(name))
+        if isinstance(data, str):
+            for d in self._data:
+                if data == d.name:
+                    return d
+
+        elif isinstance(data, Data):
+            if data in self._data:
+                return data
+
+        raise ValueError('{} was not found in the model!'.format(data))
 
     def fit(self, input_data, target_data=None):
         # TODO: add extra_targets keyword argument
@@ -182,9 +184,18 @@ class Model(Step):
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
         input_data = self._normalize_given_data(input_data, 'input')
+
+        for input in self.inputs:
+            if input not in input_data:
+                raise ValueError('Missing input {}'.format(input))
+
         target_data = self._normalize_given_data(target_data, 'target')
 
-        steps = self._get_required_steps(self._graph, input_data.keys(), target_data.keys())
+        for output in self.outputs:
+            if output not in target_data:
+                raise ValueError('Missing output {}'.format(output))
+
+        steps = self._get_required_steps(self._graph, self.inputs, self.outputs)
 
         cache = dict()  # keys: Data instances, values: actual data (e.g. numpy arrays)
         cache.update(input_data)

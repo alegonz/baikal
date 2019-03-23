@@ -235,49 +235,22 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 - [x] model.predict fails if any of the required inputs is not in the provided inputs
 
 
-### TODO 2019/03/20
+### TODO 2019/03/24
+- [ ] `Data`
+    - Rename to `DataPlaceholder` to avoid confusion with actual data, and to approximate the semantics of TensorFlow's placeholder
 - [ ] `Model`
     - [x] Fix huge bug in cache update in `fit`
     - [x] Test raises `NotFittedError` when predict is run before fit.
     - [x] Add check for step name uniqueness (and hence their outputs) when building
         - Raise error if duplicated names are found
-    - [ ] Extend `predict` method to handle input_data and request outputs other than those specified at instantiation 
-        - Need inputs/outputs normalization
-            - Normalized to `Dict[Data, Any]`
-            - Cases:
-                - `Any` stands for array-like
-                - `fit`:
-                    - `input_data`:
-                        - `Any`
-                        - `List[Any]`
-                        - `Dict[str, Any]`
-                        - `Dict[Data, Any]`
-                    - `target_data`:
-                        - `Optional`
-                            - `Any`
-                            - `List[Any]`
-                            - `Dict[str, Any]`
-                            - `Dict[Data, Any]`
-                        - If None, set a list with None's for each output
-                - `predict`:
-                    - `input_data`:
-                        - `Any`
-                        - `List[Any]`
-                        - `Dict[str, Any]`
-                        - `Dict[Data, Any]`
-                    - `outputs`:
-                        - `Optional`
-                            - `str`
-                            - `List[str]`
-                            - `Data`
-                            - `List[Data]`
-                        - If None, return the outputs defined at instantiation    
+    - [ ] Extend `predict` method to handle input_data and request outputs other than those specified at instantiation     
     - [ ] Implement `extra_targets` argument in `Model.fit`
         - Test with a simple ensemble
     - [ ] Implement `Model.__call__`
         - Rename outputs?
     - [ ] Extend graph building to handle `Model` steps
     - [ ] Implement serialization
+        - joblib and pickle should work just like that, no extra coding
 - [ ] `Step`
     - [ ] Implement `check_input_shapes`
         - Used in `__call__` (building) phase
@@ -325,3 +298,77 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - This perhaps could be chosen at `__call__` time.
         - For example a `function` argument that takes the name of the function (or functions) used at predict time.
         - `y_pred, y_proba = LogisticRegression()(x1, function=['predict', 'predict_proba'])`
+
+### Notes on Inputs/outputs normalization
+- Behavior of methods
+    - `__init__`
+        - Arguments:
+            - inputs: `Union[Data, List[Data]]`
+            - outputs: `Union[Data, List[Data]]` (it is mandatory!)
+        - Normalization:
+            - inputs: `List[Data]`
+            - outputs: `List[Data]`
+            - Raises:
+                - `ValueError` if:
+                    - Any of the items is not of type `Data`
+                    - Any of the items is duplicated (Data with duplicated names)
+                        - Implement `__eq__` in Data class
+        - Notes:
+            - `__init__` should fail early leveraging the errors raised by `_build_graph` and `_get_required_steps` when:
+                - The provided inputs and outputs involve steps with duplicated names (`_build_graph`)
+                - The provided inputs and outputs lead to a cyclic graph (`_build_graph`)
+                    - Something beautiful: The API itself makes building cyclic graph impossible
+                        - (unless you do weird stuff like instantiating Data directly and messing with the internals of the steps and data instances).
+                - Any of the provided inputs are actually not required to compute the specified outputs (`_get_required_steps`)
+                - If any of the inputs required by the specified outputs were not provided (`_get_required_steps`)
+            - This means that we force the user to define inputs and outputs properly
+
+    - `fit`
+        - Arguments:
+            - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[Data, ArrayLike]]`
+            - target_data: `Optional[Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[Data, ArrayLike]]]`
+                - If List, for steps that do not require fit, items can be None
+                - If Dict, for steps that do not require fit, keys can be omitted, or values can be None
+        - Normalization:
+            - input_data: `Dict[Data, ArrayLike]` (keys must match the inputs passed at instantiation)
+            - target_data: `Dict[Data, ArrayLike]` (keys must match the outputs passed at instantiation)
+                - If target_data is None, return `Dict[Data, None]` with keys equal to the outputs passed at instantiation
+            - Raises:
+                - `ValueError` when:
+                    - if input_data was a passed as `ArrayLike`, or `List[ArrayLike]`
+                        - the number of elements does not match the inputs passed at instantiation
+                    - if target_data was a passed as `ArrayLike`, or `List[ArrayLike]`
+                        - the number of elements does not match the outputs passed at instantiation
+                    - if input_data was a passed as `Dict`
+                        - the keys do not match the inputs passed at instantiation
+                            - Must match in names and number
+                        - the keys are a type other than `str` or `Data`
+                    - if target_data was a passed as `Dict`
+                        - the keys do not match the outputs passed at instantiation
+                        - the keys are a type other than `str` or `Data`
+        - Notes:
+            - If normalization succeeds, `_get_required_steps` will succeed too.
+                - inputs and outputs are the same as in `__init__`
+    - `predict`
+        - Arguments:
+            - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[Data, ArrayLike]]`
+            - outputs: `Optional[Union[str, List[str], Data, List[Data]]]`
+        - Normalization:
+            - input_data: `Dict[Data, ArrayLike]`
+            - outputs: `List[Data]`
+                - If output is None, return the outputs defined at instantiation
+            - Raises:
+                - `ValueError` when:
+                    - if input_data was a passed as `ArrayLike`, or `List[ArrayLike]`
+                        - the number of elements does not match the inputs passed at instantiation
+                    - if input_data was a passed as `Dict`
+                        - the keys do not exist in the inputs passed at instantiation
+                        - the keys are a type other than `str` or `Data`
+                    - if outputs:
+                        - Any of the items is not of type `Data` or `str`
+                        - Any of the items is duplicated (Data with duplicated names)
+        - Notes:
+            - `predict` should fail early leveraging the errors raised by `_get_required_steps` when:
+                - Any of the provided input_data are actually not required to compute the specified outputs
+                - If any of the input_data required by the specified outputs were not provided
+            - This means that we force the user to pass input_data and outputs properly
