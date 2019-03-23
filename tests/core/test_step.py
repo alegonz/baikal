@@ -53,3 +53,7 @@ class TestStep:
 
         assert 'LogisticRegression_0/0' == y0.name
         assert 'LogisticRegression_1/0' == y1.name
+
+    def test_repr(self):
+        step = Step(name='some-step')
+        assert 'Step(name=some-step)' == repr(step)
