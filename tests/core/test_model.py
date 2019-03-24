@@ -234,18 +234,6 @@ def test_lazy_model(teardown):
     assert_array_equal(X_pred, X_data)
 
 
-def test_predict_with_missing_input(teardown):
-    x1 = Input((1,), name='x1')
-    x2 = Input((1,), name='x2')
-    y = DummyMISO()([x1, x2])
-
-    model = Model([x1, x2], y)
-
-    x1_data = np.array([[1], [2]])
-    with pytest.raises(RuntimeError):
-        model.predict(x1_data)
-
-
 def test_fit_and_predict_model_with_no_fittable_steps(teardown):
     X1_data = np.array([[1, 2], [3, 4]])
     X2_data = np.array([[5, 6], [7, 8]])
@@ -284,32 +272,6 @@ def test_predict_using_step_without_transform(teardown):
     model = Model(x, y)
     with pytest.raises(TypeError):
         model.predict(X_data)
-
-
-def test_fit_classifier(teardown):
-    # Based on the example in
-    # https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
-    X_data = iris.data[:, :2]  # we only take the first two features.
-    y_data = iris.target
-
-    x = Input((2,), name='x')
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(x)
-
-    model = Model(x, y)
-
-    model.fit(X_data, y_data)
-    assert y.step.fitted
-
-
-def test_fit_transformer(teardown):
-    X_data = iris.data
-
-    x = Input((4,), name='x')
-    xt = PCA(n_components=2)(x)
-
-    model = Model(x, xt)
-    model.fit(X_data)
-    assert xt.step.fitted
 
 
 def test_fit_pipeline(teardown):
