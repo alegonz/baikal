@@ -236,6 +236,3 @@ class Model(Step):
     # their names, with array values. We need input normalization for this.
     # Also, check that all of requested output keys exist in the Model graph.
 
-    @property
-    def graph(self):
-        return self._graph
