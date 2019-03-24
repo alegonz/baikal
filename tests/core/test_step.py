@@ -1,4 +1,4 @@
-from baikal.core.data import Data
+from baikal.core.data_placeholder import DataPlaceholder
 from baikal.core.step import Input, Step
 
 from dummy_steps import DummyMIMO
@@ -10,7 +10,7 @@ class TestInput:
     def test_instantiation(self, teardown):
         x0 = Input((10,))  # a 10-dimensional feature vector
 
-        assert isinstance(x0, Data)
+        assert isinstance(x0, DataPlaceholder)
         assert (10,) == x0.shape
         assert 'InputStep_0' == x0.name
 
@@ -28,7 +28,7 @@ class TestStep:
         x = Input((10,), name='x')
         y = LogisticRegression()(x)
 
-        assert isinstance(y, Data)
+        assert isinstance(y, DataPlaceholder)
         assert (1,) == y.shape
         assert 'LogisticRegression_0/0' == y.name
 
@@ -37,8 +37,8 @@ class TestStep:
         x1 = Input((1,), name='x')
         y0, y1 = DummyMIMO()([x0, x1])
 
-        assert isinstance(y0, Data)
-        assert isinstance(y1, Data)
+        assert isinstance(y0, DataPlaceholder)
+        assert isinstance(y1, DataPlaceholder)
         assert (1,) == y0.shape
         assert (1,) == y1.shape
         assert 'DummyMIMO_0/0' == y0.name

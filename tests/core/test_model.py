@@ -15,7 +15,6 @@ from fixtures import teardown
 from sklearn_steps import LogisticRegression, PCA
 from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
 
-
 iris = datasets.load_iris()
 
 
@@ -25,7 +24,7 @@ def does_not_raise():
 
 
 @pytest.fixture
-def dummy_model_data_and_arrays():
+def dummy_model_data_placeholders_and_arrays():
     x1 = Input((1,), name='x1')
     x2 = Input((1,), name='x2')
 
@@ -34,14 +33,14 @@ def dummy_model_data_and_arrays():
     z4 = DummyMISO()([z1, z2])
     z5, z6 = DummyMIMO()([z4, z3])
 
-    data = {'x1': x1,
-            'x2': x2,
-            'z1': z1,
-            'z2': z2,
-            'z3': z3,
-            'z4': z4,
-            'z5': z5,
-            'z6': z6}
+    data_placeholders = {'x1': x1,
+                         'x2': x2,
+                         'z1': z1,
+                         'z2': z2,
+                         'z3': z3,
+                         'z4': z4,
+                         'z5': z5,
+                         'z6': z6}
 
     # arrays have explicit sample (rows) and feature (columns) axes
     arrays = {'x1': np.array([[1]]),
@@ -53,7 +52,7 @@ def dummy_model_data_and_arrays():
               'z5': np.array([[40]]),
               'z6': np.array([[0]])}
 
-    return data, arrays
+    return data_placeholders, arrays
 
 
 @pytest.mark.parametrize('inputs,outputs,expectation',
@@ -71,11 +70,11 @@ def dummy_model_data_and_arrays():
                           (['z1', 'z2', 'x1'], ['z4'], pytest.raises(RuntimeError)),
                           (['z1', 'z2', 'x2'], ['z4'], pytest.raises(RuntimeError))])
 def test_instantiation(inputs, outputs, expectation,
-                       dummy_model_data_and_arrays, teardown):
-    data, _ = dummy_model_data_and_arrays
+                       dummy_model_data_placeholders_and_arrays, teardown):
+    data_placeholders, _ = dummy_model_data_placeholders_and_arrays
 
-    inputs = [data[i] for i in inputs]
-    outputs = [data[o] for o in outputs]
+    inputs = [data_placeholders[i] for i in inputs]
+    outputs = [data_placeholders[o] for o in outputs]
 
     with expectation:
         Model(inputs, outputs)
@@ -96,7 +95,7 @@ def test_fit_call(teardown):
     # Call with lists
     model.fit([x1_data, x2_data], [y1_target_data, None])
 
-    # Call with dicts (data keys)
+    # Call with dicts (data_placeholder keys)
     model.fit({x1: x1_data, x2: x2_data}, {y1: y1_target_data, y2: None})
 
     # Call with dicts (name (str) keys)
@@ -107,7 +106,7 @@ def test_fit_call(teardown):
     with pytest.raises(ValueError):
         model.fit([x1_data], [y1_target_data, None])
 
-    # Call with dicts (data keys)
+    # Call with dicts (data_placeholder keys)
     with pytest.raises(ValueError):
         model.fit({x1: x1_data}, {y1: y1_target_data, y2: None})
 
@@ -120,7 +119,7 @@ def test_fit_call(teardown):
     with pytest.raises(ValueError):
         model.fit([x1_data, x2_data], [None])
 
-    # Call with dicts (data keys)
+    # Call with dicts (data_placeholder keys)
     with pytest.raises(ValueError):
         model.fit({x1: x1_data, x2: x2_data}, {y2: None})
 
@@ -154,7 +153,7 @@ def test_predict_call(teardown):
     # Call with list input. Get all outputs.
     y1_pred, y2_pred = model.predict([x1_data, x2_data])
 
-    # Call with dict input (data keys). Get all outputs.
+    # Call with dict input (data_placeholder keys). Get all outputs.
     y1_pred, y2_pred = model.predict({x1: x1_data, x2: x2_data})
 
     # Call with dict input (name (str) keys). Get all outputs.
@@ -168,7 +167,7 @@ def test_predict_call(teardown):
     with pytest.raises(RuntimeError):
         y1_pred, y2_pred = model.predict(x1_data)
 
-    # Call with dict input (data keys). Get all outputs.
+    # Call with dict input (data_placeholder keys). Get all outputs.
     with pytest.raises(RuntimeError):
         y1_pred, y2_pred = model.predict({x1: x1_data})
 
@@ -187,6 +186,11 @@ def test_predict_call(teardown):
     # ------ Unnecessary inputs
     with pytest.raises(RuntimeError):
         y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data}, 'PCA_0/0')
+
+    # ------ Duplicated outputs
+    with pytest.raises(ValueError):
+        y1_pred, y2_pred = model.predict([x1_data, x2_data],
+                                         ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
 
 
 def test_multiedge(teardown):

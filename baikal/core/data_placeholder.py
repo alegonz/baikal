@@ -1,11 +1,11 @@
 from baikal.core.utils import make_repr
 
 
-def is_data_list(l):
-    return all([isinstance(d, Data) for d in l])
+def is_data_placeholder_list(l):
+    return all([isinstance(item, DataPlaceholder) for item in l])
 
 
-class Data:
+class DataPlaceholder:
     def __init__(self, shape, step, name):
         self.shape = shape
         self.step = step

@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from baikal.core.data import Data, is_data_list
+from baikal.core.data_placeholder import DataPlaceholder, is_data_placeholder_list
 from baikal.core.digraph import Node
 from baikal.core.utils import listify, make_name
 
@@ -15,8 +15,8 @@ class Step(Node):
         # TODO: Add a target keyword argument to specify inputs that are only required at fit time
         inputs = listify(inputs)
 
-        if not is_data_list(inputs):
-            raise ValueError('Steps must be called with Data inputs.')
+        if not is_data_placeholder_list(inputs):
+            raise ValueError('Steps must be called with DataPlaceholder inputs.')
 
         self.inputs = inputs
         self.outputs = self._build_outputs(inputs)
@@ -30,14 +30,14 @@ class Step(Node):
     # Also, sklearn-based Steps can accept only shapes of length 1
     # (ignoring the samples, the dimensionality of the feature vector)
 
-    def _build_outputs(self, inputs: List[Data]) -> List[Data]:
+    def _build_outputs(self, inputs: List[DataPlaceholder]) -> List[DataPlaceholder]:
         input_shapes = [input.shape for input in inputs]
         output_shapes = self.build_output_shapes(input_shapes)
 
         outputs = []
         for i, shape in enumerate(output_shapes):
             name = make_name(self.name, i)
-            outputs.append(Data(shape, self, name))
+            outputs.append(DataPlaceholder(shape, self, name))
         return outputs
 
     def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
@@ -48,10 +48,10 @@ class InputStep(Node):
     def __init__(self, shape, name=None):
         super(InputStep, self).__init__(name=name)
         self.inputs = []
-        self.outputs = [Data(shape, self, self.name)]
+        self.outputs = [DataPlaceholder(shape, self, self.name)]
 
 
 def Input(shape, name=None):
     # Maybe this can be implemented in InputStep.__new__
     input = InputStep(shape, name)
-    return input.outputs[0]  # Input produces exactly one Data output
+    return input.outputs[0]  # Input produces exactly one DataPlaceholder output

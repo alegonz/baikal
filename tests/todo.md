@@ -7,7 +7,7 @@ Provide a Keras/TensorFlow like API to develop complex machine learning pipeline
 - API should be something like:
 
 ```python
-# x1, x2, x1 ... y are Data objects with pointers to the actual results,
+# x1, x2, x1 ... y are DataPlaceholder objects with pointers to the actual results,
 # the actual results will be realized once the graph is run (feed_forward)
 # (conceptually, kinda similar to a Tensor in Tensorflow)
 x1 = Input(name='input1')
@@ -47,7 +47,7 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
 - A cache to avoid repeating the computations if the input data hasn't changed
 
 ## Implementation ideas
-- DiGraph is the internal representation of the Data and Steps that belong to a Model.
+- DiGraph is the internal representation of the DataPlaceholder and Steps that belong to a Model.
     - It is build on Model instantiation. 
 - Represent graphs as dicts-of-sets (adjacency list)
     - This is similar to the data structure used in networkx (dicts-of-dicts)
@@ -58,21 +58,21 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
         - A node of the graph
         - Analogous to TensorFlow's Operation
         - Internally derived from a Node class
-        - A step is callable on Data inputs
+        - A step is callable on DataPlaceholder inputs
             - Provide a special 'target' argument for inputs required only at fit time. This allow us to treat label data as Inputs, transform them and connect them to e.g. classifier Steps. 
-    - Data
+    - DataPlaceholder
         - An semi-edge of the graph
         - Analogous to TensorFlow's Tensor
         - Internally derived from a Edge class
     - Input
         - An special node of the graph that allows inputting data (arrays, dataframes, etc) from client code
-            - At instantiation, internally it creates a special InputStep, and returns a Data object
+            - At instantiation, internally it creates a special InputStep, and returns a DataPlaceholder object
         - Analogous to TensorFlow's Placeholder and Input in Keras
         - Must specify an input shape
     - Model
-        - A graph (of Step's that pass Data along each other) with defined inputs and outputs.
+        - A graph (of Step's that pass DataPlaceholder along each other) with defined inputs and outputs.
         - A graph with fit/predict API
-        - Models must be defined (`__init__`) with Data inputs and outputs
+        - Models must be defined (`__init__`) with DataPlaceholder inputs and outputs
         - Internally derived from a DiGraph class
         - Model fitting:
             - To fit a graph we need to:
@@ -129,7 +129,7 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
 - Need to implement check/inference of input/output shapes
     - Steps like Concatenate, Split and Merge need to know about the input shapes
     - sklearn Steps' inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
-    - [x] Shape information is delegated to Data class
+    - [x] Shape information is delegated to DataPlaceholder class
     - [x] Also necessary to infer the number of outputs of a Step
         - There is no way in Python to know a priori the type and number of outputs of a function
         - [x] Provide a `build_output_shapes` API
@@ -152,11 +152,11 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
     - [x] Takes a shape argument (mandatory). The shape should not include n_samples
     - [x] If name is not specified, a unique name should be generated
         - [x] Input (Node) naming format: `graph_name/node_name`
-        - [x] Data (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
+        - [x] DataPlaceholder (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
     - [x] Creates another instance with an unique name if an Input is created with a name already used by another Input
     - [x] At instantiation:
         - [x] An InputStep is added to the default graph
-        - [x] A Data object with the specified shape and name is returned
+        - [x] A DataPlaceholder object with the specified shape and name is returned
     
 ```python
 x1 = Input(name='x1')
@@ -185,15 +185,15 @@ p0 = SomeStep(name='p0')
 p1 = SomeStep(name='p1')
 ```
 
-- [x] Can call a Step component instance with (possibly several Data objects).
+- [x] Can call a Step component instance with (possibly several DataPlaceholder objects).
     - [x] A component must be defined by extending the original component with Step mixin class
-    - [x] A component can only be called with Data objects as inputs
-    - [x] A call to Step must return Data objects
+    - [x] A component can only be called with DataPlaceholder objects as inputs
+    - [x] A call to Step must return DataPlaceholder objects
 ```python
 pred = SVC(...)(inputs=[x1, x2])
 ```
 
-- [x] Can instantiate a Model with specified inputs and outputs (inputs and outputs are Data objects)
+- [x] Can instantiate a Model with specified inputs and outputs (inputs and outputs are DataPlaceholder objects)
     - Both inputs and outputs are mandatory arguments
 ```python
 model = Model(inputs=[x1, x2], outputs=[y1, y2])
@@ -223,8 +223,8 @@ out = model.predict([x1_data, x2_data])
 
 - [ ] Can query the model a la graphkit, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
 ```python
-# input_data dictionary keys can be either Data objects or their name strings
-# outputs can be a list of Data objects or their name strings
+# input_data dictionary keys can be either DataPlaceholder objects or their name strings
+# outputs can be a list of DataPlaceholder objects or their name strings
 model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 # out = {'pred': ...}  # output dictionary keys should be name strings by default?
 ```
@@ -236,14 +236,16 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 
 
 ### TODO 2019/03/24
-- [ ] `Data`
+- [ ] `DataPlaceholder`
     - Rename to `DataPlaceholder` to avoid confusion with actual data, and to approximate the semantics of TensorFlow's placeholder
 - [ ] `Model`
     - [x] Fix huge bug in cache update in `fit`
     - [x] Test raises `NotFittedError` when predict is run before fit.
     - [x] Add check for step name uniqueness (and hence their outputs) when building
         - Raise error if duplicated names are found
-    - [ ] Extend `predict` method to handle input_data and request outputs other than those specified at instantiation     
+    - [x] Extend `predict` method to handle input_data and request outputs other than those specified at instantiation
+    - Add steps cache
+        - Need to make steps sortable     
     - [ ] Implement `extra_targets` argument in `Model.fit`
         - Test with a simple ensemble
     - [ ] Implement `Model.__call__`
@@ -275,7 +277,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
-            - e.g. `LogisticRegression()(inputs=x1, target_data=y_trans)  # y_trans is a Data object output from another Step`
+            - e.g. `LogisticRegression()(inputs=x1, target_data=y_trans)  # y_trans is a DataPlaceholder object output from another Step`
             - When fitting, look for target_data in results cache instead of the provided `target_data`
     - [ ] Handle extra options in predict method
         - Some regressors have extra options in their predict method, and they return a tuple of arrays.
@@ -303,36 +305,36 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 - Behavior of methods
     - `__init__`
         - Arguments:
-            - inputs: `Union[Data, List[Data]]`
-            - outputs: `Union[Data, List[Data]]` (it is mandatory!)
+            - inputs: `Union[DataPlaceholder, List[DataPlaceholder]]`
+            - outputs: `Union[DataPlaceholder, List[DataPlaceholder]]` (it is mandatory!)
         - Normalization:
-            - inputs: `List[Data]`
-            - outputs: `List[Data]`
+            - inputs: `List[DataPlaceholder]`
+            - outputs: `List[DataPlaceholder]`
             - Raises:
                 - `ValueError` if:
-                    - Any of the items is not of type `Data`
-                    - Any of the items is duplicated (Data with duplicated names)
-                        - Implement `__eq__` in Data class
+                    - Any of the items is not of type `DataPlaceholder`
+                    - Any of the items is duplicated (DataPlaceholder with duplicated names)
+                        - Implement `__eq__` in DataPlaceholder class
         - Notes:
             - `__init__` should fail early leveraging the errors raised by `_build_graph` and `_get_required_steps` when:
                 - The provided inputs and outputs involve steps with duplicated names (`_build_graph`)
                 - The provided inputs and outputs lead to a cyclic graph (`_build_graph`)
                     - Something beautiful: The API itself makes building cyclic graph impossible
-                        - (unless you do weird stuff like instantiating Data directly and messing with the internals of the steps and data instances).
+                        - (unless you do weird stuff like instantiating DataPlaceholder directly and messing with the internals of the steps and data instances).
                 - Any of the provided inputs are actually not required to compute the specified outputs (`_get_required_steps`)
                 - If any of the inputs required by the specified outputs were not provided (`_get_required_steps`)
             - This means that we force the user to define inputs and outputs properly
 
     - `fit`
         - Arguments:
-            - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[Data, ArrayLike]]`
-            - target_data: `Optional[Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[Data, ArrayLike]]]`
+            - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[DataPlaceholder, ArrayLike]]`
+            - target_data: `Optional[Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[DataPlaceholder, ArrayLike]]]`
                 - If List, for steps that do not require fit, items can be None
                 - If Dict, for steps that do not require fit, keys can be omitted, or values can be None
         - Normalization:
-            - input_data: `Dict[Data, ArrayLike]` (keys must match the inputs passed at instantiation)
-            - target_data: `Dict[Data, ArrayLike]` (keys must match the outputs passed at instantiation)
-                - If target_data is None, return `Dict[Data, None]` with keys equal to the outputs passed at instantiation
+            - input_data: `Dict[DataPlaceholder, ArrayLike]` (keys must match the inputs passed at instantiation)
+            - target_data: `Dict[DataPlaceholder, ArrayLike]` (keys must match the outputs passed at instantiation)
+                - If target_data is None, return `Dict[DataPlaceholder, None]` with keys equal to the outputs passed at instantiation
             - Raises:
                 - `ValueError` when:
                     - if input_data was a passed as `ArrayLike`, or `List[ArrayLike]`
@@ -342,20 +344,20 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
                     - if input_data was a passed as `Dict`
                         - the keys do not match the inputs passed at instantiation
                             - Must match in names and number
-                        - the keys are a type other than `str` or `Data`
+                        - the keys are a type other than `str` or `DataPlaceholder`
                     - if target_data was a passed as `Dict`
                         - the keys do not match the outputs passed at instantiation
-                        - the keys are a type other than `str` or `Data`
+                        - the keys are a type other than `str` or `DataPlaceholder`
         - Notes:
             - If normalization succeeds, `_get_required_steps` will succeed too.
                 - inputs and outputs are the same as in `__init__`
     - `predict`
         - Arguments:
-            - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[Data, ArrayLike]]`
-            - outputs: `Optional[Union[str, List[str], Data, List[Data]]]`
+            - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[DataPlaceholder, ArrayLike]]`
+            - outputs: `Optional[Union[str, List[str], DataPlaceholder, List[DataPlaceholder]]]`
         - Normalization:
-            - input_data: `Dict[Data, ArrayLike]`
-            - outputs: `List[Data]`
+            - input_data: `Dict[DataPlaceholder, ArrayLike]`
+            - outputs: `List[DataPlaceholder]`
                 - If output is None, return the outputs defined at instantiation
             - Raises:
                 - `ValueError` when:
@@ -363,10 +365,10 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
                         - the number of elements does not match the inputs passed at instantiation
                     - if input_data was a passed as `Dict`
                         - the keys do not exist in the inputs passed at instantiation
-                        - the keys are a type other than `str` or `Data`
+                        - the keys are a type other than `str` or `DataPlaceholder`
                     - if outputs:
-                        - Any of the items is not of type `Data` or `str`
-                        - Any of the items is duplicated (Data with duplicated names)
+                        - Any of the items is not of type `DataPlaceholder` or `str`
+                        - Any of the items is duplicated (DataPlaceholder with duplicated names)
         - Notes:
             - `predict` should fail early leveraging the errors raised by `_get_required_steps` when:
                 - Any of the provided input_data are actually not required to compute the specified outputs
