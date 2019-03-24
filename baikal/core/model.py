@@ -1,4 +1,6 @@
-from typing import Union, List, Dict
+from collections import OrderedDict
+from functools import lru_cache
+from typing import Union, List, Dict, Tuple
 
 from baikal.core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal.core.digraph import DiGraph
@@ -27,9 +29,9 @@ class Model(Step):
         self.outputs = outputs
         self._graph = self._build_graph()
         self._data_placeholders = self._collect_data_placeholders(self._graph)
-        self._default_steps = self._get_required_steps(self._graph, self.inputs, self.outputs)
-        # TODO: Implement a steps_cache keyed by tuple(tuple(inputs), tuple(outputs)).
-        # inputs and outputs must be sortable (implement __lt__, etc)
+
+        self._get_required_steps = lru_cache(maxsize=128)(self._get_required_steps)
+        self._get_required_steps(tuple(self.inputs), tuple(self.outputs))
 
     def _build_graph(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
@@ -68,9 +70,10 @@ class Model(Step):
                 data_placeholders.add(output)
         return data_placeholders
 
-    @staticmethod
-    def _get_required_steps(graph, inputs, outputs):
-        all_steps_sorted = graph.topological_sort()  # Fail early if graph is acyclic
+    def _get_required_steps(self, inputs: Tuple[DataPlaceholder], outputs: Tuple[DataPlaceholder]) -> List[Step]:
+        # inputs and outputs must be tuple (thus hashable) for lru_cache to work
+
+        all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
 
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
@@ -103,7 +106,7 @@ class Model(Step):
         # Check for missing inputs
         missing_inputs = []
         for step in all_required_steps:
-            if graph.in_degree(step) == 0:
+            if self._graph.in_degree(step) == 0:
                 missing_inputs.extend(step.outputs)
 
         if missing_inputs:
@@ -118,27 +121,23 @@ class Model(Step):
 
         return [step for step in all_steps_sorted if step in all_required_steps]
 
-    def _normalize_input_data(self, input_data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]) -> Dict[DataPlaceholder, ArrayLike]:
-        if isinstance(input_data, dict):
-            input_data_norm = self._normalize_dict(input_data)
-        else:
-            input_data_norm = dict(zip(self.inputs, listify(input_data)))
-        return input_data_norm
+    def _normalize_data(self,
+                        data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]],
+                        data_placeholders: List[DataPlaceholder],
+                        expand_none=False) -> Dict[DataPlaceholder, ArrayLike]:
 
-    def _normalize_target_data(self, target_data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]) -> Dict[DataPlaceholder, ArrayLike]:
-        if isinstance(target_data, dict):
-            target_data_norm = self._normalize_dict(target_data)
-        else:
-            target_data = [None] * len(self.outputs) if target_data is None else target_data
-            target_data_norm = dict(zip(self.outputs, listify(target_data)))
-        return target_data_norm
+        # Need OrderedDict to ensure order or keys when
+        # casting to tuple for cached _get_required_steps
 
-    def _normalize_dict(self, data_dict: Union[Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]) -> Dict[DataPlaceholder, ArrayLike]:
-        data_dict_norm = {}
-        for key, value in data_dict.items():
-            key = self._get_data_placeholder(key)
-            data_dict_norm[key] = value
-        return data_dict_norm
+        if isinstance(data, dict):
+            data_norm = OrderedDict()
+            for key, value in data.items():
+                key = self._get_data_placeholder(key)
+                data_norm[key] = value
+        else:
+            data = [None] * len(data_placeholders) if (data is None and expand_none) else data
+            data_norm = OrderedDict(zip(data_placeholders, listify(data)))
+        return data_norm
 
     def _get_data_placeholder(self, data_placeholder: Union[str, DataPlaceholder]) -> DataPlaceholder:
         # Steps are assumed to have unique names (guaranteed by success of _build_graph)
@@ -160,37 +159,38 @@ class Model(Step):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
-        input_data = self._normalize_input_data(input_data)
+        input_data = self._normalize_data(input_data, self.inputs)
         for input in self.inputs:
             if input not in input_data:
                 raise ValueError('Missing input {}'.format(input))
 
-        target_data = self._normalize_target_data(target_data)
+        target_data = self._normalize_data(target_data, self.outputs, expand_none=True)
         for output in self.outputs:
             if output not in target_data:
                 raise ValueError('Missing output {}'.format(output))
 
-        steps = self._get_required_steps(self._graph, self.inputs, self.outputs)
+        steps = self._get_required_steps(tuple(input_data), tuple(target_data))
 
-        cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
-        cache.update(input_data)
-        # cache.update(extra_targets)
+        results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
+        results_cache.update(input_data)
+        # results_cache.update(extra_targets)
 
         for step in steps:
             # 1) Fit phase
-            Xs = [cache[i] for i in step.inputs]
+            Xs = [results_cache[i] for i in step.inputs]
             if hasattr(step, 'fit'):
                 # Filtering out None target_data allow us to define fit methods without y=None.
                 ys = [target_data[o] for o in step.outputs if o in target_data and target_data[o] is not None]
                 step.fit(*Xs, *ys)
 
             # 2) predict/transform phase
-            self._compute_step(step, Xs, cache)
+            self._compute_step(step, Xs, results_cache)
 
     def predict(self, input_data, outputs=None):
-        cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
+        results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
 
-        input_data = self._normalize_input_data(input_data)
+        # Normalize inputs and outputs
+        input_data = self._normalize_data(input_data, self.inputs)
 
         if outputs is None:
             outputs = self.outputs
@@ -200,15 +200,16 @@ class Model(Step):
             if len(set(outputs)) != len(outputs):
                 raise ValueError('outputs must be unique.')
 
-        steps = self._get_required_steps(self._graph, input_data.keys(), outputs)
+        steps = self._get_required_steps(tuple(input_data), tuple(outputs))
 
-        cache.update(input_data)
+        # Compute
+        results_cache.update(input_data)
 
         for step in steps:
-            Xs = [cache[i] for i in step.inputs]
-            self._compute_step(step, Xs, cache)
+            Xs = [results_cache[i] for i in step.inputs]
+            self._compute_step(step, Xs, results_cache)
 
-        output_data = [cache[o] for o in outputs]
+        output_data = [results_cache[o] for o in outputs]
         if len(output_data) == 1:
             return output_data[0]
         else:
@@ -236,3 +237,7 @@ class Model(Step):
     # their names, with array values. We need input normalization for this.
     # Also, check that all of requested output keys exist in the Model graph.
 
+    # For testing purposes
+    @property
+    def _steps_cache_info(self):
+        return self._get_required_steps.cache_info()

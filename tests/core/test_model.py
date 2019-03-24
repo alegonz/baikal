@@ -137,15 +137,15 @@ def test_fit_call(teardown):
 
 
 def test_predict_call(teardown):
+    x1_data = iris.data[:, :2]
+    x2_data = iris.data[:, 2:]
+    y1_target_data = iris.target
+
     x1 = Input((2,), name='x1')
     x2 = Input((2,), name='x2')
     y1 = LogisticRegression()(x1)
     y2 = PCA()(x2)
     model = Model([x1, x2], [y1, y2])
-
-    x1_data = iris.data[:, :2]
-    x2_data = iris.data[:, 2:]
-    y1_target_data = iris.target
 
     model.fit([x1_data, x2_data], [y1_target_data, None])
 
@@ -191,6 +191,32 @@ def test_predict_call(teardown):
     with pytest.raises(ValueError):
         y1_pred, y2_pred = model.predict([x1_data, x2_data],
                                          ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
+
+
+def test_steps_cache(teardown):
+    x1_data = iris.data[:, :2]
+    x2_data = iris.data[:, 2:]
+    y1_target_data = iris.target
+
+    x1 = Input((2,), name='x1')
+    x2 = Input((2,), name='x2')
+    y1 = LogisticRegression()(x1)
+    y2 = PCA()(x2)
+
+    model = Model([x1, x2], [y1, y2])
+    assert 0 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
+
+    model.fit([x1_data, x2_data], [y1_target_data, None])
+    assert 1 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
+
+    model.predict([x1_data, x2_data])
+    assert 2 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
+
+    model.predict(x1_data, 'LogisticRegression_0/0')
+    assert 2 == model._steps_cache_info.hits and 2 == model._steps_cache_info.misses
+
+    model.predict(x1_data, 'LogisticRegression_0/0')
+    assert 3 == model._steps_cache_info.hits and 2 == model._steps_cache_info.misses
 
 
 def test_multiedge(teardown):
