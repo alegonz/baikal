@@ -28,6 +28,7 @@ class Model(Step):
         self.inputs = inputs
         self.outputs = outputs
         self._graph = self._build_graph()
+        self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
         self._data_placeholders = self._collect_data_placeholders(self._graph)
 
         self._get_required_steps = lru_cache(maxsize=128)(self._get_required_steps)
@@ -72,9 +73,7 @@ class Model(Step):
 
     def _get_required_steps(self, inputs: Tuple[DataPlaceholder], outputs: Tuple[DataPlaceholder]) -> List[Step]:
         # inputs and outputs must be tuple (thus hashable) for lru_cache to work
-
-        all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
-
+        #
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
         # Raise an error if there is an ancestor whose input is not in the specified inputs.
@@ -119,7 +118,7 @@ class Model(Step):
                 raise RuntimeError(
                     'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name))
 
-        return [step for step in all_steps_sorted if step in all_required_steps]
+        return [step for step in self._all_steps_sorted if step in all_required_steps]
 
     def _normalize_data(self,
                         data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]],
