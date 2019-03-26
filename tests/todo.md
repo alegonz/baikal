@@ -244,9 +244,10 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [x] Add check for step name uniqueness (and hence their outputs) when building
         - Raise error if duplicated names are found
     - [x] Extend `predict` method to handle input_data and request outputs other than those specified at instantiation
-    - Add steps cache
+    - [x] Add steps cache
         - Need to make steps sortable     
-    - [ ] Implement `extra_targets` argument in `Model.fit`
+    - [x] Implement `extra_targets` argument in `Model.fit`
+        - Already possible with current implementation of `Model.fit(..., target_data)`
         - Test with a simple ensemble
     - [ ] Implement `Model.__call__`
         - Rename outputs?
@@ -263,6 +264,9 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Needed for steps whose outputs cannot be known a priori
             - e.g. PCA with n_components defined as percentage of total variance
         - Raise a warning
+    - [ ] Add `trainable=True` keyword argument to `__init__`
+        - Add as an attribute so we can also do `step.trainable = False`
+        - Condition the fit step in Model to this attribute
     - [ ] Move somewhere else the `_names` variable
         - Need to delete any names that were created prior to failure
             - Use a context manager for this

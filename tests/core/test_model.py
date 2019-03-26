@@ -5,14 +5,16 @@ from numpy.testing import assert_array_equal
 import pytest
 from sklearn import datasets
 import sklearn.decomposition
+import sklearn.ensemble
 from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
 
 from baikal.core.model import Model
 from baikal.core.step import Input
+from baikal.steps.merge import Stack
 
 from fixtures import teardown
-from sklearn_steps import LogisticRegression, PCA
+from sklearn_steps import LogisticRegression, RandomForestClassifier, PCA
 from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
 
 iris = datasets.load_iris()
@@ -328,9 +330,42 @@ def test_fit_predict_pipeline(teardown):
 
     # traditional way
     pca = sklearn.decomposition.PCA(n_components=2)
-    logreg = sklearn.linear_model.logistic.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
     X_data_transformed = pca.fit_transform(X_data)
     logreg.fit(X_data_transformed, y_data)
     y_pred_traditional = logreg.predict(X_data_transformed)
+
+    assert_array_equal(y_pred_baikal, y_pred_traditional)
+
+
+def test_fit_predict_ensemble(teardown):
+    X_data = iris.data
+    y_data = iris.target
+
+    # baikal way
+    x = Input((4,), name='x')
+    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs')(x)
+    y2 = RandomForestClassifier(random_state=123)(x)
+    features = Stack(axis=1)([y1, y2])
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(features)
+
+    model = Model(x, y)
+    model.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = model.predict(X_data)
+
+    # traditional way
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    logreg.fit(X_data, y_data)
+    logreg_pred = logreg.predict(X_data)
+
+    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=123)
+    random_forest.fit(X_data, y_data)
+    random_forest_pred = random_forest.predict(X_data)
+
+    features = np.stack([logreg_pred, random_forest_pred], axis=1)
+
+    ensemble = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    ensemble.fit(features, y_data)
+    y_pred_traditional = ensemble.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
