@@ -15,6 +15,7 @@ setup(name='baikal',
       author='Alejandro González Tineo',
       author_email='alejandrojgt@gmail.com',
       python_requires='>=3.5',
+      install_requires=['numpy'],
       extras_require={
           'dev': [
               'pytest',
