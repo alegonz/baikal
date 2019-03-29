@@ -8,15 +8,14 @@ from sklearn_steps import LogisticRegression
 
 class TestInput:
     def test_instantiation(self, teardown):
-        x0 = Input((10,))  # a 10-dimensional feature vector
+        x0 = Input()
 
         assert isinstance(x0, DataPlaceholder)
-        assert (10,) == x0.shape
         assert 'InputStep_0' == x0.name
 
     def test_instantiate_two_without_name(self, teardown):
-        x0 = Input((5,))
-        x1 = Input((2,))
+        x0 = Input()
+        x1 = Input()
 
         assert 'InputStep_0' == x0.name
         assert 'InputStep_1' == x1.name
@@ -25,27 +24,24 @@ class TestInput:
 class TestStep:
 
     def test_call(self, teardown):
-        x = Input((10,), name='x')
+        x = Input(name='x')
         y = LogisticRegression()(x)
 
         assert isinstance(y, DataPlaceholder)
-        assert (1,) == y.shape
         assert 'LogisticRegression_0/0' == y.name
 
     def test_call_with_two_inputs(self, teardown):
-        x0 = Input((1,), name='x')
-        x1 = Input((1,), name='x')
+        x0 = Input(name='x')
+        x1 = Input(name='x')
         y0, y1 = DummyMIMO()([x0, x1])
 
         assert isinstance(y0, DataPlaceholder)
         assert isinstance(y1, DataPlaceholder)
-        assert (1,) == y0.shape
-        assert (1,) == y1.shape
         assert 'DummyMIMO_0/0' == y0.name
         assert 'DummyMIMO_0/1' == y1.name
 
     def test_instantiate_two_without_name(self, teardown):
-        x = Input((10,), name='x')
+        x = Input(name='x')
         y0 = LogisticRegression()(x)
         y1 = LogisticRegression()(x)
 

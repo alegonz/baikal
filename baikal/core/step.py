@@ -10,6 +10,7 @@ class Step(Node):
         super(Step, self).__init__(*args, name=name, **kwargs)
         self.inputs = None
         self.outputs = None
+        self.n_outputs = None  # Client code must override this value when subclassing from Step.
 
     def __call__(self, inputs):
         # TODO: Add a target keyword argument to specify inputs that are only required at fit time
@@ -19,39 +20,29 @@ class Step(Node):
             raise ValueError('Steps must be called with DataPlaceholder inputs.')
 
         self.inputs = inputs
-        self.outputs = self._build_outputs(inputs)
+        self.outputs = self._build_outputs()
 
         if len(self.outputs) == 1:
             return self.outputs[0]
         else:
             return self.outputs
 
-    # TODO: We might need a check_inputs method as well (Concatenate, Split, Merge, etc will need it).
-    # Also, sklearn-based Steps can accept only shapes of length 1
-    # (ignoring the samples, the dimensionality of the feature vector)
-
-    def _build_outputs(self, inputs: List[DataPlaceholder]) -> List[DataPlaceholder]:
-        input_shapes = [input.shape for input in inputs]
-        output_shapes = self.build_output_shapes(input_shapes)
-
+    def _build_outputs(self) -> List[DataPlaceholder]:
         outputs = []
-        for i, shape in enumerate(output_shapes):
+        for i in range(self.n_outputs):
             name = make_name(self.name, i)
-            outputs.append(DataPlaceholder(shape, self, name))
+            outputs.append(DataPlaceholder(self, name))
         return outputs
-
-    def build_output_shapes(self, input_shapes: List[Tuple]) -> List[Tuple]:
-        raise NotImplementedError
 
 
 class InputStep(Node):
-    def __init__(self, shape, name=None):
+    def __init__(self, name=None):
         super(InputStep, self).__init__(name=name)
         self.inputs = []
-        self.outputs = [DataPlaceholder(shape, self, self.name)]
+        self.outputs = [DataPlaceholder(self, self.name)]
 
 
-def Input(shape, name=None):
+def Input(name=None):
     # Maybe this can be implemented in InputStep.__new__
-    input = InputStep(shape, name)
+    input = InputStep(name)
     return input.outputs[0]  # Input produces exactly one DataPlaceholder output

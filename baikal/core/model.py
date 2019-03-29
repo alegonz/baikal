@@ -167,7 +167,6 @@ class Model(Step):
 
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache.update(input_data)
-        # results_cache.update(extra_targets)
 
         for step in steps:
             # 1) Fit phase
@@ -211,7 +210,6 @@ class Model(Step):
 
     @staticmethod
     def _compute_step(step, Xs, cache):
-        # TODO: Check that number and shape of inputs/outputs is equal to the expected number and shapes
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
@@ -225,7 +223,6 @@ class Model(Step):
 
         cache.update(zip(step.outputs, listify(output_data)))
 
-    # TODO: Implement build_output_shapes method.
     # TODO: Override __call__ method
     # query: inputs (outputs) can be a dictionary keyed by DataPlaceholder instances or
     # their names, with array values. We need input normalization for this.

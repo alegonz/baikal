@@ -27,8 +27,8 @@ def does_not_raise():
 
 @pytest.fixture
 def dummy_model_data_placeholders_and_arrays():
-    x1 = Input((1,), name='x1')
-    x2 = Input((1,), name='x2')
+    x1 = Input(name='x1')
+    x2 = Input(name='x2')
 
     z1 = DummySISO()(x1)
     z2, z3 = DummySIMO()(x2)
@@ -83,8 +83,8 @@ def test_instantiation(inputs, outputs, expectation,
 
 
 def test_fit_call(teardown):
-    x1 = Input((2,), name='x1')
-    x2 = Input((2,), name='x2')
+    x1 = Input(name='x1')
+    x2 = Input(name='x2')
     y1 = LogisticRegression()(x1)
     y2 = PCA()(x2)
     model = Model([x1, x2], [y1, y2])
@@ -143,8 +143,8 @@ def test_predict_call(teardown):
     x2_data = iris.data[:, 2:]
     y1_target_data = iris.target
 
-    x1 = Input((2,), name='x1')
-    x2 = Input((2,), name='x2')
+    x1 = Input(name='x1')
+    x2 = Input(name='x2')
     y1 = LogisticRegression()(x1)
     y2 = PCA()(x2)
     model = Model([x1, x2], [y1, y2])
@@ -200,8 +200,8 @@ def test_steps_cache(teardown):
     x2_data = iris.data[:, 2:]
     y1_target_data = iris.target
 
-    x1 = Input((2,), name='x1')
-    x2 = Input((2,), name='x2')
+    x1 = Input(name='x1')
+    x2 = Input(name='x2')
     y1 = LogisticRegression(name='y1')(x1)
     y2 = PCA(name='y2')(x2)
 
@@ -228,7 +228,7 @@ def test_steps_cache(teardown):
 
 
 def test_multiedge(teardown):
-    x = Input((1,), name='x')
+    x = Input(name='x')
     z1, z2 = DummySIMO()(x)
     y = DummyMISO()([z1, z2])
     model = Model(x, y)
@@ -240,7 +240,7 @@ def test_multiedge(teardown):
 
 
 def test_instantiation_with_wrong_input_type(teardown):
-    x = Input((10,), name='x')
+    x = Input(name='x')
     y = DummySISO()(x)
 
     x_wrong = np.zeros((10,))
@@ -249,7 +249,7 @@ def test_instantiation_with_wrong_input_type(teardown):
 
 
 def test_instantiation_with_steps_with_duplicated_names(teardown):
-    x = Input((10,), name='x')
+    x = Input(name='x')
     x = DummySISO(name='duplicated-name')(x)
     y = DummySISO(name='duplicated-name')(x)
 
@@ -260,7 +260,7 @@ def test_instantiation_with_steps_with_duplicated_names(teardown):
 def test_lazy_model(teardown):
     X_data = np.array([[1, 2], [3, 4]])
 
-    x = Input((2,), name='x')
+    x = Input(name='x')
     model = Model(x, x)
     model.fit(X_data)
     X_pred = model.predict(X_data)
@@ -273,8 +273,8 @@ def test_fit_and_predict_model_with_no_fittable_steps(teardown):
     X2_data = np.array([[5, 6], [7, 8]])
     y_expected = np.array([[12, 16], [20, 24]])
 
-    x1 = Input((2,), name='x1')
-    x2 = Input((2,), name='x2')
+    x1 = Input(name='x1')
+    x2 = Input(name='x2')
     z = DummyMISO()([x1, x2])
     y = DummySISO()(z)
 
@@ -288,7 +288,7 @@ def test_fit_and_predict_model_with_no_fittable_steps(teardown):
 def test_predict_with_not_fitted_steps(teardown):
     X_data = iris.data
 
-    x = Input((4,), name='x')
+    x = Input(name='x')
     xt = PCA(n_components=2)(x)
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
 
@@ -300,7 +300,7 @@ def test_predict_with_not_fitted_steps(teardown):
 def test_predict_using_step_without_transform(teardown):
     X_data = np.array([[1], [2]])
 
-    x = Input((1,), name='x')
+    x = Input(name='x')
     y = DummyWithoutTransform()(x)
 
     model = Model(x, y)
@@ -312,7 +312,7 @@ def test_fit_pipeline(teardown):
     X_data = iris.data
     y_data = iris.target
 
-    x = Input((4,), name='x')
+    x = Input(name='x')
     xt = PCA(n_components=2)(x)
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
 
@@ -326,7 +326,7 @@ def test_fit_predict_pipeline(teardown):
     y_data = iris.target
 
     # baikal way
-    x = Input((4,), name='x')
+    x = Input(name='x')
     xt = PCA(n_components=2)(x)
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
 
@@ -349,7 +349,7 @@ def test_fit_predict_ensemble(teardown):
     y_data = iris.target
 
     # baikal way
-    x = Input((4,), name='x')
+    x = Input(name='x')
     y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs')(x)
     y2 = RandomForestClassifier(random_state=123)(x)
     features = Stack(axis=1)([y1, y2])

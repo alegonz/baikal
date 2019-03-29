@@ -68,7 +68,6 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
         - An special node of the graph that allows inputting data (arrays, dataframes, etc) from client code
             - At instantiation, internally it creates a special InputStep, and returns a DataPlaceholder object
         - Analogous to TensorFlow's Placeholder and Input in Keras
-        - Must specify an input shape
     - Model
         - A graph (of Step's that pass DataPlaceholder along each other) with defined inputs and outputs.
         - A graph with fit/predict API
@@ -120,19 +119,11 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
             - Possibly in another graph? (in this case we would need to persist the graph with the Model)
             - Implement `__call__` method
                 - Differs with Step `__call__`:
-                    - Inputs (shapes) should match with those used at `__init__`
-                    - Output is already known from `__init__`
+                    - Number of inputs should match with those used at `__init__`
+                    - Outputs are already known from `__init__`
                     - Should compose Model graph into caller graph
         - Model visualization
             - Include a plot function that plots the model graph
-        
-- Need to implement check/inference of input/output shapes
-    - Steps like Concatenate, Split and Merge need to know about the input shapes
-    - sklearn Steps' inputs and outputs are of shape (n_samples, n_features) and (n_samples,), respectively
-    - [x] Shape information is delegated to DataPlaceholder class
-    - [x] Also necessary to infer the number of outputs of a Step
-        - There is no way in Python to know a priori the type and number of outputs of a function
-        - [x] Provide a `build_output_shapes` API
 
 ### Compilation (i.e. call to `Model(...)`)
 - [x] Do topological sort to get the order of execution of the steps.
@@ -149,14 +140,13 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
 ### API test cases:
 
 - [x] Can create an Input with a name
-    - [x] Takes a shape argument (mandatory). The shape should not include n_samples
     - [x] If name is not specified, a unique name should be generated
         - [x] Input (Node) naming format: `graph_name/node_name`
         - [x] DataPlaceholder (Node output, semi-edge) naming format: `graph_name/node_name/output_name` ?
     - [x] Creates another instance with an unique name if an Input is created with a name already used by another Input
     - [x] At instantiation:
         - [x] An InputStep is added to the default graph
-        - [x] A DataPlaceholder object with the specified shape and name is returned
+        - [x] A DataPlaceholder object with the specified name is returned
     
 ```python
 x1 = Input(name='x1')
@@ -175,7 +165,6 @@ x2 = Input(name='x2')
 - [x] A Step can be instantiated with a name.
     - [x] If name is not specified, a unique name should be generated
     - [x] Creates another instance with a unique name if a Step is created with a name already used by another Step
-- [x] A Step must check its inputs shapes and provide its output shapes
     
 ```python
 class SomeStep(Step, SomeSklearnClass):
@@ -251,22 +240,17 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Test with a simple ensemble
     - [x] Add test for lru_cache with same inputs in different order
         - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
-    - [ ] Increase coverage of test_merge.py
+    - [x] Ditched shape
+        - After more careful thinking. Shape definition, check and inference is not necessary
+        - At first I mistakenly thought shapes are needed to infer the number of a step outputs, but this is not the case.
+            - The only useful non-user defined multiple output step is Split, and Split can guess the number of outputs from the splits argument.
+            - Concatenate, Merge, etc, by definition, return exactly one output.
     - [ ] Implement `Model.__call__`
         - Rename outputs?
     - [ ] Extend graph building to handle `Model` steps
     - [ ] Implement serialization
         - joblib and pickle should work just like that, no extra coding
 - [ ] `Step`
-    - [ ] Implement `check_input_shapes`
-        - Used in `__call__` (building) phase
-        - Used in `predict`/`transform` phase
-        - Raise a error
-    - [ ] Implement `check_output_shapes`
-        - Used for results of `predict/transform` phase.
-        - Needed for steps whose outputs cannot be known a priori
-            - e.g. PCA with n_components defined as percentage of total variance
-        - Raise a warning
     - [ ] Add `trainable=True` keyword argument to `__init__`
         - Add as an attribute so we can also do `step.trainable = False`
         - Condition the fit step in Model to this attribute

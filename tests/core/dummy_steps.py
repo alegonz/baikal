@@ -6,12 +6,10 @@ class DummySISO(Step):
     """
     def __init__(self, name=None):
         super(DummySISO, self).__init__(name=name)
+        self.n_outputs = 1
 
     def transform(self, x):
         return 2 * x
-
-    def build_output_shapes(self, input_shapes):
-        return input_shapes
 
 
 class DummySIMO(Step):
@@ -19,12 +17,10 @@ class DummySIMO(Step):
     """
     def __init__(self, name=None):
         super(DummySIMO, self).__init__(name=name)
+        self.n_outputs = 2
 
     def transform(self, x):
         return x + 1.0, x - 1.0
-
-    def build_output_shapes(self, input_shapes):
-        return input_shapes * 2
 
 
 class DummyMISO(Step):
@@ -32,12 +28,10 @@ class DummyMISO(Step):
     """
     def __init__(self, name=None):
         super(DummyMISO, self).__init__(name=name)
+        self.n_outputs = 1
 
     def transform(self, x1, x2):
         return x1 + x2
-
-    def build_output_shapes(self, input_shapes):
-        return input_shapes[0:1]
 
 
 class DummyMIMO(Step):
@@ -45,12 +39,10 @@ class DummyMIMO(Step):
     """
     def __init__(self, name=None):
         super(DummyMIMO, self).__init__(name=name)
+        self.n_outputs = 2
 
     def transform(self, x1, x2):
         return x1 * 10.0, x2 / 10.0
-
-    def build_output_shapes(self, input_shapes):
-        return input_shapes
 
 
 class DummyWithoutTransform(Step):
@@ -58,6 +50,4 @@ class DummyWithoutTransform(Step):
     """
     def __init__(self, name=None):
         super(DummyWithoutTransform, self).__init__(name=name)
-
-    def build_output_shapes(self, input_shapes):
-        return input_shapes
+        self.n_outputs = 1

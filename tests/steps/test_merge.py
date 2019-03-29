@@ -10,8 +10,8 @@ from fixtures import teardown
 
 
 def test_concatenate(teardown):
-    x1 = Input((2,))
-    x2 = Input((3,))
+    x1 = Input()
+    x2 = Input()
     y = Concatenate(axis=1)([x1, x2])
     model = Model([x1, x2], y)
 
@@ -29,8 +29,8 @@ def test_concatenate(teardown):
 
 
 def test_stack(teardown):
-    x1 = Input((2,))
-    x2 = Input((2,))
+    x1 = Input()
+    x2 = Input()
     y = Stack(axis=1)([x1, x2])
     model = Model([x1, x2], y)
 

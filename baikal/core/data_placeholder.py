@@ -6,13 +6,12 @@ def is_data_placeholder_list(l):
 
 
 class DataPlaceholder:
-    def __init__(self, shape, step, name):
-        self.shape = shape
+    def __init__(self, step, name):
         self.step = step
         self.name = name
 
     def __repr__(self):
-        attrs = ['shape', 'step', 'name']
+        attrs = ['step', 'name']
         return make_repr(self, attrs)
 
     # Make it sortable to aid lru_cache hits in Model._get_required_steps
