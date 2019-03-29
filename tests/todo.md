@@ -235,7 +235,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 - [x] model.predict fails if any of the required inputs is not in the provided inputs
 
 
-### TODO 2019/03/24
+### TODO 2019/03/29
 - [ ] `DataPlaceholder`
     - Rename to `DataPlaceholder` to avoid confusion with actual data, and to approximate the semantics of TensorFlow's placeholder
 - [ ] `Model`
@@ -249,6 +249,9 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [x] Implement `extra_targets` argument in `Model.fit`
         - Already possible with current implementation of `Model.fit(..., target_data)`
         - Test with a simple ensemble
+    - [x] Add test for lru_cache with same inputs in different order
+        - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
+    - [ ] Increase coverage of test_merge.py
     - [ ] Implement `Model.__call__`
         - Rename outputs?
     - [ ] Extend graph building to handle `Model` steps
@@ -277,7 +280,8 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
 - [ ] `Model`
     - [ ] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
-    - [ ] Implement `get_params` and `set_params` API for compatibility with ``
+    - [ ] Implement `get_params` and `set_params` API for compatibility with `GridSearchCV`
+        - Also check how `Pipeline.fit` does this
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
@@ -287,7 +291,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Some regressors have extra options in their predict method, and they return a tuple of arrays.
         - See: https://scikit-learn.org/stable/glossary.html#term-predict
         - Idea:
-            - Add `**predict_params` argument to `Step.__call__`
+            - Add `**predict_params` argument to `Step.__init__`
                 - This will add extra outputs.
                 - This however, is class dependent
                 - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays

@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from functools import lru_cache
 from typing import Union, List, Dict, Tuple
 
@@ -32,7 +31,7 @@ class Model(Step):
         self._data_placeholders = self._collect_data_placeholders(self._graph)
 
         self._get_required_steps = lru_cache(maxsize=128)(self._get_required_steps)
-        self._get_required_steps(tuple(self.inputs), tuple(self.outputs))
+        self._get_required_steps(tuple(sorted(self.inputs)), tuple(sorted(self.outputs)))
 
     def _build_graph(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
@@ -124,18 +123,14 @@ class Model(Step):
                         data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]],
                         data_placeholders: List[DataPlaceholder],
                         expand_none=False) -> Dict[DataPlaceholder, ArrayLike]:
-
-        # Need OrderedDict to ensure order or keys when
-        # casting to tuple for cached _get_required_steps
-
         if isinstance(data, dict):
-            data_norm = OrderedDict()
+            data_norm = {}
             for key, value in data.items():
                 key = self._get_data_placeholder(key)
                 data_norm[key] = value
         else:
             data = [None] * len(data_placeholders) if (data is None and expand_none) else data
-            data_norm = OrderedDict(zip(data_placeholders, listify(data)))
+            data_norm = dict(zip(data_placeholders, listify(data)))
         return data_norm
 
     def _get_data_placeholder(self, data_placeholder: Union[str, DataPlaceholder]) -> DataPlaceholder:
@@ -168,7 +163,7 @@ class Model(Step):
             if output not in target_data:
                 raise ValueError('Missing output {}'.format(output))
 
-        steps = self._get_required_steps(tuple(input_data), tuple(target_data))
+        steps = self._get_required_steps(tuple(sorted(input_data)), tuple(sorted(target_data)))
 
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache.update(input_data)
@@ -199,7 +194,7 @@ class Model(Step):
             if len(set(outputs)) != len(outputs):
                 raise ValueError('outputs must be unique.')
 
-        steps = self._get_required_steps(tuple(input_data), tuple(outputs))
+        steps = self._get_required_steps(tuple(sorted(input_data)), tuple(sorted(outputs)))
 
         # Compute
         results_cache.update(input_data)

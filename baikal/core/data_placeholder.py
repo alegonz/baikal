@@ -14,3 +14,9 @@ class DataPlaceholder:
     def __repr__(self):
         attrs = ['shape', 'step', 'name']
         return make_repr(self, attrs)
+
+    # Make it sortable to aid lru_cache hits in Model._get_required_steps
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.name < other.name
+        return NotImplemented

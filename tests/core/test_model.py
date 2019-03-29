@@ -202,8 +202,8 @@ def test_steps_cache(teardown):
 
     x1 = Input((2,), name='x1')
     x2 = Input((2,), name='x2')
-    y1 = LogisticRegression()(x1)
-    y2 = PCA()(x2)
+    y1 = LogisticRegression(name='y1')(x1)
+    y2 = PCA(name='y2')(x2)
 
     model = Model([x1, x2], [y1, y2])
     assert 0 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
@@ -211,14 +211,20 @@ def test_steps_cache(teardown):
     model.fit([x1_data, x2_data], [y1_target_data, None])
     assert 1 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
 
-    model.predict([x1_data, x2_data])
+    model.fit({x1: x1_data, x2: x2_data}, {y1: y1_target_data, y2: None})
     assert 2 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
 
-    model.predict(x1_data, 'LogisticRegression_0/0')
-    assert 2 == model._steps_cache_info.hits and 2 == model._steps_cache_info.misses
+    model.predict({'x1': x1_data, 'x2': x2_data}, ['y2/0', 'y1/0'])
+    assert 3 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
 
-    model.predict(x1_data, 'LogisticRegression_0/0')
-    assert 3 == model._steps_cache_info.hits and 2 == model._steps_cache_info.misses
+    model.predict([x1_data, x2_data])
+    assert 4 == model._steps_cache_info.hits and 1 == model._steps_cache_info.misses
+
+    model.predict(x1_data, 'y1/0')
+    assert 4 == model._steps_cache_info.hits and 2 == model._steps_cache_info.misses
+
+    model.predict(x1_data, 'y1/0')
+    assert 5 == model._steps_cache_info.hits and 2 == model._steps_cache_info.misses
 
 
 def test_multiedge(teardown):
