@@ -407,41 +407,21 @@ def test_nested_model(teardown):
 def test_nested_model_ensemble(teardown):
     X_data = iris.data
     y_data = iris.target
-    random_state = 123
-    n_components = 2
 
     # ----------- baikal way
-    # Sub-model 1
-    x1 = Input(name='x1')
-    h1 = PCA(n_components=n_components, name='pca_sub1')(x1)
-    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_sub1')(h1)
-    submodel1 = Model(x1, y1, name='submodel1')
-
-    # Sub-model 2
-    x2 = Input(name='x2')
-    y2 = RandomForestClassifier(random_state=random_state, name='rforest_sub2')(x2)
-    submodel2 = Model(x2, y2, name='submodel2')
-
-    # Ensemble of submodels
-    x = Input(name='x')
-    y1 = submodel1(x)
-    y2 = submodel2(x)
-    features = Stack(axis=1, name='stack')([y1, y2])
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_ensemble')(features)
-    ensemble_model_baikal = Model(x, y, name='ensemble')
-
+    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
     ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
     y_pred_baikal = ensemble_model_baikal.predict(X_data)
 
     # ----------- traditional way
     logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
-    pca = sklearn.decomposition.PCA(n_components=n_components)
+    pca = sklearn.decomposition.PCA(n_components=2)
     pca.fit(X_data)
     pca_trans = pca.transform(X_data)
     logreg.fit(pca_trans, y_data)
     logreg_pred = logreg.predict(pca_trans)
 
-    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
+    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=123)
     random_forest.fit(X_data, y_data)
     random_forest_pred = random_forest.predict(X_data)
 
@@ -457,10 +437,55 @@ def test_nested_model_ensemble(teardown):
 def test_model_joblib_serialization(teardown):
     X_data = iris.data
     y_data = iris.target
+
+    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
+    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = ensemble_model_baikal.predict(X_data)
+
+    # Persist model to a file
+    f = tempfile.TemporaryFile()
+    sklearn.externals.joblib.dump(ensemble_model_baikal, f)
+    f.seek(0)
+    ensemble_model_baikal_2 = sklearn.externals.joblib.load(f)
+    y_pred_baikal_2 = ensemble_model_baikal_2.predict(X_data)
+
+    assert_array_equal(y_pred_baikal_2, y_pred_baikal)
+
+
+def test_trainable_flag(teardown):
+    X_data = iris.data
+    y_data = iris.target
+
+    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
+    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
+
+    # Set sub-model 1's LogisticRegression to untrainable and
+    # retrain model on a subset of the data
+    np.random.seed(456)
+    n_samples = len(X_data) // 2
+    idx = np.random.choice(np.arange(len(X_data)), size=n_samples, replace=False)
+    X_data_sub, y_data_sub = X_data[idx], y_data[idx]
+
+    logreg_sub1 = ensemble_model_baikal.get_step('submodel1').get_step('logreg_sub1')
+    logreg_ensemble = ensemble_model_baikal.get_step('logreg_ensemble')
+
+    logreg_sub1_coef_original = logreg_sub1.coef_.copy()  # This one should not change
+    logreg_ensemble_coef_original = logreg_ensemble.coef_.copy()  # This one should change
+    logreg_sub1.trainable = False
+
+    ensemble_model_baikal.fit(X_data_sub, {y: y_data_sub, y1: y_data_sub, y2: y_data_sub})
+    logreg_sub1_coef_retrained = logreg_sub1.coef_
+    logreg_ensemble_coef_retrained = logreg_ensemble.coef_
+
+    assert_array_equal(logreg_sub1_coef_original, logreg_sub1_coef_retrained)
+    with pytest.raises(AssertionError):
+        assert_array_equal(logreg_ensemble_coef_original, logreg_ensemble_coef_retrained)
+
+
+def make_ensemble_model():
     random_state = 123
     n_components = 2
 
-    # ----------- Same ensemble model as above
     # Sub-model 1
     x1 = Input(name='x1')
     h1 = PCA(n_components=n_components, name='pca_sub1')(x1)
@@ -480,14 +505,4 @@ def test_model_joblib_serialization(teardown):
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_ensemble')(features)
     ensemble_model_baikal = Model(x, y, name='ensemble')
 
-    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
-    y_pred_baikal = ensemble_model_baikal.predict(X_data)
-
-    # Persist model to a file
-    f = tempfile.TemporaryFile()
-    sklearn.externals.joblib.dump(ensemble_model_baikal, f)
-    f.seek(0)
-    ensemble_model_baikal_2 = sklearn.externals.joblib.load(f)
-    y_pred_baikal_2 = ensemble_model_baikal_2.predict(X_data)
-
-    assert_array_equal(y_pred_baikal_2, y_pred_baikal)
+    return ensemble_model_baikal, (y1, y2, y)

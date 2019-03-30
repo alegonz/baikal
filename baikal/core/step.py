@@ -6,11 +6,12 @@ from baikal.core.utils import listify, make_name
 
 
 class Step(Node):
-    def __init__(self, *args, name=None, **kwargs):
+    def __init__(self, *args, name=None, trainable=True, **kwargs):
         super(Step, self).__init__(*args, name=name, **kwargs)
         self.inputs = None
         self.outputs = None
         self.n_outputs = None  # Client code must override this value when subclassing from Step.
+        self.trainable = trainable
 
     def __call__(self, inputs):
         # TODO: Add a target keyword argument to specify inputs that are only required at fit time

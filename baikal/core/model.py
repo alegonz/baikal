@@ -8,8 +8,8 @@ from baikal.core.utils import listify, find_duplicated_items, SimpleCache
 
 
 class Model(Step):
-    def __init__(self, inputs, outputs, name=None):
-        super(Model, self).__init__(name=name)
+    def __init__(self, inputs, outputs, name=None, trainable=True):
+        super(Model, self).__init__(name=name, trainable=trainable)
 
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):
@@ -23,12 +23,12 @@ class Model(Step):
         if len(set(outputs)) != len(outputs):
             raise ValueError('outputs must be unique.')
 
+        self.n_outputs = len(outputs)
+
         self._internal_inputs = inputs
         self._internal_outputs = outputs
-        self.n_outputs = len(outputs)
-        self._graph = self._build_graph()
+        self._graph, self._data_placeholders, self._steps = self._build_graph()
         self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
-        self._data_placeholders = self._collect_data_placeholders(self._graph)
 
         self._steps_cache = SimpleCache()
         self._get_required_steps(self._internal_inputs, self._internal_outputs)
@@ -62,15 +62,16 @@ class Model(Step):
                                'Found the following duplicates:\n'
                                '{}'.format(duplicated_names))
 
-        return graph
-
-    @staticmethod
-    def _collect_data_placeholders(graph):
-        data_placeholders = set()
+        # Collect data placeholders
+        data_placeholders = {}
         for step in graph:
             for output in step.outputs:
-                data_placeholders.add(output)
-        return data_placeholders
+                data_placeholders[output.name] = output
+
+        # Collect steps
+        steps = {step.name: step for step in graph}
+
+        return graph, data_placeholders, steps
 
     def _get_required_steps(self, inputs: Sequence[DataPlaceholder], outputs: Sequence[DataPlaceholder]) -> List[Step]:
         # Backtrack from outputs until inputs to get the necessary steps. That is,
@@ -132,23 +133,33 @@ class Model(Step):
         if isinstance(data, dict):
             data_norm = {}
             for key, value in data.items():
-                key = self._get_data_placeholder(key)
+                key = self.get_data_placeholder(key)
                 data_norm[key] = value
         else:
             data = [None] * len(data_placeholders) if (data is None and expand_none) else data
             data_norm = dict(zip(data_placeholders, listify(data)))
         return data_norm
 
-    def _get_data_placeholder(self, data_placeholder: Union[str, DataPlaceholder]) -> DataPlaceholder:
+    def get_step(self, step: Union[str, Step]) -> Step:
         # Steps are assumed to have unique names (guaranteed by success of _build_graph)
+        if isinstance(step, str):
+            if step in self._steps.keys():
+                return self._steps[step]
+
+        elif isinstance(step, Step):
+            if step in self._steps.values():
+                return step
+
+        raise ValueError('{} was not found in the model!'.format(step))
+
+    def get_data_placeholder(self, data_placeholder: Union[str, DataPlaceholder]) -> DataPlaceholder:
         # If the step names are unique, so are the data_placeholder names
         if isinstance(data_placeholder, str):
-            for d in self._data_placeholders:
-                if data_placeholder == d.name:
-                    return d
+            if data_placeholder in self._data_placeholders.keys():
+                return self._data_placeholders[data_placeholder]
 
         elif isinstance(data_placeholder, DataPlaceholder):
-            if data_placeholder in self._data_placeholders:
+            if data_placeholder in self._data_placeholders.values():
                 return data_placeholder
 
         raise ValueError('{} was not found in the model!'.format(data_placeholder))
@@ -177,7 +188,7 @@ class Model(Step):
         for step in steps:
             # 1) Fit phase
             Xs = [results_cache[i] for i in step.inputs]
-            if hasattr(step, 'fit'):
+            if hasattr(step, 'fit') and step.trainable:
                 # Filtering out None target_data allow us to define fit methods without y=None.
                 ys = [target_data[o] for o in step.outputs if o in target_data and target_data[o] is not None]
                 # TODO: Add a try/except to catch missing target data errors (e.g. when forgot ensemble targets)
@@ -196,7 +207,7 @@ class Model(Step):
             outputs = self._internal_outputs
         else:
             outputs = listify(outputs)
-            outputs = [self._get_data_placeholder(output) for output in outputs]
+            outputs = [self.get_data_placeholder(output) for output in outputs]
             if len(set(outputs)) != len(outputs):
                 raise ValueError('outputs must be unique.')
 
