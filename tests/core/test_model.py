@@ -375,3 +375,78 @@ def test_fit_predict_ensemble(teardown):
     y_pred_traditional = ensemble.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
+
+
+def test_nested_model(teardown):
+    X_data = iris.data
+    y_data = iris.target
+
+    # Sub-model
+    x = Input()
+    h = PCA(n_components=2)(x)
+    y = LogisticRegression()(h)
+    submodel = Model(x, y)
+
+    # Model
+    x = Input()
+    y = submodel(x)
+    model = Model(x, y)
+
+    with pytest.raises(NotFittedError):
+        submodel.predict(X_data)
+
+    model.fit(X_data, y_data)
+    y_pred = model.predict(X_data)
+    y_pred_sub = submodel.predict(X_data)
+
+    assert_array_equal(y_pred, y_pred_sub)
+
+
+def test_nested_model_ensemble(teardown):
+    X_data = iris.data
+    y_data = iris.target
+    random_state = 123
+    n_components = 2
+
+    # ----------- baikal way
+    # Sub-model 1
+    x1 = Input(name='x1')
+    h1 = PCA(n_components=n_components, name='pca_sub1')(x1)
+    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_sub1')(h1)
+    submodel1 = Model(x1, y1, name='submodel1')
+
+    # Sub-model 2
+    x2 = Input(name='x2')
+    y2 = RandomForestClassifier(random_state=random_state, name='rforest_sub2')(x2)
+    submodel2 = Model(x2, y2, name='submodel2')
+
+    # Ensemble of submodels
+    x = Input(name='x')
+    y1 = submodel1(x)
+    y2 = submodel2(x)
+    features = Stack(axis=1, name='stack')([y1, y2])
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_ensemble')(features)
+    ensemble_model_baikal = Model(x, y, name='ensemble')
+
+    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = ensemble_model_baikal.predict(X_data)
+
+    # ----------- traditional way
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    pca = sklearn.decomposition.PCA(n_components=n_components)
+    pca.fit(X_data)
+    pca_trans = pca.transform(X_data)
+    logreg.fit(pca_trans, y_data)
+    logreg_pred = logreg.predict(pca_trans)
+
+    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
+    random_forest.fit(X_data, y_data)
+    random_forest_pred = random_forest.predict(X_data)
+
+    features = np.stack([logreg_pred, random_forest_pred], axis=1)
+
+    ensemble_model_traditional = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    ensemble_model_traditional.fit(features, y_data)
+    y_pred_traditional = ensemble_model_traditional.predict(features)
+
+    assert_array_equal(y_pred_baikal, y_pred_traditional)

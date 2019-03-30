@@ -24,14 +24,16 @@ class Model(Step):
         if len(set(outputs)) != len(outputs):
             raise ValueError('outputs must be unique.')
 
-        self.inputs = inputs
-        self.outputs = outputs
+        self._internal_inputs = inputs
+        self._internal_outputs = outputs
+        self.n_outputs = len(outputs)
         self._graph = self._build_graph()
         self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
         self._data_placeholders = self._collect_data_placeholders(self._graph)
 
         self._get_required_steps = lru_cache(maxsize=128)(self._get_required_steps)
-        self._get_required_steps(tuple(sorted(self.inputs)), tuple(sorted(self.outputs)))
+        self._get_required_steps(tuple(sorted(self._internal_inputs)),
+                                 tuple(sorted(self._internal_outputs)))
 
         # TODO: Add a self.is_fitted flag?
 
@@ -46,7 +48,7 @@ class Model(Step):
             for input in parent_step.inputs:
                 collect_steps_from(input)
 
-        for output in self.outputs:
+        for output in self._internal_outputs:
             collect_steps_from(output)
 
         # Add edges (data)
@@ -155,13 +157,13 @@ class Model(Step):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
-        input_data = self._normalize_data(input_data, self.inputs)
-        for input in self.inputs:
+        input_data = self._normalize_data(input_data, self._internal_inputs)
+        for input in self._internal_inputs:
             if input not in input_data:
                 raise ValueError('Missing input {}'.format(input))
 
-        target_data = self._normalize_data(target_data, self.outputs, expand_none=True)
-        for output in self.outputs:
+        target_data = self._normalize_data(target_data, self._internal_outputs, expand_none=True)
+        for output in self._internal_outputs:
             if output not in target_data:
                 raise ValueError('Missing output {}'.format(output))
 
@@ -176,6 +178,7 @@ class Model(Step):
             if hasattr(step, 'fit'):
                 # Filtering out None target_data allow us to define fit methods without y=None.
                 ys = [target_data[o] for o in step.outputs if o in target_data and target_data[o] is not None]
+                # TODO: Add a try/except to catch missing target data errors (e.g. when forgot ensemble targets)
                 step.fit(*Xs, *ys)
 
             # 2) predict/transform phase
@@ -185,10 +188,10 @@ class Model(Step):
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
 
         # Normalize inputs and outputs
-        input_data = self._normalize_data(input_data, self.inputs)
+        input_data = self._normalize_data(input_data, self._internal_inputs)
 
         if outputs is None:
-            outputs = self.outputs
+            outputs = self._internal_outputs
         else:
             outputs = listify(outputs)
             outputs = [self._get_data_placeholder(output) for output in outputs]

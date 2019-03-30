@@ -245,9 +245,10 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - At first I mistakenly thought shapes are needed to infer the number of a step outputs, but this is not the case.
             - The only useful non-user defined multiple output step is Split, and Split can guess the number of outputs from the splits argument.
             - Concatenate, Merge, etc, by definition, return exactly one output.
-    - [ ] Implement `Model.__call__`
-        - Rename outputs?
-    - [ ] Extend graph building to handle `Model` steps
+    - [x] Implement `Model.__call__`
+        - No need to override super class
+        - Can be achieved by distinguishing between inputs/outputs at `__init__` time (internal) and those at `__call__` 
+    - [x] Extend graph building to handle `Model` steps
     - [ ] Implement serialization
         - joblib and pickle should work just like that, no extra coding
 - [ ] `Step`
