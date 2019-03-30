@@ -10,7 +10,7 @@ from baikal.core.utils import listify, find_duplicated_items
 
 class Model(Step):
     def __init__(self, inputs, outputs, name=None):
-        super(Step, self).__init__(name=name)
+        super(Model, self).__init__(name=name)
 
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):
@@ -32,6 +32,8 @@ class Model(Step):
 
         self._get_required_steps = lru_cache(maxsize=128)(self._get_required_steps)
         self._get_required_steps(tuple(sorted(self.inputs)), tuple(sorted(self.outputs)))
+
+        # TODO: Add a self.is_fitted flag?
 
     def _build_graph(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
