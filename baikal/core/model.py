@@ -1,11 +1,10 @@
-from functools import lru_cache
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict, Tuple, Sequence
 
 from baikal.core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step
 from baikal.core.typing import ArrayLike
-from baikal.core.utils import listify, find_duplicated_items
+from baikal.core.utils import listify, find_duplicated_items, SimpleCache
 
 
 class Model(Step):
@@ -31,9 +30,8 @@ class Model(Step):
         self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
         self._data_placeholders = self._collect_data_placeholders(self._graph)
 
-        self._get_required_steps = lru_cache(maxsize=128)(self._get_required_steps)
-        self._get_required_steps(tuple(sorted(self._internal_inputs)),
-                                 tuple(sorted(self._internal_outputs)))
+        self._steps_cache = SimpleCache()
+        self._get_required_steps(self._internal_inputs, self._internal_outputs)
 
         # TODO: Add a self.is_fitted flag?
 
@@ -74,40 +72,41 @@ class Model(Step):
                 data_placeholders.add(output)
         return data_placeholders
 
-    def _get_required_steps(self, inputs: Tuple[DataPlaceholder], outputs: Tuple[DataPlaceholder]) -> List[Step]:
-        # inputs and outputs must be tuple (thus hashable) for lru_cache to work
-        #
+    def _get_required_steps(self, inputs: Sequence[DataPlaceholder], outputs: Sequence[DataPlaceholder]) -> List[Step]:
         # Backtrack from outputs until inputs to get the necessary steps. That is,
         # find the ancestors of the nodes that provide the specified outputs.
         # Raise an error if there is an ancestor whose input is not in the specified inputs.
         # We assume a DAG (guaranteed by success of topological_sort).
+        cache_key = (tuple(sorted(inputs)), tuple(sorted(outputs)))
+        if cache_key in self._steps_cache:
+            return self._steps_cache[cache_key]
 
-        all_required_steps = set()
+        required_steps = set()
         inputs_found = []
 
         # Depth-first search
         def backtrack(output):
-            required_steps = set()
+            steps_required_by_output = set()
 
             if output in inputs:
                 inputs_found.append(output)
-                return required_steps
+                return steps_required_by_output
 
             parent_step = output.step
-            if parent_step in all_required_steps:
-                return required_steps
+            if parent_step in required_steps:
+                return steps_required_by_output
 
-            required_steps = {parent_step}
+            steps_required_by_output = {parent_step}
             for input in parent_step.inputs:
-                required_steps |= backtrack(input)
-            return required_steps
+                steps_required_by_output |= backtrack(input)
+            return steps_required_by_output
 
         for output in outputs:
-            all_required_steps |= backtrack(output)
+            required_steps |= backtrack(output)
 
         # Check for missing inputs
         missing_inputs = []
-        for step in all_required_steps:
+        for step in required_steps:
             if self._graph.in_degree(step) == 0:
                 missing_inputs.extend(step.outputs)
 
@@ -121,7 +120,10 @@ class Model(Step):
                 raise RuntimeError(
                     'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name))
 
-        return [step for step in self._all_steps_sorted if step in all_required_steps]
+        required_steps = [step for step in self._all_steps_sorted if step in required_steps]
+        self._steps_cache[cache_key] = required_steps
+
+        return required_steps
 
     def _normalize_data(self,
                         data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]],
@@ -167,7 +169,7 @@ class Model(Step):
             if output not in target_data:
                 raise ValueError('Missing output {}'.format(output))
 
-        steps = self._get_required_steps(tuple(sorted(input_data)), tuple(sorted(target_data)))
+        steps = self._get_required_steps(input_data, target_data)
 
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache.update(input_data)
@@ -198,7 +200,7 @@ class Model(Step):
             if len(set(outputs)) != len(outputs):
                 raise ValueError('outputs must be unique.')
 
-        steps = self._get_required_steps(tuple(sorted(input_data)), tuple(sorted(outputs)))
+        steps = self._get_required_steps(input_data, outputs)
 
         # Compute
         results_cache.update(input_data)
@@ -232,8 +234,3 @@ class Model(Step):
     # query: inputs (outputs) can be a dictionary keyed by DataPlaceholder instances or
     # their names, with array values. We need input normalization for this.
     # Also, check that all of requested output keys exist in the Model graph.
-
-    # For testing purposes
-    @property
-    def _steps_cache_info(self):
-        return self._get_required_steps.cache_info()
