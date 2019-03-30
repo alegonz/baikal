@@ -240,6 +240,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Test with a simple ensemble
     - [x] Add test for lru_cache with same inputs in different order
         - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
+        - lru_cache had to be replace with homemade one to make Model easily picklable
     - [x] Ditched shape
         - After more careful thinking. Shape definition, check and inference is not necessary
         - At first I mistakenly thought shapes are needed to infer the number of a step outputs, but this is not the case.
@@ -249,17 +250,14 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - No need to override super class
         - Can be achieved by distinguishing between inputs/outputs at `__init__` time (internal) and those at `__call__` 
     - [x] Extend graph building to handle `Model` steps
-    - [ ] Implement serialization
+    - [x] Implement serialization
         - joblib and pickle should work just like that, no extra coding
 - [ ] `Step`
     - [ ] Add `trainable=True` keyword argument to `__init__`
         - Add as an attribute so we can also do `step.trainable = False`
         - Condition the fit step in Model to this attribute
-    - [ ] Move somewhere else the `_names` variable
-        - Need to delete any names that were created prior to failure
-            - Use a context manager for this
-            
-### TODO 2019/03/XX
+
+### TODO 2019/03/31
 - [x] Check if `joblib.Parallel` allows nested calls
     - Apparently it does :)
     - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
@@ -283,10 +281,15 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
                     - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
                     - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
     - [ ] Add parallelization with joblib (`Parallel` API)
+        - [ ] Modify `_get_required_steps` to also return step depth
+        - [ ] Create a step generator that feeds steps as soon as a processor becomes available
     - [ ] Add results caching with joblib (`Memory` API)
 
-### TODO sometime
-- [ ] Add typing
+### TODO 2019/04/06
+- [ ] Make steps shareable.
+    - That is, they can be called multiple times on different inputs and connect them to different outputs.
+    - Same concept as Keras' nodes.
+- [ ] Add typing?
 - [ ] Write documentation
 - [ ] Extend API to handle more kind of step computations?
     - `predict_proba`, `score`, `sample`, etc.

@@ -1,3 +1,4 @@
+import tempfile
 from contextlib import contextmanager
 
 import numpy as np
@@ -6,6 +7,7 @@ import pytest
 from sklearn import datasets
 import sklearn.decomposition
 import sklearn.ensemble
+import sklearn.externals.joblib
 from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
 
@@ -450,3 +452,42 @@ def test_nested_model_ensemble(teardown):
     y_pred_traditional = ensemble_model_traditional.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
+
+
+def test_model_joblib_serialization(teardown):
+    X_data = iris.data
+    y_data = iris.target
+    random_state = 123
+    n_components = 2
+
+    # ----------- Same ensemble model as above
+    # Sub-model 1
+    x1 = Input(name='x1')
+    h1 = PCA(n_components=n_components, name='pca_sub1')(x1)
+    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_sub1')(h1)
+    submodel1 = Model(x1, y1, name='submodel1')
+
+    # Sub-model 2
+    x2 = Input(name='x2')
+    y2 = RandomForestClassifier(random_state=random_state, name='rforest_sub2')(x2)
+    submodel2 = Model(x2, y2, name='submodel2')
+
+    # Ensemble of submodels
+    x = Input(name='x')
+    y1 = submodel1(x)
+    y2 = submodel2(x)
+    features = Stack(axis=1, name='stack')([y1, y2])
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_ensemble')(features)
+    ensemble_model_baikal = Model(x, y, name='ensemble')
+
+    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = ensemble_model_baikal.predict(X_data)
+
+    # Persist model to a file
+    f = tempfile.TemporaryFile()
+    sklearn.externals.joblib.dump(ensemble_model_baikal, f)
+    f.seek(0)
+    ensemble_model_baikal_2 = sklearn.externals.joblib.load(f)
+    y_pred_baikal_2 = ensemble_model_baikal_2.predict(X_data)
+
+    assert_array_equal(y_pred_baikal_2, y_pred_baikal)
