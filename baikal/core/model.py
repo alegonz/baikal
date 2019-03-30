@@ -133,36 +133,24 @@ class Model(Step):
         if isinstance(data, dict):
             data_norm = {}
             for key, value in data.items():
-                key = self.get_data_placeholder(key)
+                key = self.get_data_placeholder(key.name if isinstance(key, DataPlaceholder) else key)
                 data_norm[key] = value
         else:
             data = [None] * len(data_placeholders) if (data is None and expand_none) else data
             data_norm = dict(zip(data_placeholders, listify(data)))
         return data_norm
 
-    def get_step(self, step: Union[str, Step]) -> Step:
+    def get_step(self, name: str) -> Step:
         # Steps are assumed to have unique names (guaranteed by success of _build_graph)
-        if isinstance(step, str):
-            if step in self._steps.keys():
-                return self._steps[step]
+        if name in self._steps.keys():
+            return self._steps[name]
+        raise ValueError('{} was not found in the model!'.format(name))
 
-        elif isinstance(step, Step):
-            if step in self._steps.values():
-                return step
-
-        raise ValueError('{} was not found in the model!'.format(step))
-
-    def get_data_placeholder(self, data_placeholder: Union[str, DataPlaceholder]) -> DataPlaceholder:
+    def get_data_placeholder(self, name: str) -> DataPlaceholder:
         # If the step names are unique, so are the data_placeholder names
-        if isinstance(data_placeholder, str):
-            if data_placeholder in self._data_placeholders.keys():
-                return self._data_placeholders[data_placeholder]
-
-        elif isinstance(data_placeholder, DataPlaceholder):
-            if data_placeholder in self._data_placeholders.values():
-                return data_placeholder
-
-        raise ValueError('{} was not found in the model!'.format(data_placeholder))
+        if name in self._data_placeholders.keys():
+            return self._data_placeholders[name]
+        raise ValueError('{} was not found in the model!'.format(name))
 
     def fit(self, input_data, target_data=None):
         # TODO: add extra_targets keyword argument

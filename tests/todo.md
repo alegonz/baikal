@@ -252,8 +252,8 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [x] Extend graph building to handle `Model` steps
     - [x] Implement serialization
         - joblib and pickle should work just like that, no extra coding
-- [ ] `Step`
-    - [ ] Add `trainable=True` keyword argument to `__init__`
+- [x] `Step`
+    - [x] Add `trainable=True` keyword argument to `__init__`
         - Add as an attribute so we can also do `step.trainable = False`
         - Condition the fit step in Model to this attribute
 
