@@ -155,45 +155,45 @@ def test_predict_call(teardown):
 
     # ------ Correct calls. Should not raise errors.
     # Call with list input. Get all outputs.
-    y1_pred, y2_pred = model.predict([x1_data, x2_data])
+    model.predict([x1_data, x2_data])
 
     # Call with dict input (data_placeholder keys). Get all outputs.
-    y1_pred, y2_pred = model.predict({x1: x1_data, x2: x2_data})
+    model.predict({x1: x1_data, x2: x2_data})
 
     # Call with dict input (name (str) keys). Get all outputs.
-    y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data})
+    model.predict({'x1': x1_data, 'x2': x2_data})
 
     # Call with list input. Get an specific output. Call with just the needed input
-    y1_pred = model.predict(x1_data, 'LogisticRegression_0/0')
+    model.predict(x1_data, 'LogisticRegression_0/0')
 
     # ------ Missing input
     # Call with list input. Get all outputs.
     with pytest.raises(RuntimeError):
-        y1_pred, y2_pred = model.predict(x1_data)
+        model.predict(x1_data)
 
     # Call with dict input (data_placeholder keys). Get all outputs.
     with pytest.raises(RuntimeError):
-        y1_pred, y2_pred = model.predict({x1: x1_data})
+        model.predict({x1: x1_data})
 
     # Call with dict input (name (str) keys). Get all outputs.
     with pytest.raises(RuntimeError):
-        y1_pred, y2_pred = model.predict({'x1': x1_data})
+        model.predict({'x1': x1_data})
 
     # ------ Non-existing inputs
     with pytest.raises(ValueError):
-        y1_pred, y2_pred = model.predict({'x1': x1_data, 'x3': x2_data})
+        model.predict({'x1': x1_data, 'x3': x2_data})
 
     # ------ Non-existing outputs
     with pytest.raises(ValueError):
-        y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data}, ['non-existing-output', 'PCA_0/0'])
+        model.predict({'x1': x1_data, 'x2': x2_data}, ['non-existing-output', 'PCA_0/0'])
 
     # ------ Unnecessary inputs
     with pytest.raises(RuntimeError):
-        y1_pred, y2_pred = model.predict({'x1': x1_data, 'x2': x2_data}, 'PCA_0/0')
+        model.predict({'x1': x1_data, 'x2': x2_data}, 'PCA_0/0')
 
     # ------ Duplicated outputs
     with pytest.raises(ValueError):
-        y1_pred, y2_pred = model.predict([x1_data, x2_data],
+        model.predict([x1_data, x2_data],
                                          ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
 
 

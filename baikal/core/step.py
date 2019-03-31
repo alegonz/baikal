@@ -1,15 +1,23 @@
-from typing import List, Tuple
+from typing import List
 
 from baikal.core.data_placeholder import DataPlaceholder, is_data_placeholder_list
-from baikal.core.digraph import Node
-from baikal.core.utils import listify, make_name
+from baikal.core.utils import listify, make_name, make_repr
 
 
-class Step(Node):
+class Step:
+    # used to keep track of number of instances and make unique names
+    # a dict-of-dicts with graph and name as keys.
+    _names = dict()
+
     def __init__(self, *args, name=None, trainable=True, **kwargs):
-        super(Step, self).__init__(*args, name=name, **kwargs)
+        super(Step, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
+
+        # Use name as is if it was specified by the user, to avoid the user a surprise
+        self.name = name if name is not None else self._generate_unique_name()
+
         self.inputs = None
         self.outputs = None
+        # TODO: Add self.n_inputs? Could be used to check inputs in __call__
         self.n_outputs = None  # Client code must override this value when subclassing from Step.
         self.trainable = trainable
 
@@ -35,10 +43,28 @@ class Step(Node):
             outputs.append(DataPlaceholder(self, name))
         return outputs
 
+    def _generate_unique_name(self):
+        name = self.__class__.__name__
 
-class InputStep(Node):
+        n_instances = self._names.get(name, 0)
+        unique_name = make_name(name, n_instances, sep='_')
+
+        n_instances += 1
+        self._names[name] = n_instances
+
+        return unique_name
+
+    @classmethod
+    def clear_names(cls):
+        cls._names.clear()
+
+    def __repr__(self):
+        return make_repr(self, ['name'])
+
+
+class InputStep(Step):
     def __init__(self, name=None):
-        super(InputStep, self).__init__(name=name)
+        super(InputStep, self).__init__(name=name, trainable=False)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
 

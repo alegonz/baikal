@@ -1,4 +1,4 @@
-from typing import Union, List, Dict, Tuple, Sequence
+from typing import Union, List, Dict, Sequence
 
 from baikal.core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal.core.digraph import DiGraph

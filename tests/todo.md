@@ -385,6 +385,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - `'outputs': list of data placeholders`
         - `'name': Model name`
         - `'trainable': flag value`
+- `Step` should also implement `get_params` and `set_params` ?
 
 ```
 If deep=False:

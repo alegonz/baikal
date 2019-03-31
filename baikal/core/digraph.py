@@ -1,7 +1,5 @@
 from collections import deque
 
-from baikal.core.utils import make_name, make_repr
-
 
 class NodeNotFoundError(Exception):
     """Exception raised when attempting to operate on a node that
@@ -100,39 +98,10 @@ class DiGraph:
             sorted_nodes.appendleft(node)
 
         while unvisited_nodes:
-            node = unvisited_nodes.popleft()
-            visit(node)
+            next_node = unvisited_nodes.popleft()
+            visit(next_node)
 
         return list(sorted_nodes)
 
 
 default_graph = DiGraph(name='default')
-
-
-class Node:
-    # used to keep track of number of instances and make unique names
-    # a dict-of-dicts with graph and name as keys.
-    _names = dict()
-
-    def __init__(self, *args, name=None, **kwargs):
-        super(Node, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
-        # Use name as is if it was specified by the user, to avoid the user a surprise
-        self.name = name if name is not None else self._generate_unique_name()
-
-    def _generate_unique_name(self):
-        name = self.__class__.__name__
-
-        n_instances = self._names.get(name, 0)
-        unique_name = make_name(name, n_instances, sep='_')
-
-        n_instances += 1
-        self._names[name] = n_instances
-
-        return unique_name
-
-    @classmethod
-    def clear_names(cls):
-        cls._names.clear()
-
-    def __repr__(self):
-        return make_repr(self, ['name'])
