@@ -225,9 +225,9 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 
 
 ### TODO 2019/03/29
-- [ ] `DataPlaceholder`
+- [x] `DataPlaceholder`
     - Rename to `DataPlaceholder` to avoid confusion with actual data, and to approximate the semantics of TensorFlow's placeholder
-- [ ] `Model`
+- [x] `Model`
     - [x] Fix huge bug in cache update in `fit`
     - [x] Test raises `NotFittedError` when predict is run before fit.
     - [x] Add check for step name uniqueness (and hence their outputs) when building
@@ -240,7 +240,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Test with a simple ensemble
     - [x] Add test for lru_cache with same inputs in different order
         - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
-        - lru_cache had to be replace with homemade one to make Model easily picklable
+        - lru_cache had to be replaced with homemade one to make Model easily picklable
     - [x] Ditched shape
         - After more careful thinking. Shape definition, check and inference is not necessary
         - At first I mistakenly thought shapes are needed to infer the number of a step outputs, but this is not the case.
@@ -262,9 +262,9 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - Apparently it does :)
     - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
 - [ ] `Model`
-    - [ ] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
     - [ ] Implement `get_params` and `set_params` API for compatibility with `GridSearchCV`
         - Also check how `Pipeline.fit` does this
+    - [ ] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
@@ -289,6 +289,8 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 - [ ] Make steps shareable.
     - That is, they can be called multiple times on different inputs and connect them to different outputs.
     - Same concept as Keras' nodes.
+- [ ] Make Model steps replaceable
+    - This allows searching for estimators in e.g. GridSearchCV
 - [ ] Add typing?
 - [ ] Write documentation
 - [ ] Extend API to handle more kind of step computations?
@@ -296,6 +298,11 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - This perhaps could be chosen at `__call__` time.
         - For example a `function` argument that takes the name of the function (or functions) used at predict time.
         - `y_pred, y_proba = LogisticRegression()(x1, function=['predict', 'predict_proba'])`
+        
+### Future?
+- [ ] Make model topology settable
+    - This could allow search on pipeline structures, not only on hyperparameters
+    - How?
 
 ### Notes on Inputs/outputs normalization
 - Behavior of methods
@@ -370,3 +377,59 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
                 - Any of the provided input_data are actually not required to compute the specified outputs
                 - If any of the input_data required by the specified outputs were not provided
             - This means that we force the user to pass input_data and outputs properly
+            
+### Notes on `get_params` output
+- `Model.get_params(deep=True)` should a have an output like below:
+    - Should it include? These are not hyperparameters
+        - `'inputs': list of data placeholders`
+        - `'outputs': list of data placeholders`
+        - `'name': Model name`
+        - `'trainable': flag value`
+
+```
+If deep=False:
+{
+# Maybe we should not return these
+'inputs': list of data placeholders,
+'outputs': list of data placeholders,
+'name': Model name,
+'trainable': flag value,
+}
+
+If deep=True:
+{
+# Maybe we should not return these
+'inputs': list of data placeholders,
+'outputs': list of data placeholders,
+'name': Model name,
+'trainable': flag value,
+
+# Certainly return these
+'step1': Step (or Model) instance,
+'step2': Step (or Model) instance,
+'step3': Step (or Model) instance,
+'step1__p1': some value,
+'step1__p2': some value,
+...
+'step2__p1': ...,
+'step2__p2': ...,
+...
+# in case step3 is a (sub)Model instance:
+'step3__step1': Step instance,
+'step3__step2': Step instance,
+'step3__step1__p1': some value,
+'step3__step1__p2': some value,
+'step3__step2__p1': some value,
+'step3__step2__p2': some value,
+...
+}
+```
+
+- `Model.set_params(**kwargs)`:
+    - Should ignore the following (raise a warning?):
+        - `inputs`
+        - `outputs`
+        - `name`
+        - `trainable`
+    - Should accept a dictionary like the one produced by `get_params()`
+- `Model.set_params(**Model.get_params())` should not change the parameters

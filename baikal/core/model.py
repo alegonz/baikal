@@ -228,8 +228,3 @@ class Model(Step):
             raise TypeError('{} must implement either predict or transform!'.format(step.name))
 
         cache.update(zip(step.outputs, listify(output_data)))
-
-    # TODO: Override __call__ method
-    # query: inputs (outputs) can be a dictionary keyed by DataPlaceholder instances or
-    # their names, with array values. We need input normalization for this.
-    # Also, check that all of requested output keys exist in the Model graph.
