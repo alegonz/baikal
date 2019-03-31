@@ -4,7 +4,7 @@ from baikal.core.data_placeholder import is_data_placeholder_list, DataPlacehold
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step
 from baikal.core.typing import ArrayLike
-from baikal.core.utils import listify, find_duplicated_items, SimpleCache
+from baikal.core.utils import listify, SimpleCache
 
 
 class Model(Step):
@@ -37,30 +37,7 @@ class Model(Step):
 
     def _build_graph(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
-        graph = DiGraph()
-
-        # Add nodes (steps)
-        def collect_steps_from(output):
-            parent_step = output.step
-            graph.add_node(parent_step)
-            for input in parent_step.inputs:
-                collect_steps_from(input)
-
-        for output in self._internal_outputs:
-            collect_steps_from(output)
-
-        # Add edges (data)
-        for step in graph:
-            for input in step.inputs:
-                graph.add_edge(input.step, step)
-
-        # Check for any nodes (steps) with duplicated names
-        duplicated_names = find_duplicated_items([step.name for step in graph])
-
-        if duplicated_names:
-            raise RuntimeError('A Model cannot contain steps with duplicated names!\n'
-                               'Found the following duplicates:\n'
-                               '{}'.format(duplicated_names))
+        graph = DiGraph.build_from(self._internal_outputs)
 
         # Collect data placeholders
         data_placeholders = {}

@@ -1,5 +1,7 @@
 from collections import deque
 
+from baikal.core.utils import find_duplicated_items
+
 
 class NodeNotFoundError(Exception):
     """Exception raised when attempting to operate on a node that
@@ -102,6 +104,35 @@ class DiGraph:
             visit(next_node)
 
         return list(sorted_nodes)
+
+    @classmethod
+    def build_from(cls, outputs):
+        graph = cls()
+
+        # Add nodes (steps)
+        def collect_steps_from(output):
+            parent_step = output.step
+            graph.add_node(parent_step)
+            for input in parent_step.inputs:
+                collect_steps_from(input)
+
+        for output in outputs:
+            collect_steps_from(output)
+
+        # Add edges (data)
+        for step in graph:
+            for input in step.inputs:
+                graph.add_edge(input.step, step)
+
+        # Check for any nodes (steps) with duplicated names
+        duplicated_names = find_duplicated_items([step.name for step in graph])
+
+        if duplicated_names:
+            raise RuntimeError('A graph cannot contain steps with duplicated names!\n'
+                               'Found the following duplicates:\n'
+                               '{}'.format(duplicated_names))
+
+        return graph
 
 
 default_graph = DiGraph(name='default')
