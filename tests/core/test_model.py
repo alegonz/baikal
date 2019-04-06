@@ -239,8 +239,8 @@ def test_multiedge(teardown):
     y = DummyMISO()([z1, z2])
     model = Model(x, y)
 
-    X_data = np.array([[1], [2]])
-    y_out = model.predict(X_data)
+    x_data = np.array([[1], [2]])
+    y_out = model.predict(x_data)
 
     assert_array_equal(y_out, np.array([[2], [4]]))
 
@@ -264,14 +264,14 @@ def test_instantiation_with_steps_with_duplicated_names(teardown):
 
 
 def test_lazy_model(teardown):
-    X_data = np.array([[1, 2], [3, 4]])
+    x_data = np.array([[1, 2], [3, 4]])
 
     x = Input(name='x')
     model = Model(x, x)
-    model.fit(X_data)
-    X_pred = model.predict(X_data)
+    model.fit(x_data)
+    x_pred = model.predict(x_data)
 
-    assert_array_equal(X_pred, X_data)
+    assert_array_equal(x_pred, x_data)
 
 
 def test_fit_and_predict_model_with_no_fittable_steps(teardown):
@@ -292,7 +292,7 @@ def test_fit_and_predict_model_with_no_fittable_steps(teardown):
 
 
 def test_predict_with_not_fitted_steps(teardown):
-    X_data = iris.data
+    x_data = iris.data
 
     x = Input(name='x')
     xt = PCA(n_components=2)(x)
@@ -300,22 +300,22 @@ def test_predict_with_not_fitted_steps(teardown):
 
     model = Model(x, y)
     with pytest.raises(NotFittedError):
-        model.predict(X_data)
+        model.predict(x_data)
 
 
 def test_predict_using_step_without_transform(teardown):
-    X_data = np.array([[1], [2]])
+    x_data = np.array([[1], [2]])
 
     x = Input(name='x')
     y = DummyWithoutTransform()(x)
 
     model = Model(x, y)
     with pytest.raises(TypeError):
-        model.predict(X_data)
+        model.predict(x_data)
 
 
 def test_fit_pipeline(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     x = Input(name='x')
@@ -323,12 +323,12 @@ def test_fit_pipeline(teardown):
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
 
     model = Model(x, y)
-    model.fit(X_data, y_data)
+    model.fit(x_data, y_data)
     assert xt.step.fitted and y.step.fitted
 
 
 def test_fit_predict_pipeline(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     # baikal way
@@ -337,21 +337,21 @@ def test_fit_predict_pipeline(teardown):
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
 
     model = Model(x, y)
-    model.fit(X_data, y_data)
-    y_pred_baikal = model.predict(X_data)
+    model.fit(x_data, y_data)
+    y_pred_baikal = model.predict(x_data)
 
     # traditional way
     pca = sklearn.decomposition.PCA(n_components=2)
     logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
-    X_data_transformed = pca.fit_transform(X_data)
-    logreg.fit(X_data_transformed, y_data)
-    y_pred_traditional = logreg.predict(X_data_transformed)
+    x_data_transformed = pca.fit_transform(x_data)
+    logreg.fit(x_data_transformed, y_data)
+    y_pred_traditional = logreg.predict(x_data_transformed)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
 def test_fit_predict_ensemble(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     # baikal way
@@ -362,17 +362,17 @@ def test_fit_predict_ensemble(teardown):
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(features)
 
     model = Model(x, y)
-    model.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
-    y_pred_baikal = model.predict(X_data)
+    model.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = model.predict(x_data)
 
     # traditional way
     logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
-    logreg.fit(X_data, y_data)
-    logreg_pred = logreg.predict(X_data)
+    logreg.fit(x_data, y_data)
+    logreg_pred = logreg.predict(x_data)
 
     random_forest = sklearn.ensemble.RandomForestClassifier(random_state=123)
-    random_forest.fit(X_data, y_data)
-    random_forest_pred = random_forest.predict(X_data)
+    random_forest.fit(x_data, y_data)
+    random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
 
@@ -384,7 +384,7 @@ def test_fit_predict_ensemble(teardown):
 
 
 def test_nested_model(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     # Sub-model
@@ -399,35 +399,35 @@ def test_nested_model(teardown):
     model = Model(x, y)
 
     with pytest.raises(NotFittedError):
-        submodel.predict(X_data)
+        submodel.predict(x_data)
 
-    model.fit(X_data, y_data)
-    y_pred = model.predict(X_data)
-    y_pred_sub = submodel.predict(X_data)
+    model.fit(x_data, y_data)
+    y_pred = model.predict(x_data)
+    y_pred_sub = submodel.predict(x_data)
 
     assert_array_equal(y_pred, y_pred_sub)
 
 
 def test_nested_model_ensemble(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     # ----------- baikal way
     ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
-    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
-    y_pred_baikal = ensemble_model_baikal.predict(X_data)
+    ensemble_model_baikal.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = ensemble_model_baikal.predict(x_data)
 
     # ----------- traditional way
     logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
     pca = sklearn.decomposition.PCA(n_components=2)
-    pca.fit(X_data)
-    pca_trans = pca.transform(X_data)
+    pca.fit(x_data)
+    pca_trans = pca.transform(x_data)
     logreg.fit(pca_trans, y_data)
     logreg_pred = logreg.predict(pca_trans)
 
     random_forest = sklearn.ensemble.RandomForestClassifier(random_state=123)
-    random_forest.fit(X_data, y_data)
-    random_forest_pred = random_forest.predict(X_data)
+    random_forest.fit(x_data, y_data)
+    random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
 
@@ -439,36 +439,36 @@ def test_nested_model_ensemble(teardown):
 
 
 def test_model_joblib_serialization(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
-    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
-    y_pred_baikal = ensemble_model_baikal.predict(X_data)
+    ensemble_model_baikal.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
+    y_pred_baikal = ensemble_model_baikal.predict(x_data)
 
     # Persist model to a file
     f = tempfile.TemporaryFile()
     sklearn.externals.joblib.dump(ensemble_model_baikal, f)
     f.seek(0)
     ensemble_model_baikal_2 = sklearn.externals.joblib.load(f)
-    y_pred_baikal_2 = ensemble_model_baikal_2.predict(X_data)
+    y_pred_baikal_2 = ensemble_model_baikal_2.predict(x_data)
 
     assert_array_equal(y_pred_baikal_2, y_pred_baikal)
 
 
 def test_trainable_flag(teardown):
-    X_data = iris.data
+    x_data = iris.data
     y_data = iris.target
 
     ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
-    ensemble_model_baikal.fit(X_data, {y: y_data, y1: y_data, y2: y_data})
+    ensemble_model_baikal.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
 
     # Set sub-model 1's LogisticRegression to untrainable and
     # retrain model on a subset of the data
     np.random.seed(456)
-    n_samples = len(X_data) // 2
-    idx = np.random.choice(np.arange(len(X_data)), size=n_samples, replace=False)
-    X_data_sub, y_data_sub = X_data[idx], y_data[idx]
+    n_samples = len(x_data) // 2
+    idx = np.random.choice(np.arange(len(x_data)), size=n_samples, replace=False)
+    x_data_sub, y_data_sub = x_data[idx], y_data[idx]
 
     logreg_sub1 = ensemble_model_baikal.get_step('submodel1').get_step('logreg_sub1')
     logreg_ensemble = ensemble_model_baikal.get_step('logreg_ensemble')
@@ -477,7 +477,7 @@ def test_trainable_flag(teardown):
     logreg_ensemble_coef_original = logreg_ensemble.coef_.copy()  # This one should change
     logreg_sub1.trainable = False
 
-    ensemble_model_baikal.fit(X_data_sub, {y: y_data_sub, y1: y_data_sub, y2: y_data_sub})
+    ensemble_model_baikal.fit(x_data_sub, {y: y_data_sub, y1: y_data_sub, y2: y_data_sub})
     logreg_sub1_coef_retrained = logreg_sub1.coef_
     logreg_ensemble_coef_retrained = logreg_ensemble.coef_
 
