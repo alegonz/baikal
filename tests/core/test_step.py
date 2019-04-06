@@ -54,7 +54,7 @@ class TestStep:
         step = Step(name='some-step')
         assert 'Step(name=some-step, trainable=True)' == repr(step)
 
-    def test_get_params(self):
+    def test_get_params(self, teardown):
         step = LogisticRegression()
         params = step.get_params()
 
@@ -75,7 +75,7 @@ class TestStep:
 
         assert expected == params
 
-    def test_set_params(self):
+    def test_set_params(self, teardown):
         step = LogisticRegression()
 
         new_params_wrong = {'non_existent_param': 42}
