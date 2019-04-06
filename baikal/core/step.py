@@ -59,7 +59,7 @@ class Step:
         cls._names.clear()
 
     def __repr__(self):
-        return make_repr(self, ['name'])
+        return make_repr(self, ['name', 'trainable'])
 
     def _get_param_names(self):
         # Workaround to override @classmethod binding of the sklearn parent class method

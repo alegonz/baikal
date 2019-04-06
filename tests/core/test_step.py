@@ -52,7 +52,7 @@ class TestStep:
 
     def test_repr(self):
         step = Step(name='some-step')
-        assert 'Step(name=some-step)' == repr(step)
+        assert 'Step(name=some-step, trainable=True)' == repr(step)
 
     def test_get_params(self):
         step = LogisticRegression()
