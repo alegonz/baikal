@@ -61,6 +61,13 @@ class Step:
     def __repr__(self):
         return make_repr(self, ['name'])
 
+    def _get_param_names(self):
+        # Workaround to override @classmethod binding of the sklearn parent class method
+        # so we can feed it the sklearn parent class instead of the children class.
+        # We assume client code subclassed from this mixin and a sklearn class, with
+        # the sklearn class being the next base class in the mro.
+        return super(Step, self)._get_param_names.__func__(super(Step, self))
+
 
 class InputStep(Step):
     def __init__(self, name=None):

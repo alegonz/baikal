@@ -1,3 +1,5 @@
+import pytest
+
 from baikal.core.data_placeholder import DataPlaceholder
 from baikal.core.step import Input, Step
 
@@ -51,3 +53,55 @@ class TestStep:
     def test_repr(self):
         step = Step(name='some-step')
         assert 'Step(name=some-step)' == repr(step)
+
+    def test_get_params(self):
+        step = LogisticRegression()
+        params = step.get_params()
+
+        expected = {'C': 1.0,
+                    'class_weight': None,
+                    'dual': False,
+                    'fit_intercept': True,
+                    'intercept_scaling': 1,
+                    'max_iter': 100,
+                    'multi_class': 'warn',
+                    'n_jobs': None,
+                    'penalty': 'l2',
+                    'random_state': None,
+                    'solver': 'warn',
+                    'tol': 0.0001,
+                    'verbose': 0,
+                    'warm_start': False}
+
+        assert expected == params
+
+    def test_set_params(self):
+        step = LogisticRegression()
+
+        new_params_wrong = {'non_existent_param': 42}
+        with pytest.raises(ValueError):
+            step.set_params(**new_params_wrong)
+
+        new_params = {'C': 100.0,
+                      'fit_intercept': False,
+                      'penalty': 'l1'}
+
+        step.set_params(**new_params)
+        params = step.get_params()
+
+        expected = {'C': 100.0,
+                    'class_weight': None,
+                    'dual': False,
+                    'fit_intercept': False,
+                    'intercept_scaling': 1,
+                    'max_iter': 100,
+                    'multi_class': 'warn',
+                    'n_jobs': None,
+                    'penalty': 'l1',
+                    'random_state': None,
+                    'solver': 'warn',
+                    'tol': 0.0001,
+                    'verbose': 0,
+                    'warm_start': False}
+
+        assert expected == params
