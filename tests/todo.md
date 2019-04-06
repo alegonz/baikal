@@ -77,9 +77,8 @@ outs = model.query({'input1': x1_data}, outputs=['z1'])
             - To fit a graph we need to:
                 1. Filter the necessary steps depending on the provided inputs and outputs
                 2. For each step (in topological order), we fit and then do transform/predict on the inputs, and store the result (node output) in the cache. This has to handle two cases:
-                    1. The step is a transformer (Concatenate, Split, PCA, Scaler, etc). In this case we do not need target data, and we do fit_transform. The result of fit_transform becomes the node output.
-                    2. The step is a Estimator (LogisticRegression, DecisionTree, etc). In this case we need target data, and we do fit and then predict. The result of predict becomes the node output.
-                - While the Model API specifies only the final outputs and provides its target data via the Model.fit method, any intermediate trainable steps can take its required target data via a extra_targets argument in Model.fit.
+                    1. The step is a transformer (Concatenate, Split, PCA, Scaler, etc). In this case we do not need output data, and we do fit_transform. The result of fit_transform becomes the node output.
+                    2. The step is a Estimator (LogisticRegression, DecisionTree, etc). In this case we need output data, and we do fit and then predict. The result of predict becomes the node output.
         - Model persistence:
             - Should be able to save models to a file
             - Method 1:
@@ -189,18 +188,18 @@ model = Model(inputs=[x1, x2], outputs=[y1, y2])
 ```
 
 - [x] Can fit the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
-    - [x] There are three cases for the target data:
-        - All outputs require target data
-            - `target_data` must match the number of outputs.
-            - `target_data` must be a list if several outputs were specified. 
-        - Some outputs require target data
-            - Same as above, but we allow the elements of the outputs that do not require target data to be None.
-        - None of the outputs require target data (for example, model only has transformers and/or unsupervised learning steps)
-            - Same as above, but we also allow `target_data=None` even if multiple outputs were specified.
+    - [x] There are three cases for the output data:
+        - All outputs require output data
+            - `output_data` must match the number of outputs.
+            - `output_data` must be a list if several outputs were specified. 
+        - Some outputs require output data
+            - Same as above, but we allow the elements of the outputs that do not require output data to be None.
+        - None of the outputs require output data (for example, model only has transformers and/or unsupervised learning steps)
+            - Same as above, but we also allow `output_data=None` even if multiple outputs were specified.
     - [x] Steps that do not implement a fit method should be skipped
     - [ ] Steps that are set to freeze (e.g. loaded a pretrained model) should be skipped
 ```python
-model.fit([x1_data, x2_data], [y1_target_data, y2_target_data])
+model.fit([x1_data, x2_data], [y1_data, y2_data])
 ```
 
 - [x] Can predict with the model a la Keras with lists of actual data (numpy arrays, pandas dataframes, etc)
@@ -219,7 +218,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
 ```
 
 - [x] model.fit fails if any of the required inputs was not passed in
-    - This includes target data for outputs in the case of supervised learning
+    - This includes output data for outputs in the case of supervised learning
 
 - [x] model.predict fails if any of the required inputs is not in the provided inputs
 
@@ -236,7 +235,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [x] Add steps cache
         - Need to make steps sortable     
     - [x] Implement `extra_targets` argument in `Model.fit`
-        - Already possible with current implementation of `Model.fit(..., target_data)`
+        - Already possible with current implementation of `Model.fit(..., output_data)`
         - Test with a simple ensemble
     - [x] Add test for lru_cache with same inputs in different order
         - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
@@ -268,8 +267,8 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
-            - e.g. `LogisticRegression()(inputs=x1, target_data=y_trans)  # y_trans is a DataPlaceholder object output from another Step`
-            - When fitting, look for target_data in results cache instead of the provided `target_data`
+            - e.g. `LogisticRegression()(inputs=x1, output_data=y_trans)  # y_trans is a DataPlaceholder object output from another Step`
+            - When fitting, look for output_data in results cache instead of the provided `output_data`
     - [ ] Handle extra options in predict method
         - Some regressors have extra options in their predict method, and they return a tuple of arrays.
         - See: https://scikit-learn.org/stable/glossary.html#term-predict
@@ -331,24 +330,24 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - `fit`
         - Arguments:
             - input_data: `Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[DataPlaceholder, ArrayLike]]`
-            - target_data: `Optional[Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[DataPlaceholder, ArrayLike]]]`
+            - output_data: `Optional[Union[ArrayLike, List[ArrayLike], Dict[str, ArrayLike], Dict[DataPlaceholder, ArrayLike]]]`
                 - If List, for steps that do not require fit, items can be None
                 - If Dict, for steps that do not require fit, keys can be omitted, or values can be None
         - Normalization:
             - input_data: `Dict[DataPlaceholder, ArrayLike]` (keys must match the inputs passed at instantiation)
-            - target_data: `Dict[DataPlaceholder, ArrayLike]` (keys must match the outputs passed at instantiation)
-                - If target_data is None, return `Dict[DataPlaceholder, None]` with keys equal to the outputs passed at instantiation
+            - output_data: `Dict[DataPlaceholder, ArrayLike]` (keys must match the outputs passed at instantiation)
+                - If output_data is None, return `Dict[DataPlaceholder, None]` with keys equal to the outputs passed at instantiation
             - Raises:
                 - `ValueError` when:
                     - if input_data was a passed as `ArrayLike`, or `List[ArrayLike]`
                         - the number of elements does not match the inputs passed at instantiation
-                    - if target_data was a passed as `ArrayLike`, or `List[ArrayLike]`
+                    - if output_data was a passed as `ArrayLike`, or `List[ArrayLike]`
                         - the number of elements does not match the outputs passed at instantiation
                     - if input_data was a passed as `Dict`
                         - the keys do not match the inputs passed at instantiation
                             - Must match in names and number
                         - the keys are a type other than `str` or `DataPlaceholder`
-                    - if target_data was a passed as `Dict`
+                    - if output_data was a passed as `Dict`
                         - the keys do not match the outputs passed at instantiation
                         - the keys are a type other than `str` or `DataPlaceholder`
         - Notes:

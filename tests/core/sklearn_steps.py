@@ -1,7 +1,8 @@
 import sklearn.decomposition
 import sklearn.ensemble
-import sklearn.linear_model
 from sklearn.exceptions import NotFittedError
+import sklearn.linear_model
+import sklearn.preprocessing
 from sklearn.utils.validation import check_is_fitted
 
 from baikal.core.step import Step
@@ -42,5 +43,18 @@ class PCA(Step, sklearn.decomposition.PCA):
     def fitted(self):
         try:
             return check_is_fitted(self, ['mean_', 'components_'], all_or_any=all) is None
+        except NotFittedError:
+            return False
+
+
+class StandardScaler(Step, sklearn.preprocessing.StandardScaler):
+    def __init__(self, name=None, **kwargs):
+        super(StandardScaler, self).__init__(name=name, **kwargs)
+        self.n_outputs = 1
+
+    @property
+    def fitted(self):
+        try:
+            return check_is_fitted(self, 'scale_') is None
         except NotFittedError:
             return False

@@ -113,8 +113,19 @@ class Model(Step):
                 key = self.get_data_placeholder(key.name if isinstance(key, DataPlaceholder) else key)
                 data_norm[key] = value
         else:
-            data = [None] * len(data_placeholders) if (data is None and expand_none) else data
-            data_norm = dict(zip(data_placeholders, listify(data)))
+            if data is None and expand_none:
+                data = [None] * len(data_placeholders)
+            else:
+                data = listify(data)
+
+            if len(data) != len(data_placeholders):
+                # TODO: Improve this message
+                raise ValueError('When passing inputs/outputs as a list or a single array, '
+                                 'the number of arrays must match the number of inputs/outputs '
+                                 'specified at instantiation. '
+                                 'Got {}, expected: {}'.format(len(data), len(data_placeholders)))
+
+            data_norm = dict(zip(data_placeholders, data))
         return data_norm
 
     def get_step(self, name: str) -> Step:
@@ -129,8 +140,7 @@ class Model(Step):
             return self._data_placeholders[name]
         raise ValueError('{} was not found in the model!'.format(name))
 
-    def fit(self, input_data, target_data=None):
-        # TODO: add extra_targets keyword argument
+    def fit(self, input_data, output_data=None):
         # TODO: Add **fit_params argument (like sklearn's Pipeline.fit)
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
@@ -140,12 +150,12 @@ class Model(Step):
             if input not in input_data:
                 raise ValueError('Missing input {}'.format(input))
 
-        target_data = self._normalize_data(target_data, self._internal_outputs, expand_none=True)
+        output_data = self._normalize_data(output_data, self._internal_outputs, expand_none=True)
         for output in self._internal_outputs:
-            if output not in target_data:
+            if output not in output_data:
                 raise ValueError('Missing output {}'.format(output))
 
-        steps = self._get_required_steps(input_data, target_data)
+        steps = self._get_required_steps(input_data, output_data)
 
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache.update(input_data)
@@ -154,9 +164,9 @@ class Model(Step):
             # 1) Fit phase
             Xs = [results_cache[i] for i in step.inputs]
             if hasattr(step, 'fit') and step.trainable:
-                # Filtering out None target_data allow us to define fit methods without y=None.
-                ys = [target_data[o] for o in step.outputs if o in target_data and target_data[o] is not None]
-                # TODO: Add a try/except to catch missing target data errors (e.g. when forgot ensemble targets)
+                # Filtering out None output_data allow us to define fit methods without y=None.
+                ys = [output_data[o] for o in step.outputs if o in output_data and output_data[o] is not None]
+                # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
                 step.fit(*Xs, *ys)
 
             # 2) predict/transform phase

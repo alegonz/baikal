@@ -16,7 +16,7 @@ from baikal.core.step import Input
 from baikal.steps.merge import Stack
 
 from fixtures import teardown
-from sklearn_steps import LogisticRegression, RandomForestClassifier, PCA
+from sklearn_steps import LogisticRegression, RandomForestClassifier, PCA, StandardScaler
 from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
 
 iris = datasets.load_iris()
@@ -93,30 +93,30 @@ def test_fit_call(teardown):
 
     x1_data = iris.data[:, :2]
     x2_data = iris.data[:, 2:]
-    y1_target_data = iris.target
+    y1_data = iris.target
 
     # ------ Correct calls. Should not raise errors.
     # Call with lists
-    model.fit([x1_data, x2_data], [y1_target_data, None])
+    model.fit([x1_data, x2_data], [y1_data, None])
 
     # Call with dicts (data_placeholder keys)
-    model.fit({x1: x1_data, x2: x2_data}, {y1: y1_target_data, y2: None})
+    model.fit({x1: x1_data, x2: x2_data}, {y1: y1_data, y2: None})
 
     # Call with dicts (name (str) keys)
-    model.fit({'x1': x1_data, 'x2': x2_data}, {'LogisticRegression_0/0': y1_target_data, 'PCA_0/0': None})
+    model.fit({'x1': x1_data, 'x2': x2_data}, {'LogisticRegression_0/0': y1_data, 'PCA_0/0': None})
 
     # ------ Missing input
     # Call with lists
     with pytest.raises(ValueError):
-        model.fit([x1_data], [y1_target_data, None])
+        model.fit([x1_data], [y1_data, None])
 
     # Call with dicts (data_placeholder keys)
     with pytest.raises(ValueError):
-        model.fit({x1: x1_data}, {y1: y1_target_data, y2: None})
+        model.fit({x1: x1_data}, {y1: y1_data, y2: None})
 
     # Call with dicts (name (str) keys)
     with pytest.raises(ValueError):
-        model.fit({'x1': x1_data}, {'LogisticRegression_0/0': y1_target_data, 'PCA_0/0': None})
+        model.fit({'x1': x1_data}, {'LogisticRegression_0/0': y1_data, 'PCA_0/0': None})
 
     # ------ Missing output
     # Call with lists
@@ -133,25 +133,26 @@ def test_fit_call(teardown):
 
     # ------ Non-existing inputs
     with pytest.raises(ValueError):
-        model.fit({'x1': x1_data, 'x3': x2_data}, {'LogisticRegression_0/0': y1_target_data, 'PCA_0/0': None})
+        model.fit({'x1': x1_data, 'x3': x2_data}, {'LogisticRegression_0/0': y1_data, 'PCA_0/0': None})
 
     # ------ Non-existing outputs
     with pytest.raises(ValueError):
-        model.fit({'x1': x1_data, 'x2': x2_data}, {'non-existing-output': y1_target_data, 'PCA_0/0': None})
+        model.fit({'x1': x1_data, 'x2': x2_data}, {'non-existing-output': y1_data, 'PCA_0/0': None})
 
 
 def test_predict_call(teardown):
     x1_data = iris.data[:, :2]
     x2_data = iris.data[:, 2:]
-    y1_target_data = iris.target
+    y1_data = iris.target
 
     x1 = Input(name='x1')
     x2 = Input(name='x2')
-    y1 = LogisticRegression()(x1)
+    x1_rescaled = StandardScaler()(x1)
+    y1 = LogisticRegression()(x1_rescaled)
     y2 = PCA()(x2)
     model = Model([x1, x2], [y1, y2])
 
-    model.fit([x1_data, x2_data], [y1_target_data, None])
+    model.fit([x1_data, x2_data], [y1_data, None])
 
     # ------ Correct calls. Should not raise errors.
     # Call with list input. Get all outputs.
@@ -163,12 +164,15 @@ def test_predict_call(teardown):
     # Call with dict input (name (str) keys). Get all outputs.
     model.predict({'x1': x1_data, 'x2': x2_data})
 
-    # Call with list input. Get an specific output. Call with just the needed input
-    model.predict(x1_data, 'LogisticRegression_0/0')
+    # Call with dict input. Get an specific output. Call with just the needed input
+    model.predict({x1: x1_data}, 'LogisticRegression_0/0')
+
+    # Call with dict input. Get intermediate output.
+    model.predict({x1: x1_data}, 'StandardScaler_0/0')
 
     # ------ Missing input
     # Call with list input. Get all outputs.
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         model.predict(x1_data)
 
     # Call with dict input (data_placeholder keys). Get all outputs.
@@ -194,13 +198,13 @@ def test_predict_call(teardown):
     # ------ Duplicated outputs
     with pytest.raises(ValueError):
         model.predict([x1_data, x2_data],
-                                         ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
+                      ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
 
 
 def test_steps_cache(teardown):
     x1_data = iris.data[:, :2]
     x2_data = iris.data[:, 2:]
-    y1_target_data = iris.target
+    y1_data = iris.target
 
     x1 = Input(name='x1')
     x2 = Input(name='x2')
@@ -210,10 +214,10 @@ def test_steps_cache(teardown):
     model = Model([x1, x2], [y1, y2])
     assert 0 == model._steps_cache.hits and 1 == model._steps_cache.misses
 
-    model.fit([x1_data, x2_data], [y1_target_data, None])
+    model.fit([x1_data, x2_data], [y1_data, None])
     assert 1 == model._steps_cache.hits and 1 == model._steps_cache.misses
 
-    model.fit({x1: x1_data, x2: x2_data}, {y1: y1_target_data, y2: None})
+    model.fit({x1: x1_data, x2: x2_data}, {y1: y1_data, y2: None})
     assert 2 == model._steps_cache.hits and 1 == model._steps_cache.misses
 
     model.predict({'x1': x1_data, 'x2': x2_data}, ['y2/0', 'y1/0'])
@@ -222,10 +226,10 @@ def test_steps_cache(teardown):
     model.predict([x1_data, x2_data])
     assert 4 == model._steps_cache.hits and 1 == model._steps_cache.misses
 
-    model.predict(x1_data, 'y1/0')
+    model.predict({x1: x1_data}, 'y1/0')
     assert 4 == model._steps_cache.hits and 2 == model._steps_cache.misses
 
-    model.predict(x1_data, 'y1/0')
+    model.predict({x1: x1_data}, 'y1/0')
     assert 5 == model._steps_cache.hits and 2 == model._steps_cache.misses
 
 
