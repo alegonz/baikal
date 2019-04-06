@@ -256,12 +256,12 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Add as an attribute so we can also do `step.trainable = False`
         - Condition the fit step in Model to this attribute
 
-### TODO 2019/03/31
+### TODO 2019/04/06
 - [x] Check if `joblib.Parallel` allows nested calls
     - Apparently it does :)
     - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
 - [ ] `Model`
-    - [ ] Implement `get_params` and `set_params` API for compatibility with `GridSearchCV`
+    - [x] Implement `get_params` and `set_params` API for compatibility with `GridSearchCV`
         - Also check how `Pipeline.fit` does this
     - [ ] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
     - [ ] Add targets via inputs
@@ -284,7 +284,7 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - [ ] Create a step generator that feeds steps as soon as a processor becomes available
     - [ ] Add results caching with joblib (`Memory` API)
 
-### TODO 2019/04/06
+### TODO 2019/04/13
 - [ ] Make steps shareable.
     - That is, they can be called multiple times on different inputs and connect them to different outputs.
     - Same concept as Keras' nodes.
