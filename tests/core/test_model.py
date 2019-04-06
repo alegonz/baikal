@@ -486,6 +486,86 @@ def test_trainable_flag(teardown):
         assert_array_equal(logreg_ensemble_coef_original, logreg_ensemble_coef_retrained)
 
 
+def test_get_params(teardown):
+    x = Input()
+    h = PCA(name='pca')(x)
+    y = LogisticRegression(name='logreg')(h)
+    model = Model(x, y)
+
+    expected = {'pca__n_components': None,
+                'pca__whiten': False,
+                'pca__tol': 0.0,
+                'pca__svd_solver': 'auto',
+                'pca__copy': True,
+                'pca__random_state': None,
+                'pca__iterated_power': 'auto',
+                'logreg__C': 1.0,
+                'logreg__class_weight': None,
+                'logreg__dual': False,
+                'logreg__fit_intercept': True,
+                'logreg__intercept_scaling': 1,
+                'logreg__max_iter': 100,
+                'logreg__multi_class': 'warn',
+                'logreg__n_jobs': None,
+                'logreg__penalty': 'l2',
+                'logreg__random_state': None,
+                'logreg__solver': 'warn',
+                'logreg__tol': 0.0001,
+                'logreg__verbose': 0,
+                'logreg__warm_start': False}
+
+    params = model.get_params()
+    assert expected == params
+
+
+def test_set_params(teardown):
+    x = Input()
+    h = PCA(name='pca')(x)
+    y = LogisticRegression(name='logreg')(h)
+    model = Model(x, y)
+
+    new_params_wrong = {'non_existent_step__param': 42}
+    with pytest.raises(ValueError):
+        model.set_params(**new_params_wrong)
+
+    new_params_wrong = {'pca__non_existent_param': 42}
+    with pytest.raises(ValueError):
+        model.set_params(**new_params_wrong)
+
+    new_params = {'pca__n_components': 4,
+                  'pca__whiten': True,
+                  'logreg__C': 100.0,
+                  'logreg__fit_intercept': False,
+                  'logreg__penalty': 'l1'}
+
+    model.set_params(**new_params)
+    params = model.get_params()
+
+    expected = {'pca__n_components': 4,
+                'pca__whiten': True,
+                'pca__tol': 0.0,
+                'pca__svd_solver': 'auto',
+                'pca__copy': True,
+                'pca__random_state': None,
+                'pca__iterated_power': 'auto',
+                'logreg__C': 100.0,
+                'logreg__class_weight': None,
+                'logreg__dual': False,
+                'logreg__fit_intercept': False,
+                'logreg__intercept_scaling': 1,
+                'logreg__max_iter': 100,
+                'logreg__multi_class': 'warn',
+                'logreg__n_jobs': None,
+                'logreg__penalty': 'l1',
+                'logreg__random_state': None,
+                'logreg__solver': 'warn',
+                'logreg__tol': 0.0001,
+                'logreg__verbose': 0,
+                'logreg__warm_start': False}
+
+    assert expected == params
+
+
 def make_ensemble_model():
     random_state = 123
     n_components = 2

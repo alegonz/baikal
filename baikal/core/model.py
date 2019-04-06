@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Union, List, Dict, Sequence
 
 from baikal.core.data_placeholder import is_data_placeholder_list, DataPlaceholder
@@ -218,3 +219,25 @@ class Model(Step):
             raise TypeError('{} must implement either predict or transform!'.format(step.name))
 
         cache.update(zip(step.outputs, listify(output_data)))
+
+    def get_params(self, deep=True):
+        params = {}
+        for step in self._steps.values():
+            if hasattr(step, 'get_params'):
+                for param_name, value in step.get_params(deep).items():
+                    params['{}__{}'.format(step.name, param_name)] = value
+        return params
+
+    def set_params(self, **params):
+        # Collect params by step
+        step_params = defaultdict(dict)
+        for key, value in params.items():
+            step_name, _, param_name = key.partition('__')
+            step_params[step_name][param_name] = value
+
+        # Set params for each step
+        for step_name, params in step_params.items():
+            step = self.get_step(step_name)
+            step.set_params(**params)
+
+        return self
