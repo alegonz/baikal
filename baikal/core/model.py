@@ -8,7 +8,10 @@ from baikal.core.utils import listify, SimpleCache
 
 
 class Model(Step):
-    def __init__(self, inputs, outputs, name=None, trainable=True):
+    def __init__(self,
+                 inputs: [DataPlaceholder, List[DataPlaceholder]],
+                 outputs: [DataPlaceholder, List[DataPlaceholder]],
+                 name=None, trainable=True):
         super(Model, self).__init__(name=name, trainable=trainable)
 
         inputs = listify(inputs)
