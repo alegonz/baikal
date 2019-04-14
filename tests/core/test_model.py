@@ -314,19 +314,6 @@ def test_predict_using_step_without_transform(teardown):
         model.predict(x_data)
 
 
-def test_fit_pipeline(teardown):
-    x_data = iris.data
-    y_data = iris.target
-
-    x = Input(name='x')
-    xt = PCA(n_components=2)(x)
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
-
-    model = Model(x, y)
-    model.fit(x_data, y_data)
-    assert xt.step.fitted and y.step.fitted
-
-
 def test_fit_predict_pipeline(teardown):
     x_data = iris.data
     y_data = iris.target
@@ -337,8 +324,9 @@ def test_fit_predict_pipeline(teardown):
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
 
     model = Model(x, y)
-    model.fit(x_data, y_data)
-    y_pred_baikal = model.predict(x_data)
+    y_pred_baikal = model.fit(x_data, y_data).predict(x_data)
+
+    assert xt.step.fitted and y.step.fitted
 
     # traditional way
     pca = sklearn.decomposition.PCA(n_components=2)

@@ -176,6 +176,8 @@ class Model(Step):
             # 2) predict/transform phase
             self._compute_step(step, Xs, results_cache)
 
+        return self
+
     def predict(self, input_data, outputs=None):
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
 
