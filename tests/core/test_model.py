@@ -317,11 +317,13 @@ def test_predict_using_step_without_transform(teardown):
 def test_fit_predict_pipeline(teardown):
     x_data = iris.data
     y_data = iris.target
+    random_state = 123
+    n_components = 2
 
     # baikal way
     x = Input(name='x')
-    xt = PCA(n_components=2)(x)
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
+    xt = PCA(n_components=n_components, random_state=random_state, name='pca')(x)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg')(xt)
 
     model = Model(x, y)
     y_pred_baikal = model.fit(x_data, y_data).predict(x_data)
@@ -329,11 +331,10 @@ def test_fit_predict_pipeline(teardown):
     assert xt.step.fitted and y.step.fitted
 
     # traditional way
-    pca = sklearn.decomposition.PCA(n_components=2)
-    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
     x_data_transformed = pca.fit_transform(x_data)
-    logreg.fit(x_data_transformed, y_data)
-    y_pred_traditional = logreg.predict(x_data_transformed)
+    y_pred_traditional = logreg.fit(x_data_transformed, y_data).predict(x_data_transformed)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
@@ -341,30 +342,31 @@ def test_fit_predict_pipeline(teardown):
 def test_fit_predict_ensemble(teardown):
     x_data = iris.data
     y_data = iris.target
+    random_state = 123
 
     # baikal way
     x = Input(name='x')
-    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs')(x)
-    y2 = RandomForestClassifier(random_state=123)(x)
+    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)(x)
+    y2 = RandomForestClassifier(random_state=random_state)(x)
     features = Stack(axis=1)([y1, y2])
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(features)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)(features)
 
     model = Model(x, y)
     model.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
     y_pred_baikal = model.predict(x_data)
 
     # traditional way
-    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
     logreg.fit(x_data, y_data)
     logreg_pred = logreg.predict(x_data)
 
-    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=123)
+    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
     random_forest.fit(x_data, y_data)
     random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
 
-    ensemble = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    ensemble = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
     ensemble.fit(features, y_data)
     y_pred_traditional = ensemble.predict(features)
 
@@ -399,27 +401,29 @@ def test_nested_model(teardown):
 def test_nested_model_ensemble(teardown):
     x_data = iris.data
     y_data = iris.target
+    random_state = 123
+    n_components = 2
 
     # ----------- baikal way
-    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
+    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model(n_components, random_state)
     ensemble_model_baikal.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
     y_pred_baikal = ensemble_model_baikal.predict(x_data)
 
     # ----------- traditional way
-    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
-    pca = sklearn.decomposition.PCA(n_components=2)
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
+    pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
     pca.fit(x_data)
     pca_trans = pca.transform(x_data)
     logreg.fit(pca_trans, y_data)
     logreg_pred = logreg.predict(pca_trans)
 
-    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=123)
+    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
     random_forest.fit(x_data, y_data)
     random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
 
-    ensemble_model_traditional = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs')
+    ensemble_model_traditional = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
     ensemble_model_traditional.fit(features, y_data)
     y_pred_traditional = ensemble_model_traditional.predict(features)
 
@@ -429,8 +433,10 @@ def test_nested_model_ensemble(teardown):
 def test_model_joblib_serialization(teardown):
     x_data = iris.data
     y_data = iris.target
+    random_state = 123
+    n_components = 2
 
-    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
+    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model(n_components, random_state)
     ensemble_model_baikal.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
     y_pred_baikal = ensemble_model_baikal.predict(x_data)
 
@@ -447,8 +453,10 @@ def test_model_joblib_serialization(teardown):
 def test_trainable_flag(teardown):
     x_data = iris.data
     y_data = iris.target
+    random_state = 123
+    n_components = 2
 
-    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model()
+    ensemble_model_baikal, (y1, y2, y) = make_ensemble_model(n_components, random_state)
     ensemble_model_baikal.fit(x_data, {y: y_data, y1: y_data, y2: y_data})
 
     # Set sub-model 1's LogisticRegression to untrainable and
@@ -472,6 +480,37 @@ def test_trainable_flag(teardown):
     assert_array_equal(logreg_sub1_coef_original, logreg_sub1_coef_retrained)
     with pytest.raises(AssertionError):
         assert_array_equal(logreg_ensemble_coef_original, logreg_ensemble_coef_retrained)
+
+
+def test_fit_params(teardown):
+    x_data = iris.data
+    y_data = iris.target
+    random_state = 123
+    n_components = 2
+
+    np.random.seed(321)
+    sample_weight = y_data + 1  # Just weigh the classes differently
+
+    # baikal way
+    fit_params = {'logreg__sample_weight': sample_weight}
+
+    x = Input(name='x')
+    xt = PCA(n_components=n_components, random_state=random_state, name='pca')(x)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg')(xt)
+
+    model = Model(x, y)
+    model.fit(x_data, y_data, **fit_params)
+
+    # traditional way
+    fit_params = {'sample_weight': sample_weight}
+
+    pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
+    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
+    pca.fit(x_data)
+    x_data_transformed = pca.transform(x_data)
+    logreg.fit(x_data_transformed, y_data, **fit_params)
+
+    assert_array_equal(model.get_step('logreg').coef_, logreg.coef_)
 
 
 def test_get_params(teardown):
@@ -554,14 +593,11 @@ def test_set_params(teardown):
     assert expected == params
 
 
-def make_ensemble_model():
-    random_state = 123
-    n_components = 2
-
+def make_ensemble_model(n_components, random_state):
     # Sub-model 1
     x1 = Input(name='x1')
-    h1 = PCA(n_components=n_components, name='pca_sub1')(x1)
-    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_sub1')(h1)
+    h1 = PCA(n_components=n_components, random_state=random_state, name='pca_sub1')(x1)
+    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg_sub1')(h1)
     submodel1 = Model(x1, y1, name='submodel1')
 
     # Sub-model 2
@@ -574,7 +610,7 @@ def make_ensemble_model():
     y1 = submodel1(x)
     y2 = submodel2(x)
     features = Stack(axis=1, name='stack')([y1, y2])
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', name='logreg_ensemble')(features)
+    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg_ensemble')(features)
     ensemble_model_baikal = Model(x, y, name='ensemble')
 
     return ensemble_model_baikal, (y1, y2, y)
