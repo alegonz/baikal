@@ -144,11 +144,12 @@ class Model(Step):
             return self._data_placeholders[name]
         raise ValueError('{} was not found in the model!'.format(name))
 
-    def fit(self, input_data, output_data=None):
-        # TODO: Add **fit_params argument (like sklearn's Pipeline.fit)
+    def fit(self, input_data, output_data=None, **fit_params):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
+
+        # input/output normalization
         input_data = self._normalize_data(input_data, self._internal_inputs)
         for input in self._internal_inputs:
             if input not in input_data:
@@ -159,19 +160,32 @@ class Model(Step):
             if output not in output_data:
                 raise ValueError('Missing output {}'.format(output))
 
+        # Get steps and their fit_params
         steps = self._get_required_steps(input_data, output_data)
+        fit_params_steps = defaultdict(dict)
+        for param_key, param_value in fit_params.items():
+            # TODO: Add check for __. Add error message if step was not found
+            step_name, _, param_name = param_key.partition('__')
+            step = self.get_step(step_name)
+            fit_params_steps[step][param_name] = param_value
 
+        # Intermediate results are stored here
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache.update(input_data)
 
         for step in steps:
-            # 1) Fit phase
             Xs = [results_cache[i] for i in step.inputs]
+
+            # 1) Fit phase
             if hasattr(step, 'fit') and step.trainable:
                 # Filtering out None output_data allow us to define fit methods without y=None.
-                ys = [output_data[o] for o in step.outputs if o in output_data and output_data[o] is not None]
+                ys = [output_data[o] for o in step.outputs
+                      if o in output_data and output_data[o] is not None]
+
+                fit_params = fit_params_steps.get(step, {})
+
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                step.fit(*Xs, *ys)
+                step.fit(*Xs, *ys, **fit_params)
 
             # 2) predict/transform phase
             self._compute_step(step, Xs, results_cache)
