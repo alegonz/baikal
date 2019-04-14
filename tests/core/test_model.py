@@ -15,9 +15,9 @@ from baikal.core.model import Model
 from baikal.core.step import Input
 from baikal.steps.merge import Stack
 
-from fixtures import teardown
-from sklearn_steps import LogisticRegression, RandomForestClassifier, PCA, StandardScaler
-from dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
+from tests.helpers.fixtures import teardown
+from tests.helpers.sklearn_steps import LogisticRegression, RandomForestClassifier, PCA, StandardScaler
+from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
 
 iris = datasets.load_iris()
 

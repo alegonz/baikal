@@ -5,7 +5,7 @@ from baikal.core.model import Model
 from baikal.core.step import Input
 from baikal.steps.merge import Concatenate, Stack
 
-from fixtures import teardown
+from tests.helpers.fixtures import teardown
 
 
 def test_concatenate(teardown):
