@@ -2,7 +2,7 @@ import tempfile
 from contextlib import contextmanager
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 from sklearn import datasets
 import sklearn.decomposition
@@ -10,6 +10,7 @@ import sklearn.ensemble
 import sklearn.externals.joblib
 from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
+from sklearn.pipeline import Pipeline
 
 from baikal.core.model import Model
 from baikal.core.step import Input
@@ -488,12 +489,10 @@ def test_fit_params(teardown):
     random_state = 123
     n_components = 2
 
-    np.random.seed(321)
     sample_weight = y_data + 1  # Just weigh the classes differently
-
-    # baikal way
     fit_params = {'logreg__sample_weight': sample_weight}
 
+    # baikal way
     x = Input(name='x')
     xt = PCA(n_components=n_components, random_state=random_state, name='pca')(x)
     y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg')(xt)
@@ -502,15 +501,14 @@ def test_fit_params(teardown):
     model.fit(x_data, y_data, **fit_params)
 
     # traditional way
-    fit_params = {'sample_weight': sample_weight}
-
     pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
     logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
-    pca.fit(x_data)
-    x_data_transformed = pca.transform(x_data)
-    logreg.fit(x_data_transformed, y_data, **fit_params)
+    pipe = Pipeline([('pca', pca), ('logreg', logreg)])
+    pipe.fit(x_data, y_data, **fit_params)
 
-    assert_array_equal(model.get_step('logreg').coef_, logreg.coef_)
+    # Use assert_allclose instead of all equal due to small numerical differences
+    # between fit_transform(...) and fit(...).transform(...)
+    assert_allclose(model.get_step('logreg').coef_, pipe.named_steps['logreg'].coef_)
 
 
 def test_get_params(teardown):

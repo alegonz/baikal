@@ -176,6 +176,7 @@ class Model(Step):
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
 
+            # TODO: Use fit_transform if step has it
             # 1) Fit phase
             if hasattr(step, 'fit') and step.trainable:
                 # Filtering out None output_data allow us to define fit methods without y=None.
