@@ -256,14 +256,16 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
         - Add as an attribute so we can also do `step.trainable = False`
         - Condition the fit step in Model to this attribute
 
-### TODO 2019/04/06
+### TODO 2019/04/14
 - [x] Check if `joblib.Parallel` allows nested calls
     - Apparently it does :)
     - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
 - [ ] `Model`
     - [x] Implement `get_params` and `set_params` API for compatibility with `GridSearchCV`
         - Also check how `Pipeline.fit` does this
-    - [ ] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
+    - [x] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
+    - [ ] Add wrapper to be able to use Model in GridSearchCV API
+        - Similar to Keras approach
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
@@ -279,12 +281,17 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
                 - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays
                     - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
                     - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
+    - [ ] Extend API to handle more kind of step computations?
+        - `predict_proba`, `score`, `sample`, etc.
+        - This perhaps could be chosen at `__call__` time.
+            - For example a `function` argument that takes the name of the function (or functions) used at predict time.
+            - `y_pred, y_proba = LogisticRegression()(x1, function=['predict', 'predict_proba'])`
     - [ ] Add parallelization with joblib (`Parallel` API)
         - [ ] Modify `_get_required_steps` to also return step depth
         - [ ] Create a step generator that feeds steps as soon as a processor becomes available
     - [ ] Add results caching with joblib (`Memory` API)
 
-### TODO 2019/04/13
+### TODO 2019/04/21
 - [ ] Make steps shareable.
     - That is, they can be called multiple times on different inputs and connect them to different outputs.
     - Same concept as Keras' nodes.
@@ -292,11 +299,6 @@ model.predict(input_data={'x1': ...}, outputs=[z1, y2])
     - This allows searching for estimators in e.g. GridSearchCV
 - [ ] Add typing?
 - [ ] Write documentation
-- [ ] Extend API to handle more kind of step computations?
-    - `predict_proba`, `score`, `sample`, etc.
-    - This perhaps could be chosen at `__call__` time.
-        - For example a `function` argument that takes the name of the function (or functions) used at predict time.
-        - `y_pred, y_proba = LogisticRegression()(x1, function=['predict', 'predict_proba'])`
         
 ### Future?
 - [ ] Make model topology settable
