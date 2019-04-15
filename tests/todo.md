@@ -264,8 +264,12 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
     - [x] Implement `get_params` and `set_params` API for compatibility with `GridSearchCV`
         - Also check how `Pipeline.fit` does this
     - [x] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
-    - [ ] Add wrapper to be able to use Model in GridSearchCV API
+    - [x] Add wrapper to be able to use Model in GridSearchCV API
         - Similar to Keras approach
+        - [ ] Make Model steps tunable?
+            - This allows searching for estimators in e.g. GridSearchCV
+            - This must be via the build_fn arguments
+        - We could use `build_fn` arguments to specify "meta-parameters" (e.g. classifier type), and `set_params` to set hyper-parameters
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
@@ -281,11 +285,11 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
                 - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays
                     - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
                     - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
-    - [ ] Extend API to handle more kind of step computations?
+    - [ ] Extend API to handle more kind of step computations
         - `predict_proba`, `score`, `sample`, etc.
-        - This perhaps could be chosen at `__call__` time.
+        - This perhaps could be chosen at `__init__` time.
             - For example a `function` argument that takes the name of the function (or functions) used at predict time.
-            - `y_pred, y_proba = LogisticRegression()(x1, function=['predict', 'predict_proba'])`
+            - `y_pred, y_proba = LogisticRegression(function=['predict', 'predict_proba'])(x1)`
     - [ ] Add parallelization with joblib (`Parallel` API)
         - [ ] Modify `_get_required_steps` to also return step depth
         - [ ] Create a step generator that feeds steps as soon as a processor becomes available
@@ -295,8 +299,6 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
 - [ ] Make steps shareable.
     - That is, they can be called multiple times on different inputs and connect them to different outputs.
     - Same concept as Keras' nodes.
-- [ ] Make Model steps replaceable
-    - This allows searching for estimators in e.g. GridSearchCV
 - [ ] Add typing?
 - [ ] Write documentation
         
