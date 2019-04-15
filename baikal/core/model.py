@@ -144,24 +144,24 @@ class Model(Step):
             return self._data_placeholders[name]
         raise ValueError('{} was not found in the model!'.format(name))
 
-    def fit(self, input_data, output_data=None, **fit_params):
+    def fit(self, X, y=None, **fit_params):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
 
         # input/output normalization
-        input_data = self._normalize_data(input_data, self._internal_inputs)
+        X = self._normalize_data(X, self._internal_inputs)
         for input in self._internal_inputs:
-            if input not in input_data:
+            if input not in X:
                 raise ValueError('Missing input {}'.format(input))
 
-        output_data = self._normalize_data(output_data, self._internal_outputs, expand_none=True)
+        y = self._normalize_data(y, self._internal_outputs, expand_none=True)
         for output in self._internal_outputs:
-            if output not in output_data:
+            if output not in y:
                 raise ValueError('Missing output {}'.format(output))
 
         # Get steps and their fit_params
-        steps = self._get_required_steps(input_data, output_data)
+        steps = self._get_required_steps(X, y)
         fit_params_steps = defaultdict(dict)
         for param_key, param_value in fit_params.items():
             # TODO: Add check for __. Add error message if step was not found
@@ -171,7 +171,7 @@ class Model(Step):
 
         # Intermediate results are stored here
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
-        results_cache.update(input_data)
+        results_cache.update(X)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
@@ -179,9 +179,9 @@ class Model(Step):
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
             if hasattr(step, 'fit') and step.trainable:
-                # Filtering out None output_data allow us to define fit methods without y=None.
-                ys = [output_data[o] for o in step.outputs
-                      if o in output_data and output_data[o] is not None]
+                # Filtering out None y's allow us to define fit methods without y=None.
+                ys = [y[o] for o in step.outputs
+                      if o in y and y[o] is not None]
 
                 fit_params = fit_params_steps.get(step, {})
 
@@ -193,11 +193,11 @@ class Model(Step):
 
         return self
 
-    def predict(self, input_data, outputs=None):
+    def predict(self, X, outputs=None):
         results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
 
         # Normalize inputs and outputs
-        input_data = self._normalize_data(input_data, self._internal_inputs)
+        X = self._normalize_data(X, self._internal_inputs)
 
         if outputs is None:
             outputs = self._internal_outputs
@@ -207,10 +207,10 @@ class Model(Step):
             if len(set(outputs)) != len(outputs):
                 raise ValueError('outputs must be unique.')
 
-        steps = self._get_required_steps(input_data, outputs)
+        steps = self._get_required_steps(X, outputs)
 
         # Compute
-        results_cache.update(input_data)
+        results_cache.update(X)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]

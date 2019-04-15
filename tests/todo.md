@@ -211,9 +211,9 @@ out = model.predict([x1_data, x2_data])
 
 - [ ] Can query the model a la graphkit, with a dictionary of actual data (numpy arrays, pandas dataframes, etc)
 ```python
-# input_data dictionary keys can be either DataPlaceholder objects or their name strings
+# X dictionary keys can be either DataPlaceholder objects or their name strings
 # outputs can be a list of DataPlaceholder objects or their name strings
-model.predict(input_data={'x1': ...}, outputs=[z1, y2])
+model.predict(X={'x1': ...}, outputs=[z1, y2])
 # out = {'pred': ...}  # output dictionary keys should be name strings by default?
 ```
 
