@@ -54,6 +54,13 @@ class TestStep:
         step = Step(name='some-step')
         assert 'Step(name=some-step, trainable=True)' == repr(step)
 
+        sklearn_step = LogisticRegression(name='some-step')
+        assert "LogisticRegression(name=some-step, trainable=True,\n" \
+               "          C=1.0, class_weight=None, dual=False, fit_intercept=True,\n" \
+               "          intercept_scaling=1, max_iter=100, multi_class='warn',\n" \
+               "          n_jobs=None, penalty='l2', random_state=None, solver='warn',\n" \
+               "          tol=0.0001, verbose=0, warm_start=False)" == repr(sklearn_step)
+
     def test_get_params(self, teardown):
         step = LogisticRegression()
         params = step.get_params()

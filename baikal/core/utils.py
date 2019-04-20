@@ -12,8 +12,13 @@ def make_name(*parts, sep='/'):
     return sep.join([str(p) for p in parts])
 
 
-def make_repr(obj, attrs):
+def make_args_from_attrs(obj, attrs):
     args = ', '.join(['{}={}'.format(attr, str(getattr(obj, attr))) for attr in attrs])
+    return args
+
+
+def make_repr(obj, attrs):
+    args = make_args_from_attrs(obj, attrs)
     return '{}({})'.format(obj.__class__.__name__, args)
 
 

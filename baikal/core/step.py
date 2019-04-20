@@ -1,7 +1,8 @@
+import re
 from typing import List
 
 from baikal.core.data_placeholder import DataPlaceholder, is_data_placeholder_list
-from baikal.core.utils import listify, make_name, make_repr
+from baikal.core.utils import listify, make_name, make_repr, make_args_from_attrs
 
 
 class Step:
@@ -59,7 +60,24 @@ class Step:
         cls._names.clear()
 
     def __repr__(self):
-        return make_repr(self, ['name', 'trainable'])
+        cls_name = self.__class__.__name__
+        parent_repr = super(Step, self).__repr__()
+        step_attrs = ['name', 'trainable']
+
+        # Insert Step attributes into the parent repr
+        # if the repr has the sklearn pattern
+        sklearn_pattern = '^' + cls_name + '\((.*)\)$'
+        match = re.search(sklearn_pattern, parent_repr, re.DOTALL)
+        if match:
+            parent_args = match.group(1)
+            indentations = re.findall('[ \t]{2,}', parent_args)
+            indent = min(indentations, key=len)
+            step_args = make_args_from_attrs(self, step_attrs)
+            repr = '{}({},\n{}{})'.format(cls_name, step_args, indent, parent_args)
+            return repr
+
+        else:
+            return make_repr(self, step_attrs)
 
     def _get_param_names(self):
         # Workaround to override @classmethod binding of the sklearn parent class method
