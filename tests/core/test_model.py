@@ -18,7 +18,8 @@ from baikal.steps.merge import Stack
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import LogisticRegression, RandomForestClassifier, PCA, StandardScaler
-from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform
+from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyWithoutTransform, \
+    DummyImproperlyDefined
 
 iris = datasets.load_iris()
 
@@ -200,6 +201,15 @@ def test_predict_call(teardown):
     with pytest.raises(ValueError):
         model.predict([x1_data, x2_data],
                       ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
+
+
+def test_with_improperly_defined_step(teardown):
+    x = Input()
+    y = DummyImproperlyDefined()(x)
+    model = Model(x, y)
+
+    with pytest.raises(RuntimeError):
+        model.predict(iris.data)
 
 
 def test_steps_cache(teardown):

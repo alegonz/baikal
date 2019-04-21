@@ -5,7 +5,7 @@ from baikal.core.data_placeholder import is_data_placeholder_list, DataPlacehold
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step, InputStep
 from baikal.core.typing import ArrayLike
-from baikal.core.utils import listify, SimpleCache
+from baikal.core.utils import listify, safezip2, SimpleCache
 
 
 class Model(Step):
@@ -122,14 +122,16 @@ class Model(Step):
             else:
                 data = listify(data)
 
-            if len(data) != len(data_placeholders):
+            try:
+                data_norm = dict(safezip2(data_placeholders, data))
+            except ValueError as e:
                 # TODO: Improve this message
-                raise ValueError('When passing inputs/outputs as a list or a single array, '
-                                 'the number of arrays must match the number of inputs/outputs '
-                                 'specified at instantiation. '
-                                 'Got {}, expected: {}'.format(len(data), len(data_placeholders)))
+                message = 'When passing inputs/outputs as a list or a single array, ' \
+                          'the number of arrays must match the number of inputs/outputs ' \
+                          'specified at instantiation. ' \
+                          'Got {}, expected: {}'.format(len(data), len(data_placeholders))
+                raise ValueError(message) from e
 
-            data_norm = dict(zip(data_placeholders, data))
         return data_norm
 
     def get_step(self, name: str) -> Step:
@@ -206,9 +208,9 @@ class Model(Step):
             outputs = self._internal_outputs
         else:
             outputs = listify(outputs)
-            outputs = [self.get_data_placeholder(output) for output in outputs]
             if len(set(outputs)) != len(outputs):
                 raise ValueError('outputs must be unique.')
+            outputs = [self.get_data_placeholder(output) for output in outputs]
 
         steps = self._get_required_steps(X, outputs)
 
@@ -238,8 +240,13 @@ class Model(Step):
         else:
             raise TypeError('{} must implement either predict or transform!'.format(step.name))
 
-        # TODO: Change to zip_equal
-        cache.update(zip(step.outputs, listify(output_data)))
+        output_data = listify(output_data)
+        try:
+            cache.update(safezip2(step.outputs, output_data))
+        except ValueError as e:
+            message = 'The number of output data elements ({}) does not match ' \
+                      'the number of {} outputs ({}).'.format(len(output_data), step.name, len(step.outputs))
+            raise RuntimeError(message) from e
 
     def get_params(self, deep=True):
         # InputSteps are excluded
