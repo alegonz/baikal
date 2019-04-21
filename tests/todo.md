@@ -266,15 +266,24 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
     - [x] Handle `**fit_params` argument (like sklearn's `Pipeline.fit`)
     - [x] Add wrapper to be able to use Model in GridSearchCV API
         - Similar to Keras approach
-        - [ ] Make Model steps tunable?
+        - [x] Make Model steps tunable
             - This allows searching for estimators in e.g. GridSearchCV
-            - This must be via the build_fn arguments
-        - We could use `build_fn` arguments to specify "meta-parameters" (e.g. classifier type), and `set_params` to set hyper-parameters
+            - Implement in a similar way to sklearn's Pipeline: steps are settable via their name (without double underscore)
+        - [ ] Add Dummy step that just passes its inputs to its children steps.
+            - Useful for implementing no-ops and disable steps so we can also evaluate the elimination of the step.
     - [ ] Add targets via inputs
         - Useful for implementing transformation pipelines for target data
         - Added via a optional argument in `Step.__call__`
-            - e.g. `LogisticRegression()(inputs=x1, output_data=y_trans)  # y_trans is a DataPlaceholder object output from another Step`
-            - When fitting, look for output_data in results cache instead of the provided `output_data`
+            - e.g. `LogisticRegression()(inputs=x1, target=y_trans)  # y_trans is a DataPlaceholder object output from another Step`
+            - When fitting, look for target data in results cache
+                - If `output_data` was provided, use that instead
+    - [ ] Extend API to handle more kind of step computations
+        - `predict_proba`, `score`, `sample`, etc.
+        - This perhaps could be chosen at `__init__` time.
+            - For example a `function` argument that takes the name of the function (or functions) used at predict time.
+            - `y_pred, y_proba = LogisticRegression(function=['predict', 'predict_proba'])(x1)`
+    - [ ] Add `Step.n_inputs` and its checks in `Step.__call__`
+        - Use signature inspection of compute function (`function`)
     - [ ] Handle extra options in predict method
         - Some regressors have extra options in their predict method, and they return a tuple of arrays.
         - See: https://scikit-learn.org/stable/glossary.html#term-predict
@@ -285,11 +294,6 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
                 - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays
                     - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
                     - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
-    - [ ] Extend API to handle more kind of step computations
-        - `predict_proba`, `score`, `sample`, etc.
-        - This perhaps could be chosen at `__init__` time.
-            - For example a `function` argument that takes the name of the function (or functions) used at predict time.
-            - `y_pred, y_proba = LogisticRegression(function=['predict', 'predict_proba'])(x1)`
     - [ ] Add parallelization with joblib (`Parallel` API)
         - [ ] Modify `_get_required_steps` to also return step depth
         - [ ] Create a step generator that feeds steps as soon as a processor becomes available

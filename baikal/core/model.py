@@ -287,7 +287,6 @@ class Model(Step):
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
-        # self._steps[step_key] = new_step
 
         # Update outputs of old step to point to the new step
         for output in old_step.outputs:
