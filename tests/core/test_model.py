@@ -512,12 +512,17 @@ def test_fit_params(teardown):
 
 
 def test_get_params(teardown):
+    pca = PCA(name='pca')
+    logreg = LogisticRegression(name='logreg')
+
     x = Input()
-    h = PCA(name='pca')(x)
-    y = LogisticRegression(name='logreg')(h)
+    h = pca(x)
+    y = logreg(h)
     model = Model(x, y)
 
-    expected = {'pca__n_components': None,
+    expected = {'pca': pca,
+                'logreg': logreg,
+                'pca__n_components': None,
                 'pca__whiten': False,
                 'pca__tol': 0.0,
                 'pca__svd_solver': 'auto',
@@ -544,9 +549,12 @@ def test_get_params(teardown):
 
 
 def test_set_params(teardown):
+    pca = PCA(name='pca')
+    classifier = RandomForestClassifier(name='classifier')
+
     x = Input()
-    h = PCA(name='pca')(x)
-    y = LogisticRegression(name='logreg')(h)
+    h = pca(x)
+    y = classifier(h)
     model = Model(x, y)
 
     new_params_wrong = {'non_existent_step__param': 42}
@@ -557,38 +565,57 @@ def test_set_params(teardown):
     with pytest.raises(ValueError):
         model.set_params(**new_params_wrong)
 
-    new_params = {'pca__n_components': 4,
+    new_classifier = LogisticRegression()
+    new_params = {'classifier': new_classifier,
+                  'pca__n_components': 4,
                   'pca__whiten': True,
-                  'logreg__C': 100.0,
-                  'logreg__fit_intercept': False,
-                  'logreg__penalty': 'l1'}
+                  'classifier__C': 100.0,
+                  'classifier__fit_intercept': False,
+                  'classifier__penalty': 'l1'}
 
     model.set_params(**new_params)
     params = model.get_params()
 
-    expected = {'pca__n_components': 4,
+    expected = {'pca': pca,
+                'classifier': new_classifier,
+                'pca__n_components': 4,
                 'pca__whiten': True,
                 'pca__tol': 0.0,
                 'pca__svd_solver': 'auto',
                 'pca__copy': True,
                 'pca__random_state': None,
                 'pca__iterated_power': 'auto',
-                'logreg__C': 100.0,
-                'logreg__class_weight': None,
-                'logreg__dual': False,
-                'logreg__fit_intercept': False,
-                'logreg__intercept_scaling': 1,
-                'logreg__max_iter': 100,
-                'logreg__multi_class': 'warn',
-                'logreg__n_jobs': None,
-                'logreg__penalty': 'l1',
-                'logreg__random_state': None,
-                'logreg__solver': 'warn',
-                'logreg__tol': 0.0001,
-                'logreg__verbose': 0,
-                'logreg__warm_start': False}
+                'classifier__C': 100.0,
+                'classifier__class_weight': None,
+                'classifier__dual': False,
+                'classifier__fit_intercept': False,
+                'classifier__intercept_scaling': 1,
+                'classifier__max_iter': 100,
+                'classifier__multi_class': 'warn',
+                'classifier__n_jobs': None,
+                'classifier__penalty': 'l1',
+                'classifier__random_state': None,
+                'classifier__solver': 'warn',
+                'classifier__tol': 0.0001,
+                'classifier__verbose': 0,
+                'classifier__warm_start': False}
 
     assert expected == params
+
+
+def test_get_set_params_invariance(teardown):
+    pca = PCA(name='pca')
+    classifier = RandomForestClassifier(name='classifier')
+
+    x = Input()
+    h = pca(x)
+    y = classifier(h)
+    model = Model(x, y)
+
+    params1 = model.get_params()
+    model.set_params(**params1)
+    params2 = model.get_params()
+    assert params1 == params2
 
 
 def make_ensemble_model(n_components, random_state):

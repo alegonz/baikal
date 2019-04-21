@@ -3,7 +3,7 @@ from typing import Union, List, Dict, Sequence
 
 from baikal.core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal.core.digraph import DiGraph
-from baikal.core.step import Step
+from baikal.core.step import Step, InputStep
 from baikal.core.typing import ArrayLike
 from baikal.core.utils import listify, SimpleCache
 
@@ -28,31 +28,31 @@ class Model(Step):
             raise ValueError('outputs must be unique.')
 
         self.n_outputs = len(outputs)
-
         self._internal_inputs = inputs
         self._internal_outputs = outputs
-        self._graph, self._data_placeholders, self._steps = self._build_graph()
-        self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
+        self._graph = None
+        self._data_placeholders = None
+        self._steps = None
+        self._all_steps_sorted = None
+        self._steps_cache = None
+        self._build()
 
-        self._steps_cache = SimpleCache()
-        self._get_required_steps(self._internal_inputs, self._internal_outputs)
-
-        # TODO: Add a self.is_fitted flag?
-
-    def _build_graph(self):
+    def _build(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
-        graph = DiGraph.build_from(self._internal_outputs)
+        self._graph = DiGraph.build_from(self._internal_outputs)
 
         # Collect data placeholders
-        data_placeholders = {}
-        for step in graph:
+        self._data_placeholders = {}
+        for step in self._graph:
             for output in step.outputs:
-                data_placeholders[output.name] = output
+                self._data_placeholders[output.name] = output
 
         # Collect steps
-        steps = {step.name: step for step in graph}
+        self._steps = {step.name: step for step in self._graph}
 
-        return graph, data_placeholders, steps
+        self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
+        self._steps_cache = SimpleCache()
+        self._get_required_steps(self._internal_inputs, self._internal_outputs)
 
     def _get_required_steps(self, inputs: Sequence[DataPlaceholder], outputs: Sequence[DataPlaceholder]) -> List[Step]:
         # Backtrack from outputs until inputs to get the necessary steps. That is,
@@ -170,7 +170,8 @@ class Model(Step):
             fit_params_steps[step][param_name] = param_value
 
         # Intermediate results are stored here
-        results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
+        # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
+        results_cache = dict()
         results_cache.update(X)
 
         for step in steps:
@@ -194,7 +195,9 @@ class Model(Step):
         return self
 
     def predict(self, X, outputs=None):
-        results_cache = dict()  # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
+        # Intermediate results are stored here
+        # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
+        results_cache = dict()
 
         # Normalize inputs and outputs
         X = self._normalize_data(X, self._internal_inputs)
@@ -235,17 +238,28 @@ class Model(Step):
         else:
             raise TypeError('{} must implement either predict or transform!'.format(step.name))
 
+        # TODO: Change to zip_equal
         cache.update(zip(step.outputs, listify(output_data)))
 
     def get_params(self, deep=True):
+        # InputSteps are excluded
         params = {}
         for step in self._steps.values():
+            if isinstance(step, InputStep):
+                continue
+            params[step.name] = step
             if hasattr(step, 'get_params'):
                 for param_name, value in step.get_params(deep).items():
                     params['{}__{}'.format(step.name, param_name)] = value
         return params
 
     def set_params(self, **params):
+        # ----- 1. Replace steps
+        for key in list(params.keys()):
+            if key in self._steps:
+                self._replace_step(key, params.pop(key))
+
+        # ----- 2. Replace each step params
         # Collect params by step
         step_params = defaultdict(dict)
         for key, value in params.items():
@@ -258,3 +272,19 @@ class Model(Step):
             step.set_params(**params)
 
         return self
+
+    def _replace_step(self, step_key, new_step):
+        # Transfer connectivity configuration from old step
+        # to new step and replace old with new
+        transfer_attrs = ['name', 'trainable', 'inputs', 'outputs']
+        old_step = self._steps[step_key]
+        for attr in transfer_attrs:
+            setattr(new_step, attr, getattr(old_step, attr))
+        # self._steps[step_key] = new_step
+
+        # Update outputs of old step to point to the new step
+        for output in old_step.outputs:
+            output.step = new_step
+
+        # Rebuild model
+        self._build()
