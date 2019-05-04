@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 
 from baikal.core.model import Model
 from baikal.core.step import Input
-from baikal.steps.merge import Stack
+from baikal.steps import Stack
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import LogisticRegression, RandomForestClassifier, PCA, StandardScaler

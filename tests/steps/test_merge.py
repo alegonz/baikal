@@ -3,7 +3,7 @@ from numpy.testing import assert_array_equal
 
 from baikal.core.model import Model
 from baikal.core.step import Input
-from baikal.steps.merge import Concatenate, Stack
+from baikal.steps import Concatenate, Stack
 
 from tests.helpers.fixtures import teardown
 
