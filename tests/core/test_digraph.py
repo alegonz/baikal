@@ -6,14 +6,14 @@ from baikal.core.digraph import DiGraph, NodeNotFoundError, CyclicDiGraphError
 def test_add_node():
     graph = DiGraph()
     graph.add_node('A')
-    assert 'A' in graph.nodes
+    assert 'A' in graph
 
 
 def test_add_same_node_twice():
     graph = DiGraph()
     graph.add_node('A')
     graph.add_node('A')
-    assert 'A' in graph.nodes
+    assert 'A' in graph
 
 
 def test_add_edge():
@@ -43,6 +43,44 @@ def test_can_add_same_edge():
     graph.add_node('B')
     graph.add_edge('A', 'B')
     graph.add_edge('A', 'B')
+
+
+def test_get_edge_data():
+    graph = DiGraph()
+    graph.add_node('A')
+    graph.add_node('B')
+
+    graph.add_edge('A', 'B')
+    assert set() == graph.get_edge_data('A', 'B')
+
+    graph.add_edge('A', 'B', 123)
+    assert {123} == graph.get_edge_data('A', 'B')
+
+    graph.add_edge('A', 'B', 456, 789)
+    assert {123, 456, 789} == graph.get_edge_data('A', 'B')
+
+
+def test_edges():
+    graph = DiGraph()
+    graph.add_node('A')
+    graph.add_node('B')
+    graph.add_node('C')
+
+    graph.add_edge('A', 'B', 123)
+    graph.add_edge('A', 'C', 456)
+
+    # Cannot make sets of sets to compare and assert
+    # so we use lists and do brute-force comparison
+    def equal(x, y):
+        y = list(y)
+        try:
+            for elem in x:
+                y.remove(elem)
+        except ValueError:
+            return False
+        return not y
+
+    assert equal([('A', 'B', {123}), ('A', 'C', {456})], list(graph.edges))
 
 
 def test_in_degree():

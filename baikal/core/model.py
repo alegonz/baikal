@@ -5,7 +5,7 @@ from baikal.core.data_placeholder import is_data_placeholder_list, DataPlacehold
 from baikal.core.digraph import DiGraph
 from baikal.core.step import Step, InputStep
 from baikal.core.typing import ArrayLike
-from baikal.core.utils import listify, safezip2, SimpleCache
+from baikal.core.utils import find_duplicated_items, listify, safezip2, SimpleCache
 
 
 class Model(Step):
@@ -15,6 +15,7 @@ class Model(Step):
                  name=None, trainable=True):
         super(Model, self).__init__(name=name, trainable=trainable)
 
+        # TODO: Check that inputs come from InputSteps
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):
             raise ValueError('inputs must be of type DataPlaceholder.')
@@ -39,7 +40,7 @@ class Model(Step):
 
     def _build(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
-        self._graph = DiGraph.build_from(self._internal_outputs)
+        self._graph = build_graph_from_outputs(self._internal_outputs)
 
         # Collect data placeholders
         self._data_placeholders = {}
@@ -294,3 +295,36 @@ class Model(Step):
 
         # Rebuild model
         self._build()
+
+    @property
+    def graph(self):
+        return self._graph
+
+
+def build_graph_from_outputs(outputs):
+    graph = DiGraph()
+
+    # Add nodes (steps)
+    def collect_steps_from(output):
+        parent_step = output.step
+        graph.add_node(parent_step)
+        for input in parent_step.inputs:
+            collect_steps_from(input)
+
+    for output in outputs:
+        collect_steps_from(output)
+
+    # Add edges (data)
+    for step in graph:
+        for input in step.inputs:
+            graph.add_edge(input.step, step, input)
+
+    # Check for any nodes (steps) with duplicated names
+    duplicated_names = find_duplicated_items([step.name for step in graph])
+
+    if duplicated_names:
+        raise RuntimeError('A graph cannot contain steps with duplicated names!\n'
+                           'Found the following duplicates:\n'
+                           '{}'.format(duplicated_names))
+
+    return graph

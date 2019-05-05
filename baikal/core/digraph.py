@@ -1,6 +1,4 @@
-from collections import deque
-
-from baikal.core.utils import find_duplicated_items
+from collections import deque, defaultdict
 
 
 class NodeNotFoundError(Exception):
@@ -16,6 +14,8 @@ class CyclicDiGraphError(Exception):
 
 class DiGraph:
     def __init__(self, name=None):
+        # We represent the adjacency matrix as a dict of dicts:
+        # key: source node -> value: (key: destination node -> value: edge data (set))
         self._successors = dict()
         self._predecessors = dict()
         self.name = name
@@ -24,17 +24,21 @@ class DiGraph:
         if node in self:
             # If node already exists in the graph, return silently.
             return
-        self._successors[node] = set()
-        self._predecessors[node] = set()
+        # Edge data is stored in dict value as a set.
+        # Currently, it is used to store the DataPlaceholder(s) associated with the (multi)edge.
+        self._successors[node] = defaultdict(set)
+        self._predecessors[node] = defaultdict(set)
 
-    def add_edge(self, from_node, to_node):
-        if from_node not in self:
-            raise NodeNotFoundError('{} is not in the graph!'.format(from_node))
-        if to_node not in self:
-            raise NodeNotFoundError('{} is not in the graph!'.format(to_node))
+    def add_edge(self, from_node, to_node, *edge_data):
+        self._check_node_in_graph(from_node)
+        self._check_node_in_graph(to_node)
+        self._successors[from_node][to_node].update(edge_data)
+        self._predecessors[to_node][from_node].update(edge_data)
 
-        self._successors[from_node].add(to_node)
-        self._predecessors[to_node].add(from_node)
+    def get_edge_data(self, from_node, to_node):
+        self._check_node_in_graph(from_node)
+        self._check_node_in_graph(to_node)
+        return self._successors[from_node][to_node]
 
     def __contains__(self, node):
         return node in self._successors
@@ -47,18 +51,22 @@ class DiGraph:
         self._predecessors.clear()
 
     @property
-    def nodes(self):
-        return list(self._successors)
+    def edges(self):
+        for from_node in self._successors:
+            for to_node in self._successors[from_node]:
+                edge_data = self._successors[from_node][to_node]
+                yield (from_node, to_node, edge_data)
 
     def successors(self, node):
-        return self._successors[node]
+        self._check_node_in_graph(node)
+        return iter(self._successors[node])
 
     def predecessors(self, node):
-        return self._predecessors[node]
+        self._check_node_in_graph(node)
+        return iter(self._predecessors[node])
 
     def ancestors(self, node):
-        if node not in self:
-            raise NodeNotFoundError('{} is not in the graph!'.format(node))
+        self._check_node_in_graph(node)
 
         ancestors = set()
         for predecessor in self._predecessors[node]:
@@ -67,10 +75,12 @@ class DiGraph:
         return ancestors
 
     def in_degree(self, node):
+        self._check_node_in_graph(node)
+        return len(self._predecessors[node])
+
+    def _check_node_in_graph(self, node):
         if node not in self:
             raise NodeNotFoundError('{} is not in the graph!'.format(node))
-
-        return len(self._predecessors[node])
 
     def topological_sort(self):
         # Implemented using depth-first search
@@ -104,35 +114,6 @@ class DiGraph:
             visit(next_node)
 
         return list(sorted_nodes)
-
-    @classmethod
-    def build_from(cls, outputs):
-        graph = cls()
-
-        # Add nodes (steps)
-        def collect_steps_from(output):
-            parent_step = output.step
-            graph.add_node(parent_step)
-            for input in parent_step.inputs:
-                collect_steps_from(input)
-
-        for output in outputs:
-            collect_steps_from(output)
-
-        # Add edges (data)
-        for step in graph:
-            for input in step.inputs:
-                graph.add_edge(input.step, step)
-
-        # Check for any nodes (steps) with duplicated names
-        duplicated_names = find_duplicated_items([step.name for step in graph])
-
-        if duplicated_names:
-            raise RuntimeError('A graph cannot contain steps with duplicated names!\n'
-                               'Found the following duplicates:\n'
-                               '{}'.format(duplicated_names))
-
-        return graph
 
 
 default_graph = DiGraph(name='default')
