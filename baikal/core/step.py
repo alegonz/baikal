@@ -10,7 +10,7 @@ class Step:
     # a dict-of-dicts with graph and name as keys.
     _names = dict()
 
-    def __init__(self, *args, name=None, trainable=True, **kwargs):
+    def __init__(self, *args, name=None, trainable=True, function=None, **kwargs):
         super(Step, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
 
         # Use name as is if it was specified by the user, to avoid the user a surprise
@@ -21,6 +21,25 @@ class Step:
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__
         self.n_outputs = None  # Client code must override this value when subclassing from Step.
         self.trainable = trainable
+
+        if function is None:
+            if hasattr(self, 'predict'):
+                self.function = self.predict
+            elif hasattr(self, 'transform'):
+                self.function = self.transform
+            else:
+                # TODO: Warn, raise error, or defer until step.compute is executed?
+                self.function = None
+        else:
+            if isinstance(function, str):
+                self.function = getattr(self, function)
+            elif callable(function):
+                self.function = function
+            else:
+                raise ValueError('`function` must be either None, a string or a callable.')
+
+    def compute(self, *args, **kwargs):
+        return self.function(*args, **kwargs)
 
     def __call__(self, inputs):
         inputs = listify(inputs)
@@ -61,7 +80,7 @@ class Step:
     def __repr__(self):
         cls_name = self.__class__.__name__
         parent_repr = super(Step, self).__repr__()
-        step_attrs = ['name', 'trainable']
+        step_attrs = ['name', 'trainable', 'function']
 
         # Insert Step attributes into the parent repr
         # if the repr has the sklearn pattern
@@ -88,7 +107,7 @@ class Step:
 
 class InputStep(Step):
     def __init__(self, name=None):
-        super(InputStep, self).__init__(name=name, trainable=False)
+        super(InputStep, self).__init__(name=name, trainable=False, function=None)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
 

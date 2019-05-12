@@ -22,8 +22,15 @@ def make_name(*parts, sep='/'):
 
 
 def make_args_from_attrs(obj, attrs):
-    args = ', '.join(['{}={}'.format(attr, str(getattr(obj, attr))) for attr in attrs])
-    return args
+    args = []
+    for attr in attrs:
+        attr_value = getattr(obj, attr)
+        if attr == 'function':
+            # Used for Step's function argument
+            attr_value = getattr(attr_value, '__name__', None)
+        arg = repr(attr_value)
+        args.append('{}={}'.format(attr, arg))
+    return ', '.join(args)
 
 
 def make_repr(obj, attrs):

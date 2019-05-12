@@ -278,7 +278,7 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
             - ~~e.g. `LogisticRegression()(inputs=x1, target=y_trans)  # y_trans is a DataPlaceholder object output from another Step`~~
             - ~~When fitting, look for target data in results cache~~
                 - ~~If `output_data` was provided, use that instead~~
-    - [ ] Extend API to handle more kind of step computations
+    - [x] Extend API to handle more kind of step computations
         - `predict_proba`, `score`, `sample`, etc.
         - This perhaps could be chosen at `__init__` time.
             - For example a `function` argument that takes the name of the function (or functions) used at predict time.
@@ -288,6 +288,9 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
         
 ### TODO next
 - [ ] Add CI config
+    - [ ] tests
+        - test in python 3.5, 3.6, 3.7
+    - [ ] lint
 - [ ] Write documentation
     - [ ] Add sphinx
     - [ ] Create github.io site

@@ -248,14 +248,9 @@ class Model(Step):
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
         # https://scikit-learn.org/stable/glossary.html#term-predict
-        if hasattr(step, 'predict'):
-            output_data = step.predict(*Xs)
-        elif hasattr(step, 'transform'):
-            output_data = step.transform(*Xs)
-        else:
-            raise TypeError('{} must implement either predict or transform!'.format(step.name))
-
+        output_data = step.compute(*Xs)
         output_data = listify(output_data)
+
         try:
             cache.update(safezip2(step.outputs, output_data))
         except ValueError as e:
