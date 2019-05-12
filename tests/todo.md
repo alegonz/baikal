@@ -237,6 +237,7 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
     - [x] Implement `extra_targets` argument in `Model.fit`
         - Already possible with current implementation of `Model.fit(..., output_data)`
         - Test with a simple ensemble
+        - [ ] Add also as keyword argument for fit (a case of a fit_params) so extra targets could be passed to nested Models
     - [x] Add test for lru_cache with same inputs in different order
         - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
         - lru_cache had to be replaced with homemade one to make Model easily picklable
@@ -256,7 +257,7 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
         - Add as an attribute so we can also do `step.trainable = False`
         - Condition the fit step in Model to this attribute
 
-### TODO 2019/04/14
+### TODO now
 - [x] Check if `joblib.Parallel` allows nested calls
     - Apparently it does :)
     - Nested calls will happen when fitting/predicting with a big Model that contains inner (nested) Model steps.
@@ -271,12 +272,12 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
             - Implement in a similar way to sklearn's Pipeline: steps are settable via their name (without double underscore)
         - [ ] Add Dummy step that just passes its inputs to its children steps.
             - Useful for implementing no-ops and disable steps so we can also evaluate the elimination of the step.
-    - [ ] Add targets via inputs
-        - Useful for implementing transformation pipelines for target data
-        - Added via a optional argument in `Step.__call__`
-            - e.g. `LogisticRegression()(inputs=x1, target=y_trans)  # y_trans is a DataPlaceholder object output from another Step`
-            - When fitting, look for target data in results cache
-                - If `output_data` was provided, use that instead
+    - [ ] ~~Add targets via inputs~~
+        - ~~Useful for implementing transformation pipelines for target data~~
+        - ~~Added via a optional argument in `Step.__call__`~~
+            - ~~e.g. `LogisticRegression()(inputs=x1, target=y_trans)  # y_trans is a DataPlaceholder object output from another Step`~~
+            - ~~When fitting, look for target data in results cache~~
+                - ~~If `output_data` was provided, use that instead~~
     - [ ] Extend API to handle more kind of step computations
         - `predict_proba`, `score`, `sample`, etc.
         - This perhaps could be chosen at `__init__` time.
@@ -284,27 +285,33 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
             - `y_pred, y_proba = LogisticRegression(function=['predict', 'predict_proba'])(x1)`
     - [ ] Add `Step.n_inputs` and its checks in `Step.__call__`
         - Use signature inspection of compute function (`function`)
-    - [ ] Handle extra options in predict method
-        - Some regressors have extra options in their predict method, and they return a tuple of arrays.
-        - See: https://scikit-learn.org/stable/glossary.html#term-predict
-        - Idea:
-            - Add `**predict_params` argument to `Step.__init__`
-                - This will add extra outputs.
-                - This however, is class dependent
-                - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays
-                    - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
-                    - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
-    - [ ] Add parallelization with joblib (`Parallel` API)
-        - [ ] Modify `_get_required_steps` to also return step depth
-        - [ ] Create a step generator that feeds steps as soon as a processor becomes available
-    - [ ] Add results caching with joblib (`Memory` API)
+        
+### TODO next
+- [ ] Add CI config
+- [ ] Write documentation
+    - [ ] Add sphinx
+    - [ ] Create github.io site
+    - [ ] Add examples
+- [ ] Config packaging
 
-### TODO 2019/04/21
+### TODO after that
+- [ ] Handle extra options in predict method
+    - Some regressors have extra options in their predict method, and they return a tuple of arrays.
+    - See: https://scikit-learn.org/stable/glossary.html#term-predict
+    - Idea:
+        - Add `**predict_params` argument to `Step.__init__`
+            - This will add extra outputs.
+            - This however, is class dependent
+            - As far as I know, `predict_params` are boolean flags that choose whether to return extra arrays
+                - For example in `GaussianProcessRegressor` there are `return_std` and `return_cov` flags.
+                - However behavior is class dependent, for example, the `GaussianProcessRegressor` can only take either `return_std` or `return_cov`, not both at the same time.
+- [ ] Add parallelization with joblib (`Parallel` API)
+    - [ ] Modify `_get_required_steps` to also return step depth
+    - [ ] Create a step generator that feeds steps as soon as a processor becomes available
+- [ ] Add results caching with joblib (`Memory` API)
 - [ ] Make steps shareable.
     - That is, they can be called multiple times on different inputs and connect them to different outputs.
     - Same concept as Keras' nodes.
-- [ ] Add typing?
-- [ ] Write documentation
         
 ### Future?
 - [ ] Make model topology settable

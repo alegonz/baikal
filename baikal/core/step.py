@@ -23,7 +23,6 @@ class Step:
         self.trainable = trainable
 
     def __call__(self, inputs):
-        # TODO: Add a target keyword argument to specify inputs that are only required at fit time
         inputs = listify(inputs)
 
         if not is_data_placeholder_list(inputs):
