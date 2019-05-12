@@ -34,6 +34,19 @@ class RandomForestClassifier(Step, sklearn.ensemble.RandomForestClassifier):
             return False
 
 
+class ExtraTreesClassifier(Step, sklearn.ensemble.ExtraTreesClassifier):
+    def __init__(self, name=None, **kwargs):
+        super(ExtraTreesClassifier, self).__init__(name=name, **kwargs)
+        self.n_outputs = 1
+
+    @property
+    def fitted(self):
+        try:
+            return check_is_fitted(self, ['estimators_'], all_or_any=all) is None
+        except NotFittedError:
+            return False
+
+
 class PCA(Step, sklearn.decomposition.PCA):
     def __init__(self, name=None, **kwargs):
         super(PCA, self).__init__(name=name, **kwargs)

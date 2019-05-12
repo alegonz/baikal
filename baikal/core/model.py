@@ -113,25 +113,36 @@ class Model(Step):
                         data_placeholders: List[DataPlaceholder],
                         expand_none=False) -> Dict[DataPlaceholder, ArrayLike]:
         if isinstance(data, dict):
-            data_norm = {}
-            for key, value in data.items():
-                key = self.get_data_placeholder(key.name if isinstance(key, DataPlaceholder) else key)
-                data_norm[key] = value
+            return self._normalize_dict(data)
         else:
-            if data is None and expand_none:
-                data = [None] * len(data_placeholders)
-            else:
-                data = listify(data)
+            return self._normalize_list(data, data_placeholders, expand_none)
 
-            try:
-                data_norm = dict(safezip2(data_placeholders, data))
-            except ValueError as e:
-                # TODO: Improve this message
-                message = 'When passing inputs/outputs as a list or a single array, ' \
-                          'the number of arrays must match the number of inputs/outputs ' \
-                          'specified at instantiation. ' \
-                          'Got {}, expected: {}'.format(len(data), len(data_placeholders))
-                raise ValueError(message) from e
+    def _normalize_dict(self, data: Union[Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]) -> Dict[DataPlaceholder, ArrayLike]:
+        data_norm = {}
+        for key, value in data.items():
+            key = self.get_data_placeholder(key.name if isinstance(key, DataPlaceholder) else key)
+            data_norm[key] = value
+        return data_norm
+
+    @staticmethod
+    def _normalize_list(data: Union[ArrayLike, List[ArrayLike]],
+                        data_placeholders: List[DataPlaceholder],
+                        expand_none) -> Dict[DataPlaceholder, ArrayLike]:
+        if data is None and expand_none:
+            data = [None] * len(data_placeholders)
+        else:
+            data = listify(data)
+
+        try:
+            data_norm = dict(safezip2(data_placeholders, data))
+
+        except ValueError as e:
+            # TODO: Improve this message
+            message = 'When passing inputs/outputs as a list or a single array, ' \
+                      'the number of arrays must match the number of inputs/outputs ' \
+                      'specified at instantiation. ' \
+                      'Got {}, expected: {}'.format(len(data), len(data_placeholders))
+            raise ValueError(message) from e
 
         return data_norm
 
@@ -147,7 +158,7 @@ class Model(Step):
             return self._data_placeholders[name]
         raise ValueError('{} was not found in the model!'.format(name))
 
-    def fit(self, X, y=None, **fit_params):
+    def fit(self, X, y=None, extra_targets=None, **fit_params):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
@@ -162,6 +173,9 @@ class Model(Step):
         for output in self._internal_outputs:
             if output not in y:
                 raise ValueError('Missing output {}'.format(output))
+
+        if extra_targets is not None:
+            y.update(self._normalize_dict(extra_targets))
 
         # Get steps and their fit_params
         steps = self._get_required_steps(X, y)

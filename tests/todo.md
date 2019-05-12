@@ -236,8 +236,8 @@ model.predict(X={'x1': ...}, outputs=[z1, y2])
         - Need to make steps sortable     
     - [x] Implement `extra_targets` argument in `Model.fit`
         - Already possible with current implementation of `Model.fit(..., output_data)`
-        - Test with a simple ensemble
-        - [ ] Add also as keyword argument for fit (a case of a fit_params) so extra targets could be passed to nested Models
+        - [x] Test with a simple ensemble
+        - [x] Add also as keyword argument for fit (a case of a fit_params) so extra targets could be passed to nested Models
     - [x] Add test for lru_cache with same inputs in different order
         - `_get_required_steps(sorted(tuple(inputs)), sorted(tuple(outputs)))`
         - lru_cache had to be replaced with homemade one to make Model easily picklable
