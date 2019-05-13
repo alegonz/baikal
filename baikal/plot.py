@@ -4,7 +4,6 @@ import os
 import pydot
 
 from baikal.core.model import Model
-from baikal.core.step import InputStep
 from baikal.core.utils import safezip2
 
 
@@ -24,19 +23,19 @@ def plot_model(model, filename=None, show=False, expand_nested=False):
             container.add_edge(pydot.Edge(src=from_step.name, dst=to_step.name, label=label))
             edges_built.add(edge_key)
 
-    def build_dot_from(output, container=None):
+    def build_dot_from(model_, output_, container=None):
         if container is None:
             container = dot_graph
 
-        parent_step = output.step
+        parent_step = output_.step
 
         if isinstance(parent_step, Model) and expand_nested:
             # Build nested model
             nested_model = parent_step
             cluster = pydot.Cluster(name=nested_model.name, label=nested_model.name, style='dashed')
 
-            for output in nested_model._internal_outputs:
-                build_dot_from(output, cluster)
+            for output_ in nested_model._internal_outputs:
+                build_dot_from(nested_model, output_, cluster)
             container.add_subgraph(cluster)
 
             # Connect with outer model
@@ -45,7 +44,7 @@ def plot_model(model, filename=None, show=False, expand_nested=False):
 
         else:
             # Build step
-            if isinstance(parent_step, InputStep):
+            if parent_step in [input.step for input in model_._internal_inputs]:
                 container.add_node(pydot.Node(name=parent_step.name, shape='invhouse', color='green'))
             else:
                 container.add_node(pydot.Node(name=parent_step.name, shape='rect'))
@@ -62,10 +61,10 @@ def plot_model(model, filename=None, show=False, expand_nested=False):
 
         # Continue building
         for input in parent_step.inputs:
-            build_dot_from(input)
+            build_dot_from(model_, input)
 
     for output in model._internal_outputs:
-        build_dot_from(output)
+        build_dot_from(model, output)
         # draw outgoing edges from model outputs
         dot_graph.add_node(dummy_node(output.name))
         dot_graph.add_edge(pydot.Edge(src=output.step.name, dst=output.name, label=output.name))
