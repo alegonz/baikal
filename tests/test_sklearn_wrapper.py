@@ -1,8 +1,8 @@
 import pytest
-from numpy.testing import assert_array_equal
-from sklearn import datasets
 import sklearn.decomposition
 import sklearn.linear_model
+from numpy.testing import assert_array_equal
+from sklearn import datasets
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 

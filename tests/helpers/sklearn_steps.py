@@ -1,8 +1,8 @@
 import sklearn.decomposition
 import sklearn.ensemble
-from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
 import sklearn.preprocessing
+from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 
 from baikal.core.step import Step
