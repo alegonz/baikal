@@ -100,8 +100,8 @@ class Model(Step):
         # Check for any unused inputs
         for input in inputs:
             if input not in inputs_found:
-                raise RuntimeError(
-                    'Input {} was provided but it is not required to compute the specified outputs.'.format(input.name))
+                raise RuntimeError('Input {} was provided but it is not required '
+                                   'to compute the specified outputs.'.format(input.name))
 
         required_steps = [step for step in self._all_steps_sorted if step in required_steps]
         self._steps_cache[cache_key] = required_steps
@@ -141,7 +141,7 @@ class Model(Step):
             message = 'When passing inputs/outputs as a list or a single array, ' \
                       'the number of arrays must match the number of inputs/outputs ' \
                       'specified at instantiation. ' \
-                      'Got {}, expected: {}'.format(len(data), len(data_placeholders))
+                      'Got {}, expected: {}.'.format(len(data), len(data_placeholders))
             raise ValueError(message) from e
 
         return data_norm
@@ -150,13 +150,13 @@ class Model(Step):
         # Steps are assumed to have unique names (guaranteed by success of _build_graph)
         if name in self._steps.keys():
             return self._steps[name]
-        raise ValueError('{} was not found in the model!'.format(name))
+        raise ValueError('{} was not found in the model.'.format(name))
 
     def get_data_placeholder(self, name: str) -> DataPlaceholder:
         # If the step names are unique, so are the data_placeholder names
         if name in self._data_placeholders.keys():
             return self._data_placeholders[name]
-        raise ValueError('{} was not found in the model!'.format(name))
+        raise ValueError('{} was not found in the model.'.format(name))
 
     def fit(self, X, y=None, extra_targets=None, **fit_params):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
@@ -167,12 +167,12 @@ class Model(Step):
         X = self._normalize_data(X, self._internal_inputs)
         for input in self._internal_inputs:
             if input not in X:
-                raise ValueError('Missing input {}'.format(input))
+                raise ValueError('Missing input {}.'.format(input))
 
         y = self._normalize_data(y, self._internal_outputs, expand_none=True)
         for output in self._internal_outputs:
             if output not in y:
-                raise ValueError('Missing output {}'.format(output))
+                raise ValueError('Missing output {}.'.format(output))
 
         if extra_targets is not None:
             y.update(self._normalize_dict(extra_targets))
@@ -332,7 +332,7 @@ def build_graph_from_outputs(outputs):
     duplicated_names = find_duplicated_items([step.name for step in graph])
 
     if duplicated_names:
-        raise RuntimeError('A graph cannot contain steps with duplicated names!\n'
+        raise RuntimeError('A graph cannot contain steps with duplicated names. '
                            'Found the following duplicates:\n'
                            '{}'.format(duplicated_names))
 

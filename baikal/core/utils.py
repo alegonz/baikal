@@ -13,7 +13,7 @@ def safezip2(seq1, seq2):
     It can only handle two sequences.
     """
     if len(seq1) != len(seq2):
-        raise ValueError('Lengths of iterators differ! {} != {}'.format(len(seq1), len(seq2)))
+        raise ValueError('Lengths of iterators differ: {} != {}.'.format(len(seq1), len(seq2)))
     return zip(seq1, seq2)
 
 
