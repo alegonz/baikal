@@ -1,3 +1,4 @@
+import pytest
 from numpy.testing import assert_array_equal
 from sklearn import datasets
 import sklearn.decomposition
@@ -10,6 +11,10 @@ from baikal.core.step import Input
 from baikal.sklearn import SKLearnWrapper
 
 from tests.helpers.sklearn_steps import PCA, LogisticRegression, RandomForestClassifier
+
+
+pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning:sklearn',
+                                        'ignore::FutureWarning:sklearn')
 
 
 iris = datasets.load_iris()
