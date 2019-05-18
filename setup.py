@@ -20,6 +20,9 @@ setup(name='baikal',
           'dev': [
               'pytest',
               'sklearn'
+          ],
+          'viz': [
+              'pydot'
           ]
       },
       packages=['baikal'])
