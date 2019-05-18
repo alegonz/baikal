@@ -1,7 +1,12 @@
 import io
 import os
 
-import pydot
+try:
+    import pydot
+except ImportError:
+    raise ImportError('Could not import pydot package.'
+                      'You can install with `pip install pydot` or'
+                      '`pip install baikal[viz]`')
 
 from baikal.core.model import Model
 from baikal.core.utils import safezip2
