@@ -11,8 +11,8 @@ jobs:
     steps:
       - checkout
       - run: |
-          make setup_dev
-          make test
+          sudo make setup_dev
+          sudo make test
 
 workflows:
   version: 2
