@@ -39,7 +39,8 @@ def test_grid_search_cv():
         return model
 
     sk_model = SKLearnWrapper(build_fn)
-    gscv_baikal = GridSearchCV(sk_model, param_grid, cv=cv, scoring='accuracy', verbose=verbose)
+    gscv_baikal = GridSearchCV(sk_model, param_grid, cv=cv, scoring='accuracy',
+                               return_train_score=True, verbose=verbose)
     gscv_baikal.fit(x_data, y_data)
 
     # traditional way
@@ -47,7 +48,8 @@ def test_grid_search_cv():
     logreg = sklearn.linear_model.LogisticRegression(random_state=random_state)
     pipe = Pipeline([('pca', pca), ('logreg', logreg)])
 
-    gscv_traditional = GridSearchCV(pipe, param_grid, cv=cv, scoring='accuracy', verbose=verbose)
+    gscv_traditional = GridSearchCV(pipe, param_grid, cv=cv, scoring='accuracy',
+                                    return_train_score=True, verbose=verbose)
     gscv_traditional.fit(x_data, y_data)
 
     assert gscv_traditional.best_params_ == gscv_baikal.best_params_
@@ -71,7 +73,8 @@ def test_grid_search_cv_with_tunable_step():
         return model
 
     sk_model = SKLearnWrapper(build_fn)
-    gscv_baikal = GridSearchCV(sk_model, param_grid, cv=cv, scoring='accuracy', verbose=verbose)
+    gscv_baikal = GridSearchCV(sk_model, param_grid, cv=cv, scoring='accuracy',
+                               return_train_score=True, verbose=verbose)
     gscv_baikal.fit(x_data, y_data)
 
     # traditional way
@@ -79,7 +82,8 @@ def test_grid_search_cv_with_tunable_step():
     classifier = sklearn.linear_model.LogisticRegression(random_state=random_state)
     pipe = Pipeline([('pca', pca), ('classifier', classifier)])
 
-    gscv_traditional = GridSearchCV(pipe, param_grid, cv=cv, scoring='accuracy', verbose=verbose)
+    gscv_traditional = GridSearchCV(pipe, param_grid, cv=cv, scoring='accuracy',
+                                    return_train_score=True, verbose=verbose)
     gscv_traditional.fit(x_data, y_data)
 
     assert gscv_traditional.best_params_ == gscv_baikal.best_params_

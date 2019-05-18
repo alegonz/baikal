@@ -571,7 +571,8 @@ def test_get_params(teardown):
                 'logreg__solver': 'warn',
                 'logreg__tol': 0.0001,
                 'logreg__verbose': 0,
-                'logreg__warm_start': False}
+                'logreg__warm_start': False,
+                'logreg__l1_ratio': None}
 
     params = model.get_params()
     assert expected == params
@@ -627,7 +628,8 @@ def test_set_params(teardown):
                 'classifier__solver': 'warn',
                 'classifier__tol': 0.0001,
                 'classifier__verbose': 0,
-                'classifier__warm_start': False}
+                'classifier__warm_start': False,
+                'classifier__l1_ratio': None}
 
     assert expected == params
 

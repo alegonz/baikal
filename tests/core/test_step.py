@@ -53,14 +53,9 @@ class TestStep:
     def test_repr(self):
         step = Step(name='some-step')
         assert "Step(name='some-step', trainable=True, function=None)" == repr(step)
+        # TODO: Add test for sklearn step
 
-        sklearn_step = LogisticRegression(name='some-step')
-        assert "LogisticRegression(name='some-step', trainable=True, function='predict',\n" \
-               "          C=1.0, class_weight=None, dual=False, fit_intercept=True,\n" \
-               "          intercept_scaling=1, max_iter=100, multi_class='warn',\n" \
-               "          n_jobs=None, penalty='l2', random_state=None, solver='warn',\n" \
-               "          tol=0.0001, verbose=0, warm_start=False)" == repr(sklearn_step)
-
+    # TODO: Use custom defined class instead of sklearn class to avoid errors due to third-party API changes
     def test_get_params(self, teardown):
         step = LogisticRegression()
         params = step.get_params()
@@ -78,7 +73,8 @@ class TestStep:
                     'solver': 'warn',
                     'tol': 0.0001,
                     'verbose': 0,
-                    'warm_start': False}
+                    'warm_start': False,
+                    'l1_ratio': None}
 
         assert expected == params
 
@@ -109,6 +105,7 @@ class TestStep:
                     'solver': 'warn',
                     'tol': 0.0001,
                     'verbose': 0,
-                    'warm_start': False}
+                    'warm_start': False,
+                    'l1_ratio': None}
 
         assert expected == params
