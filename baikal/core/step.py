@@ -89,7 +89,7 @@ class Step:
         if match:
             parent_args = match.group(1)
             indentations = re.findall('[ \t]{2,}', parent_args)
-            indent = min(indentations, key=len)
+            indent = min(indentations, key=len) if indentations else ''
             step_args = make_args_from_attrs(self, step_attrs)
             repr = '{}({},\n{}{})'.format(cls_name, step_args, indent, parent_args)
             return repr
