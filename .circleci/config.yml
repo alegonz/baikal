@@ -1,0 +1,20 @@
+version: 2
+
+defaults: &defaults
+  working_directory: ~/baikal
+  docker:
+    - image: circleci/python:3.7.3-stretch
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: |
+          make test
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - test
