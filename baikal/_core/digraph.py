@@ -114,6 +114,3 @@ class DiGraph:
             visit(next_node)
 
         return list(sorted_nodes)
-
-
-default_graph = DiGraph(name='default')
