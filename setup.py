@@ -18,7 +18,9 @@ setup(name='baikal',
       install_requires=['numpy'],
       extras_require={
           'dev': [
+              'codecov',
               'pytest',
+              'pytest-cov',
               'sklearn'
           ],
           'viz': [

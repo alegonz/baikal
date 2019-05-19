@@ -1,0 +1,15 @@
+[run]
+branch = True
+source = baikal
+parallel = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+    except ImportError
+    raise ImportError
+    raise NotImplementedError
+    return NotImplemented
+
+fail_under = 90
+show_missing = True

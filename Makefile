@@ -3,3 +3,6 @@ setup_dev:
 
 test:
 	pytest -s -vv tests/
+
+test-cov:
+	pytest -s -vv --cov-config .coveragerc --cov=baikal tests/

@@ -11,7 +11,7 @@ jobs:
     steps:
       - checkout
       - run: |
-          sudo ./ci_tools/test_job.sh
+          sudo -E ./ci_tools/test_job.sh
 
 workflows:
   version: 2
