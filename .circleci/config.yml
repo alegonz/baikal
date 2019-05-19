@@ -1,20 +1,30 @@
 version: 2
 
-defaults: &defaults
+test-defaults: &test-defaults
   working_directory: ~/baikal
-  docker:
-    - image: circleci/python:3.7.3-stretch
+  steps:
+    - checkout
+    - run: |
+        sudo -E ./ci_tools/test_job.sh
 
 jobs:
-  test:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: |
-          sudo -E ./ci_tools/test_job.sh
+  test-py3.5:
+    <<: *test-defaults
+    docker:
+      - image: circleci/python:3.5.7-stretch
+  test-py3.6:
+    <<: *test-defaults
+    docker:
+      - image: circleci/python:3.6.8-stretch
+  test-py3.7:
+    <<: *test-defaults
+    docker:
+      - image: circleci/python:3.7.3-stretch
 
 workflows:
   version: 2
   build-deploy:
     jobs:
-      - test
+      - test-py3.5
+      - test-py3.6
+      - test-py3.7
