@@ -1,7 +1,7 @@
 import pytest
 
-from baikal.core.digraph import default_graph
-from baikal.core.step import Step
+from baikal import Step
+from baikal._core.digraph import default_graph
 
 
 @pytest.fixture

@@ -1,11 +1,11 @@
 from collections import defaultdict
 from typing import Union, List, Dict, Sequence
 
-from baikal.core.data_placeholder import is_data_placeholder_list, DataPlaceholder
-from baikal.core.digraph import DiGraph
-from baikal.core.step import Step, InputStep
-from baikal.core.typing import ArrayLike
-from baikal.core.utils import find_duplicated_items, listify, safezip2, SimpleCache
+from baikal._core.data_placeholder import is_data_placeholder_list, DataPlaceholder
+from baikal._core.digraph import DiGraph
+from baikal._core.step import Step, InputStep
+from baikal._core.typing import ArrayLike
+from baikal._core.utils import find_duplicated_items, listify, safezip2, SimpleCache
 
 
 class Model(Step):

@@ -6,8 +6,7 @@ from sklearn import datasets
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 
-from baikal.core.model import Model
-from baikal.core.step import Input
+from baikal import Model, Input
 from baikal.sklearn import SKLearnWrapper
 
 from tests.helpers.sklearn_steps import PCA, LogisticRegression, RandomForestClassifier

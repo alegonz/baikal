@@ -1,8 +1,8 @@
 import re
 from typing import List
 
-from baikal.core.data_placeholder import DataPlaceholder, is_data_placeholder_list
-from baikal.core.utils import listify, make_name, make_repr, make_args_from_attrs
+from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
+from baikal._core.utils import listify, make_name, make_repr, make_args_from_attrs
 
 
 class Step:

@@ -1,4 +1,4 @@
-from baikal.core.utils import make_repr
+from baikal._core.utils import make_repr
 
 
 def is_data_placeholder_list(l):

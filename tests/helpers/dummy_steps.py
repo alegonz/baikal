@@ -1,4 +1,4 @@
-from baikal.core.step import Step
+from baikal import Step
 
 
 class DummySISO(Step):

@@ -1,5 +1,5 @@
-from baikal.core.data_placeholder import DataPlaceholder
-from baikal.core.step import Step
+from baikal import Step
+from baikal._core.data_placeholder import DataPlaceholder
 
 
 def test_repr():

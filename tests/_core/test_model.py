@@ -12,8 +12,7 @@ from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
 from sklearn.pipeline import Pipeline
 
-from baikal.core.model import Model
-from baikal.core.step import Input
+from baikal import Model, Input
 from baikal.steps import Stack, Concatenate
 
 from tests.helpers.fixtures import teardown

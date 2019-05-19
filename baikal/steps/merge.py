@@ -1,6 +1,6 @@
 import numpy as np
 
-from baikal.core.step import Step
+from baikal._core.step import Step
 
 
 class Concatenate(Step):

@@ -5,7 +5,7 @@ import sklearn.preprocessing
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 
-from baikal.core.step import Step
+from baikal import Step
 
 
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):

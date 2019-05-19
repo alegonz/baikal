@@ -1,8 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from baikal.core.model import Model
-from baikal.core.step import Input
+from baikal import Model, Input
 from baikal.steps import Lambda
 
 from tests.helpers.fixtures import teardown

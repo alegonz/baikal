@@ -8,8 +8,8 @@ except ImportError:
                       'You can install with `pip install pydot` or'
                       '`pip install baikal[viz]`')
 
-from baikal.core.model import Model
-from baikal.core.utils import safezip2
+from baikal._core.model import Model
+from baikal._core.utils import safezip2
 
 
 def plot_model(model, filename=None, show=False, expand_nested=False):

@@ -1,4 +1,7 @@
-from baikal.core.step import Step
+# Unfortunately we cannot name this module lambda.py so
+# we are stuck with this unintuitive module name.
+
+from baikal._core.step import Step
 
 
 class Lambda(Step):

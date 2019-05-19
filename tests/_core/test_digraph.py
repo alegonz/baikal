@@ -1,6 +1,6 @@
 import pytest
 
-from baikal.core.digraph import DiGraph, NodeNotFoundError, CyclicDiGraphError
+from baikal._core.digraph import DiGraph, NodeNotFoundError, CyclicDiGraphError
 
 
 def test_add_node():

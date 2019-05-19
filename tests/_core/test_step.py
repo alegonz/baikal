@@ -1,7 +1,7 @@
 import pytest
 
-from baikal.core.data_placeholder import DataPlaceholder
-from baikal.core.step import Input, Step
+from baikal import Input, Step
+from baikal._core.data_placeholder import DataPlaceholder
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.dummy_steps import DummyMIMO

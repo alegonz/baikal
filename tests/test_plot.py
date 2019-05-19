@@ -1,5 +1,4 @@
-from baikal.core.model import Model
-from baikal.core.step import Input
+from baikal import Model, Input
 from baikal.plot import plot_model
 
 from tests.helpers.fixtures import teardown

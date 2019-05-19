@@ -1,2 +1,4 @@
-from baikal.steps._lambda import Lambda
-from baikal.steps._merge import Concatenate, Stack
+from baikal._core.step import Step, Input
+
+from baikal.steps.expression import Lambda
+from baikal.steps.merge import Concatenate, Stack
