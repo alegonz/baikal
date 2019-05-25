@@ -107,3 +107,4 @@ venv.bak/
 
 /.idea/
 sandbox/
+examples/*.png

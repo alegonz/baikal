@@ -159,6 +159,7 @@ class Model(Step):
         raise ValueError('{} was not found in the model.'.format(name))
 
     def fit(self, X, y=None, extra_targets=None, **fit_params):
+        # TODO: Add better error message to know which step failed in case of any error
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
@@ -212,6 +213,8 @@ class Model(Step):
         return self
 
     def predict(self, X, outputs=None):
+        # TODO: Make outputs Optional[Union[str, List[str], DataPlaceholder, List[DataPlaceholder]]]
+
         # Intermediate results are stored here
         # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache = dict()
