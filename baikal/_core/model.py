@@ -316,6 +316,10 @@ def build_graph_from_outputs(outputs):
     # Add nodes (steps)
     def collect_steps_from(output):
         parent_step = output.step
+
+        if parent_step in graph:
+            return
+
         graph.add_node(parent_step)
         for input in parent_step.inputs:
             collect_steps_from(input)
