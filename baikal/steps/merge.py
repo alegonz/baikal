@@ -21,3 +21,12 @@ class Stack(Step):
 
     def transform(self, *Xs):
         return np.stack(Xs, axis=self.axis)
+
+
+class ColumnStack(Step):
+    def __init__(self, name=None):
+        super(ColumnStack, self).__init__(name=name, trainable=False)
+        self.n_outputs = 1
+
+    def transform(self, *Xs):
+        return np.column_stack(Xs)

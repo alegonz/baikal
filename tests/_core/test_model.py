@@ -1,3 +1,4 @@
+import pickle
 import tempfile
 from contextlib import contextmanager
 
@@ -492,7 +493,9 @@ def test_nested_model_ensemble(teardown):
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
-def test_model_joblib_serialization(teardown):
+@pytest.mark.parametrize('dump,load', [(sklearn.externals.joblib.dump, sklearn.externals.joblib.load),
+                                       (pickle.dump, pickle.load)])
+def test_model_joblib_serialization(teardown, dump, load):
     x_data = iris.data
     y_data = iris.target
     random_state = 123
@@ -503,9 +506,9 @@ def test_model_joblib_serialization(teardown):
 
     # Persist model to a file
     f = tempfile.TemporaryFile()
-    sklearn.externals.joblib.dump(ensemble_model_baikal, f)
+    dump(ensemble_model_baikal, f)
     f.seek(0)
-    ensemble_model_baikal_2 = sklearn.externals.joblib.load(f)
+    ensemble_model_baikal_2 = load(f)
     y_pred_baikal_2 = ensemble_model_baikal_2.predict(x_data)
 
     assert_array_equal(y_pred_baikal_2, y_pred_baikal)

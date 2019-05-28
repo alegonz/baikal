@@ -12,10 +12,11 @@ from baikal._core.model import Model
 from baikal._core.utils import safezip2
 
 
-def plot_model(model, filename=None, show=False, expand_nested=False):
+def plot_model(model, filename=None, show=False, expand_nested=False, prog='dot', **dot_kwargs):
     """Plot the model"""
 
-    dot_graph = pydot.Dot(graph_type='digraph', dpi=300)
+    dot_graph = pydot.Dot(graph_type='digraph', **dot_kwargs)
+    nodes_built = set()
     edges_built = set()
 
     def dummy_node(name):
@@ -33,6 +34,9 @@ def plot_model(model, filename=None, show=False, expand_nested=False):
             container = dot_graph
 
         parent_step = output_.step
+
+        if parent_step in nodes_built:
+            return
 
         if isinstance(parent_step, Model) and expand_nested:
             # Build nested model
@@ -64,6 +68,8 @@ def plot_model(model, filename=None, show=False, expand_nested=False):
                 else:
                     build_edge(input.step, parent_step, input.name, container)
 
+        nodes_built.add(parent_step)
+
         # Continue building
         for input in parent_step.inputs:
             build_dot_from(model_, input)
@@ -78,14 +84,14 @@ def plot_model(model, filename=None, show=False, expand_nested=False):
     if filename:
         basename, ext = os.path.splitext(filename)
         with open(filename, 'wb') as fh:
-            fh.write(dot_graph.create(format=ext.lstrip('.').lower()))
+            fh.write(dot_graph.create(format=ext.lstrip('.').lower(), prog=prog))
 
     # display graph via matplotlib
     if show:
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
 
-        png = dot_graph.create(format='png')
+        png = dot_graph.create(format='png', prog=prog)
         img = mpimg.imread(io.BytesIO(png))
         plt.imshow(img, aspect='equal')
         plt.axis('off')
