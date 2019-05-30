@@ -1,5 +1,6 @@
 import io
 import os
+from typing import Optional
 
 try:
     import pydot
@@ -12,8 +13,33 @@ from baikal._core.model import Model
 from baikal._core.utils import safezip2
 
 
-def plot_model(model, filename=None, show=False, expand_nested=False, prog='dot', **dot_kwargs):
-    """Plot the model"""
+def plot_model(model: Model,
+               filename: Optional[str] = None,
+               show: bool = False,
+               expand_nested: bool = False,
+               prog: str = 'dot',
+               **dot_kwargs):
+    """Plot a model to file and/or display it.
+
+    This function requires pydot and graphviz. It also requires matplotlib
+    to display plots to the screen.
+
+    Parameters
+    ----------
+    model
+        The model to plot.
+    filename
+        Filename (optional).
+    show
+        Whether to display the plot in the screen or not. Requires matplotlib.
+    expand_nested
+        Whether to expand any nested models or not (display the nested model as
+        a single step).
+    prog
+        Program to use to process the dot file into a graph.
+    dot_kwargs
+        Keyword arguments to pydot.Dot.
+    """
 
     dot_graph = pydot.Dot(graph_type='digraph', **dot_kwargs)
     nodes_built = set()

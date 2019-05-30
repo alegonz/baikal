@@ -6,4 +6,4 @@ from baikal import Step
 @pytest.fixture
 def teardown():
     yield
-    Step.clear_names()
+    Step._clear_names()

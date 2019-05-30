@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Union, List, Dict, Sequence
+from typing import Union, List, Dict, Sequence, Optional, Iterable
 
 from baikal._core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal._core.digraph import DiGraph
@@ -8,14 +8,72 @@ from baikal._core.typing import ArrayLike
 from baikal._core.utils import find_duplicated_items, listify, safezip2, SimpleCache
 
 
+# Just to avoid function signatures painful to the eye
+strs = Union[str, List[str]]
+DataPlaceHolders = Union[DataPlaceholder, List[DataPlaceholder]]
+ArrayLikes = Union[ArrayLike, List[ArrayLike]]
+DataDict = Dict[Union[DataPlaceholder, str], ArrayLike]
+
+
 class Model(Step):
+    """A Model is a network (more precisely, a directed acyclic graph) of Steps,
+    and it is defined from the input/output specification of the pipeline.
+    Models have fit and predict routines that, together with graph-based engine,
+    allow the automatic (feed-forward) computation of each of the pipeline steps
+    when fed with data.
+
+    Parameters
+    ----------
+    inputs
+        Inputs to the model.
+
+    outputs
+        Outputs of the model.
+
+    name
+        Name of the model (optional). If no name is passed, a name will be
+        automatically generated.
+
+    trainable
+        Whether the model is trainable (True) or not (False). Setting
+        `trainable=False` freezes the model. This flag is only meaningful when
+        using the model as a step in a bigger model.
+
+    Attributes
+    ----------
+    graph
+        The graph associated to the model built from the input/output
+        specification.
+
+    Methods
+    -------
+    fit
+        Trains the model on the given input and target data.
+
+    predict
+        Generates predictions from the input data. It can also be used to
+        query intermediate outputs.
+
+    get_step
+        Get a step (graph node) in the model by name.
+
+    get_data_placeholder
+        Get a data placeholder (graph half-edge) in the model by name.
+
+    get_params
+        Get parameters of the model.
+
+    set_params
+        Set the parameters of the model.
+    """
+
     def __init__(self,
-                 inputs: [DataPlaceholder, List[DataPlaceholder]],
-                 outputs: [DataPlaceholder, List[DataPlaceholder]],
-                 name=None, trainable=True):
+                 inputs: DataPlaceHolders,
+                 outputs: DataPlaceHolders,
+                 name: Optional[str] = None,
+                 trainable: bool = True):
         super(Model, self).__init__(name=name, trainable=trainable)
 
-        # TODO: Check that inputs come from InputSteps
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):
             raise ValueError('inputs must be of type DataPlaceholder.')
@@ -55,11 +113,15 @@ class Model(Step):
         self._steps_cache = SimpleCache()
         self._get_required_steps(self._internal_inputs, self._internal_outputs)
 
-    def _get_required_steps(self, inputs: Sequence[DataPlaceholder], outputs: Sequence[DataPlaceholder]) -> List[Step]:
-        # Backtrack from outputs until inputs to get the necessary steps. That is,
-        # find the ancestors of the nodes that provide the specified outputs.
-        # Raise an error if there is an ancestor whose input is not in the specified inputs.
-        # We assume a DAG (guaranteed by success of topological_sort).
+    def _get_required_steps(self,
+                            inputs: Sequence[DataPlaceholder],
+                            outputs: Sequence[DataPlaceholder]) -> List[Step]:
+        """Backtrack from outputs until inputs to get the necessary steps.
+        That is, find the ancestors of the nodes that provide the specified
+        outputs. Raise an error if there is an ancestor whose input is not in
+        the specified inputs. We assume a DAG (guaranteed by success of
+        topological_sort).
+        """
         cache_key = (tuple(sorted(inputs)), tuple(sorted(outputs)))
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
@@ -109,7 +171,7 @@ class Model(Step):
         return required_steps
 
     def _normalize_data(self,
-                        data: Union[ArrayLike, List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]],
+                        data: Union[ArrayLikes, DataDict],
                         data_placeholders: List[DataPlaceholder],
                         expand_none=False) -> Dict[DataPlaceholder, ArrayLike]:
         if isinstance(data, dict):
@@ -117,7 +179,7 @@ class Model(Step):
         else:
             return self._normalize_list(data, data_placeholders, expand_none)
 
-    def _normalize_dict(self, data: Union[Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]) -> Dict[DataPlaceholder, ArrayLike]:
+    def _normalize_dict(self, data: DataDict) -> Dict[DataPlaceholder, ArrayLike]:
         data_norm = {}
         for key, value in data.items():
             key = self.get_data_placeholder(key.name if isinstance(key, DataPlaceholder) else key)
@@ -125,7 +187,7 @@ class Model(Step):
         return data_norm
 
     @staticmethod
-    def _normalize_list(data: Union[ArrayLike, List[ArrayLike]],
+    def _normalize_list(data: ArrayLikes,
                         data_placeholders: List[DataPlaceholder],
                         expand_none) -> Dict[DataPlaceholder, ArrayLike]:
         if data is None and expand_none:
@@ -147,18 +209,82 @@ class Model(Step):
         return data_norm
 
     def get_step(self, name: str) -> Step:
+        """Get a step (graph node) in the model by name.
+
+        Parameters
+        ----------
+        name
+            Name of the step.
+
+        Returns
+        -------
+        The step.
+        """
         # Steps are assumed to have unique names (guaranteed by success of _build_graph)
         if name in self._steps.keys():
             return self._steps[name]
         raise ValueError('{} was not found in the model.'.format(name))
 
     def get_data_placeholder(self, name: str) -> DataPlaceholder:
+        """Get a data placeholder (graph half-edge) in the model by name.
+
+        Parameters
+        ----------
+        name
+            Name of the data placeholder.
+
+        Returns
+        -------
+        The data placeholder.
+        """
         # If the step names are unique, so are the data_placeholder names
         if name in self._data_placeholders.keys():
             return self._data_placeholders[name]
         raise ValueError('{} was not found in the model.'.format(name))
 
-    def fit(self, X, y=None, extra_targets=None, **fit_params):
+    def fit(self,
+            X: Union[ArrayLikes, DataDict],
+            y: Optional[Union[ArrayLikes, DataDict]] = None,
+            extra_targets: Optional[DataDict] = None,
+            **fit_params):
+        """Trains the model on the given input and target data.
+
+        The model will automatically propagate the data through the pipeline and
+        fit any internal steps that require training.
+
+        Parameters
+        ----------
+        X
+            Input data (independent variables). It can be either of:
+                - A single array-like object (in the case of a single input)
+                - A list of array-like objects (in the case of multiple inputs)
+                - A dictionary mapping DataPlaceholders (or their names) to
+                  array-like objects.
+        y
+            Target data (dependent variables) (optional). It can be either of:
+                - None (in the case the single output is associated to a
+                  non-trainable or unsupervised learning step)
+                - A single array-like object (in the case of a single output)
+                - A list of the above (in the case of multiple outputs)
+                - A dictionary mapping DataPlaceholders (or their names) to
+                  array-like objects or None. You can also include target data
+                  required by intermediate steps not specified in the model outputs.
+        extra_targets
+            Target data required by intermediate steps not specified in the
+            model outputs. If specified, it must be a dictionary mapping
+            DataPlaceholders (or their names) to array-like objects or None.
+
+            While contents of `extra_targets` can be included in the contents of
+            `y`, this separate argument exists to pass target data to nested models.
+
+        fit_params
+            Parameters passed to the fit method of each model step, where each
+            parameter name has the form ``<step-name>__<parameter-name>``.
+
+        Returns
+        -------
+
+        """
         # TODO: Add better error message to know which step failed in case of any error
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
@@ -212,9 +338,29 @@ class Model(Step):
 
         return self
 
-    def predict(self, X, outputs=None):
-        # TODO: Make outputs Optional[Union[str, List[str], DataPlaceholder, List[DataPlaceholder]]]
+    def predict(self,
+                X: Union[ArrayLikes, DataDict],
+                outputs: Optional[Union[strs, DataPlaceHolders]] = None) -> ArrayLikes:
+        """
 
+        **Models are query-able**. That is, you can request other outputs other
+        than those specified at model instantiation. This allows querying
+        intermediate outputs and ease debugging.
+
+        Parameters
+        ----------
+        X
+            Input data. It follows the same format as in the fit function.
+
+        outputs
+            Required outputs (optional). You can specify any final or intermediate
+            output by passing the name of its associated data placeholder. If
+            not specified, it will return the outputs specified at instantiation.
+
+        Returns
+        -------
+        The computed outputs.
+        """
         # Intermediate results are stored here
         # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache = dict()
@@ -262,6 +408,18 @@ class Model(Step):
             raise RuntimeError(message) from e
 
     def get_params(self, deep=True):
+        """Get the parameters of the model.
+
+        Parameters
+        ----------
+        deep
+            Get the parameters of any nested models.
+
+        Returns
+        -------
+        params
+            Parameter names mapped to their values.
+        """
         # InputSteps are excluded
         params = {}
         for step in self._steps.values():
@@ -274,6 +432,19 @@ class Model(Step):
         return params
 
     def set_params(self, **params):
+        """Set the parameters of the model.
+
+        Parameters
+        ----------
+        params
+            Dictionary mapping parameter names to their values. Valid parameter
+            of the form ``<step-name>__<parameter-name>``). Entire steps can
+            be replaced with ``<step-name>`` keys.
+
+        Returns
+        -------
+        self
+        """
         # ----- 1. Replace steps
         for key in list(params.keys()):
             if key in self._steps:
@@ -313,7 +484,24 @@ class Model(Step):
         return self._graph
 
 
-def build_graph_from_outputs(outputs):
+def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
+    """Builds a graph by backtracking from a sets of outputs.
+
+    It does so by backtracking recursively in depth-first fashion, jumping
+    from outputs to steps in tandem until hitting a step with no inputs (an
+    InputStep).
+
+    Parameters
+    ----------
+    outputs
+        Outputs (data placeholders) from where the backtrack to build the
+        graph starts.
+
+    Returns
+    -------
+    graph
+        The built graph.
+    """
     graph = DiGraph()
 
     # Add nodes (steps)

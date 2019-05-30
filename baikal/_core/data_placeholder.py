@@ -6,6 +6,17 @@ def is_data_placeholder_list(l):
 
 
 class DataPlaceholder:
+    """Auxiliary class that represents the inputs and outputs of Steps.
+
+    DataPlaceholders are just minimal, low-weight auxiliary objects whose main
+    purpose is to keep track of the input/output connectivity between steps, and
+    serve as the keys to map the actual input data to their appropriate Step.
+    They are not arrays/tensors, nor contain any shape/type information whatsoever.
+
+    Steps are called on and output DataPlaceHolders. DataPlaceholders are
+    produced and consumed exclusively by Steps, so you shouldn't need to
+    instantiate these yourself.
+    """
     def __init__(self, step, name):
         self.step = step
         self.name = name
