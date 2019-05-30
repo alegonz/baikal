@@ -50,6 +50,7 @@ INSTALL_REQUIRES = ['numpy']
 EXTRAS_REQUIRE = {
     'dev': [
         'codecov',
+        'mypy',
         'pytest',
         'pytest-cov',
         'sklearn'

@@ -13,6 +13,9 @@ test:
 test-cov:
 	pytest -s -vv --cov-config .coveragerc --cov=baikal tests/
 
+type-check:
+	mypy --ignore-missing-imports --allow-redefinition baikal/ tests/
+
 wheel: clean setup_pkgs
 	python3 setup.py sdist bdist_wheel
 
