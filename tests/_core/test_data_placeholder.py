@@ -3,6 +3,11 @@ from baikal._core.data_placeholder import DataPlaceholder
 
 
 def test_repr():
-    step = Step(name='some-step')
+    class DummyStep(Step):
+        def somefunc(self, X):
+            pass
+
+    step = DummyStep(name='some-step', function='somefunc')
     data_placeholder = DataPlaceholder(step=step, name='some-step/0')
-    assert "DataPlaceholder(step=Step(name='some-step', trainable=True, function=None), name='some-step/0')" == repr(data_placeholder)
+    expected_repr = "DataPlaceholder(step=DummyStep(name='some-step', trainable=True, function='somefunc'), name='some-step/0')"
+    assert expected_repr == repr(data_placeholder)

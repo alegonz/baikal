@@ -19,8 +19,7 @@ from baikal.steps import Stack, Concatenate
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (LogisticRegression, RandomForestClassifier, ExtraTreesClassifier,
                                          PCA, StandardScaler)
-from tests.helpers.dummy_steps import (DummySISO, DummySIMO, DummyMISO, DummyMIMO,
-                                       DummyWithoutTransform, DummyImproperlyDefined)
+from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyImproperlyDefined
 
 
 pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning:sklearn',
@@ -317,18 +316,6 @@ def test_predict_with_not_fitted_steps(teardown):
 
     model = Model(x, y)
     with pytest.raises(NotFittedError):
-        model.predict(x_data)
-
-
-def test_predict_using_step_without_transform(teardown):
-    x_data = np.array([[1], [2]])
-
-    x = Input(name='x')
-    y = DummyWithoutTransform()(x)
-
-    model = Model(x, y)
-    with pytest.raises(TypeError):
-        # step's function attribute is None
         model.predict(x_data)
 
 

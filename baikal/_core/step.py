@@ -21,22 +21,25 @@ class Step:
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__
         self.n_outputs = None  # Client code must override this value when subclassing from Step.
         self.trainable = trainable
+        self.function = self._check_function(function)
 
+    def _check_function(self, function):
         if function is None:
             if hasattr(self, 'predict'):
-                self.function = self.predict
+                function = self.predict
             elif hasattr(self, 'transform'):
-                self.function = self.transform
+                function = self.transform
             else:
-                # TODO: Warn, raise error, or defer until step.compute is executed?
-                self.function = None
+                raise ValueError('If `function` is not specified, the class must '
+                                 'implement a predict or transform method.')
         else:
             if isinstance(function, str):
-                self.function = getattr(self, function)
+                function = getattr(self, function)
             elif callable(function):
-                self.function = function
+                pass
             else:
                 raise ValueError('`function` must be either None, a string or a callable.')
+        return function
 
     def compute(self, *args, **kwargs):
         return self.function(*args, **kwargs)
@@ -110,6 +113,9 @@ class InputStep(Step):
         super(InputStep, self).__init__(name=name, trainable=False, function=None)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
+
+    def _check_function(self, function):
+        pass
 
 
 def Input(name=None):

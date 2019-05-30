@@ -45,14 +45,6 @@ class DummyMIMO(Step):
         return x1 * 10.0, x2 / 10.0
 
 
-class DummyWithoutTransform(Step):
-    """Dummy step that lacks transform method.
-    """
-    def __init__(self, name=None):
-        super(DummyWithoutTransform, self).__init__(name=name)
-        self.n_outputs = 1
-
-
 class DummyImproperlyDefined(Step):
     """Dummy step that returns two outputs but defines only one.
     """

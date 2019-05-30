@@ -24,6 +24,39 @@ class TestInput:
 
 
 class TestStep:
+    def test_with_invalid_function_argument(self):
+        class DummyStep(Step):
+            def somefunc(self, X):
+                pass
+
+        class DummyStepWithPredict(Step):
+            def predict(self, X):
+                pass
+
+        class DummyStepWithTransform(Step):
+            def transform(self, X):
+                pass
+
+        with pytest.raises(ValueError):
+            DummyStep(function=None)
+
+        step = DummyStep(function='somefunc')
+        print("")
+        print(step.function)
+        print(step.somefunc)
+        assert step.function == step.somefunc
+
+        def anotherfunc():
+            pass
+
+        step = DummyStep(function=anotherfunc)
+        assert step.function == anotherfunc
+
+        step = DummyStepWithPredict()
+        assert step.function == step.predict
+
+        step = DummyStepWithTransform()
+        assert step.function == step.transform
 
     def test_call(self, teardown):
         x = Input(name='x')
@@ -51,8 +84,11 @@ class TestStep:
         assert 'LogisticRegression_1/0' == y1.name
 
     def test_repr(self):
-        step = Step(name='some-step')
-        assert "Step(name='some-step', trainable=True, function=None)" == repr(step)
+        class DummyStep(Step):
+            def somefunc(self, X):
+                pass
+        step = DummyStep(name='some-step', function='somefunc')
+        assert "DummyStep(name='some-step', trainable=True, function='somefunc')" == repr(step)
         # TODO: Add test for sklearn step
 
     # TODO: Use custom defined class instead of sklearn class to avoid errors due to third-party API changes
