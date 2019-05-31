@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-set -ue
+set -e
 
 # Run from repo root directory
 apt update && apt install -y graphviz
 make setup_dev
-make test-cov
-codecov --token=${CODECOV_TOKEN}
+
+if [[ "${RUN_TEST_WITH_COVERAGE}" == "1" ]]; then
+    make test-cov
+    codecov --token=${CODECOV_TOKEN}
+else
+    make test
+fi
