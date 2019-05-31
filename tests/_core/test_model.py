@@ -14,7 +14,7 @@ import sklearn.linear_model
 from sklearn.pipeline import Pipeline
 
 from baikal import Model, Input
-from baikal.steps import Stack, Concatenate
+from baikal.steps import Concatenate, Lambda, Stack
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (LogisticRegression, RandomForestClassifier, ExtraTreesClassifier,
@@ -532,14 +532,17 @@ def test_fit_params(teardown):
 def test_get_params(teardown):
     pca = PCA(name='pca')
     logreg = LogisticRegression(name='logreg')
+    concat = Concatenate(name='concat')  # a step without get_params/set_params
 
     x = Input()
     h = pca(x)
-    y = logreg(h)
+    c = concat([x, h])
+    y = logreg(c)
     model = Model(x, y)
 
     expected = {'pca': pca,
                 'logreg': logreg,
+                'concat': concat,
                 'pca__n_components': None,
                 'pca__whiten': False,
                 'pca__tol': 0.0,
@@ -570,16 +573,25 @@ def test_get_params(teardown):
 def test_set_params(teardown):
     pca = PCA(name='pca')
     classifier = RandomForestClassifier(name='classifier')
+    concat = Concatenate(name='concat')  # a step without get_params/set_params
 
     x = Input()
     h = pca(x)
-    y = classifier(h)
+    c = concat([x, h])
+    y = classifier(c)
     model = Model(x, y)
 
+    # Fails when setting params on step that does not implement set_params
+    new_params_wrong = {'concat__axis': 2}
+    with pytest.raises(AttributeError):
+        model.set_params(**new_params_wrong)
+
+    # Fails when setting params on step that does not exist
     new_params_wrong = {'non_existent_step__param': 42}
     with pytest.raises(ValueError):
         model.set_params(**new_params_wrong)
 
+    # Fails when setting a non-existent param in a step
     new_params_wrong = {'pca__non_existent_param': 42}
     with pytest.raises(ValueError):
         model.set_params(**new_params_wrong)
@@ -597,6 +609,7 @@ def test_set_params(teardown):
 
     expected = {'pca': pca,
                 'classifier': new_classifier,
+                'concat': concat,
                 'pca__n_components': 4,
                 'pca__whiten': True,
                 'pca__tol': 0.0,

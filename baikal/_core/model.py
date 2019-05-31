@@ -441,6 +441,8 @@ class Model(Step):
             of the form ``<step-name>__<parameter-name>``). Entire steps can
             be replaced with ``<step-name>`` keys.
 
+            Valid parameter keys can be listed with get_params().
+
         Returns
         -------
         self
