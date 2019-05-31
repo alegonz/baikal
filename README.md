@@ -37,7 +37,7 @@ A graph-based functional API for building complex scikit-learn pipelines.
 
 ### What is baikal?
 
-**baikal is a graph-based, functional API for building complex machine learning pipelines of objects that implement the [scikit-learn API](https://scikit-learn.org/stable/developers/contributing.html#different-objects)**. It is mostly inspired on the popular [Keras](https://keras.io) API for Deep Learning, and borrows a few concepts from the (also popular) [TensorFlow](https://www.tensorflow.org) framework and the (perhaps lesser known) [graphkit](https://github.com/yahoo/graphkit) package.
+**baikal is a graph-based, functional API for building complex machine learning pipelines of objects that implement the [scikit-learn API](https://scikit-learn.org/stable/developers/contributing.html#different-objects)**. It is mostly inspired on the excellent [Keras](https://keras.io) API for Deep Learning, and borrows a few concepts from the [TensorFlow](https://www.tensorflow.org) framework and the (perhaps lesser known) [graphkit](https://github.com/yahoo/graphkit) package.
 
 **baikal** aims to provide an API that allows to build complex, non-linear machine learning pipelines that looks like this: 
 
@@ -69,7 +69,7 @@ The pipeline above (to the best of the author's knowledge) cannot be easily buil
 1. It is aimed at linear pipelines
     - You could add some step parallelism with the (currently experimental) [`ColumnTransformer`](https://scikit-learn.org/stable/modules/compose.html#columntransformer-for-heterogeneous-data) API, but this is limited to transformer objects.
 2. Classifiers/Regressors can only be used at the end of the pipeline.
-    - This means we cannot use the predicted labels (or probabilities) as features to other classifiers/regressors.
+    - This means we cannot use the predicted labels (or their probabilities) as features to other classifiers/regressors.
     - You could leverage mlxtend's [`StackingClassifier`](http://rasbt.github.io/mlxtend/user_guide/classifier/StackingClassifier/#stackingclassifier) and come up with some clever combination of the above composite estimators (`Pipeline`s, `ColumnTransformer`s, and `StackingClassifier`s, etc), but you might end up with code that feels hard-to-follow and verbose.
 3. Cannot handle multiple input/multiple output models.
 
@@ -271,6 +271,8 @@ model_reloaded = joblib.load('model.pkl')
 
 Keep in mind, however, the [security and maintainability limitations](https://scikit-learn.org/stable/modules/model_persistence.html#security-maintainability-limitations) of these formats.
 
+[//]: # (TODO: Add here a brief explanation of what we mean by scikit-learn API)
+
 ### Utilities
 
 #### sklearn wrapper for `GridSearchCV`
@@ -390,11 +392,3 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 3. From the project root folder run: `make setup_develop`. This will install the package in development mode.
 4. To run the tests use: `make test`, or `make test-cov` to include coverage.
     - The tests include a test for the plot utility, so you need to install graphviz.
-
-## What does baikal mean?
-
-This package takes its name from Lake Baikal located in Siberia, Russia. Why? No particular reason. That being said, Lake Baikal is a pretty interesting lake, [according to Wikpedia](https://en.wikipedia.org/wiki/Lake_Baikal):
-
->Lake Baikal is the largest freshwater lake by volume in the world, containing 22–23% of the world's fresh surface water. With 23,615.39 km3 (5,670 cu mi) of fresh water, it contains more water than the North American Great Lakes combined. With a maximum depth of 1,642 m (5,387 ft), Baikal is the world's deepest lake. It is considered among the world's clearest lakes and is considered the world's oldest lake – at 25–30 million years. It is the seventh-largest lake in the world by surface area.
-
-Plus, it makes a nice disyllabic word.
