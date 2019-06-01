@@ -7,21 +7,49 @@ test-defaults: &test-defaults
     - run: |
         sudo -E ./ci_tools/test_job.sh
 
+build-defaults: &build-defaults
+  working_directory: ~/baikal
+  docker:
+    - image: circleci/python:3.7.3-stretch
+
 jobs:
   test-py3.5:
     <<: *test-defaults
     docker:
       - image: circleci/python:3.5.7-stretch
+
   test-py3.6:
     <<: *test-defaults
     docker:
       - image: circleci/python:3.6.8-stretch
+
   test-py3.7:
     <<: *test-defaults
     docker:
       - image: circleci/python:3.7.3-stretch
     environment:
       RUN_TEST_WITH_COVERAGE: 1
+
+  build-wheel:
+    <<: *build-defaults
+    steps:
+      - checkout
+      - run: |
+          sudo make wheel
+      - persist_to_workspace:
+          root: ./dist
+          paths:
+            - "*.whl"
+      - store_artifacts:
+          path: ./dist
+
+  upload-wheel:
+    <<: *build-defaults
+    steps:
+      - attach_workspace:
+          at: ./dist
+      - run: |
+          sudo make upload
 
 workflows:
   version: 2
@@ -30,3 +58,16 @@ workflows:
       - test-py3.5
       - test-py3.6
       - test-py3.7
+      - build-wheel:
+          requires:
+            - test-py3.7
+      - upload-wheel-approval:
+          type: approval
+          requires:
+            - build-wheel
+          filters:
+            branches:
+              only: /release.*/
+      - upload-wheel:
+          requires:
+            - upload-wheel-approval
