@@ -26,11 +26,12 @@ A graph-based functional API for building complex scikit-learn pipelines.
 ---
 *Contents:*
 1. **[Introduction](#introduction)**
-2. **[Quick-start guide](#quick-start-guide)**
-3. **[User guide](#user-guide)**
-4. **[Examples](#examples)**
-5. **[Next development steps](#next-development-steps)**
-6. **[Contributing](#contributing)**
+2. **[Installation](#installation)**
+3. **[Quick-start guide](#quick-start-guide)**
+4. **[User guide](#user-guide)**
+5. **[Examples](#examples)**
+6. **[Next development steps](#next-development-steps)**
+7. **[Contributing](#contributing)**
 ---
 
 ## Introduction
@@ -87,6 +88,16 @@ The baikal API introduces three basic elements:
 * **Step**: Steps are the building blocks of the API. Conceptually similar to TensorFlow's operations and Keras layers, each Step is a unit of computation (e.g. PCA, Logistic Regression) that take the data from preceding Steps and produce data to be used by other Steps further in the pipeline. Steps are defined by combining the `Step` mixin class with a base class that implements the scikit-learn API. This is explained in more detail below. 
 * **DataPlaceholder**: The inputs and outputs of Steps. If Steps are like TensorFlow operations or Keras layers, then DataPlaceHolders are akin to tensors. Don't be misled though, DataPlaceholders are just minimal, low-weight auxiliary objects whose main purpose is to keep track of the input/output connectivity between steps, and serve as the keys to map the actual input data to their appropriate Step. They are not arrays/tensors, nor contain any shape/type information whatsoever.
 * **Model**: A Model is a network (more precisely, a directed acyclic graph) of Steps, and it is defined from the input/output specification of the pipeline. Models have fit and predict routines that, together with graph-based engine, allow the automatic (feed-forward) computation of each of the pipeline steps when fed with data.
+
+## Installation
+
+```bash
+pip install baikal
+``` 
+
+### Requirements
+
+* numpy
 
 ## Quick-start guide
 
