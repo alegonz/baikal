@@ -46,10 +46,11 @@ jobs:
   upload-wheel:
     <<: *build-defaults
     steps:
+      - checkout
       - attach_workspace:
           at: ./dist
       - run: |
-          sudo make upload
+          sudo -E make upload
 
 workflows:
   version: 2
