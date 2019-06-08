@@ -333,8 +333,6 @@ def test_fit_predict_pipeline(teardown):
     model = Model(x, y)
     y_pred_baikal = model.fit(x_data, y_data).predict(x_data)
 
-    assert xt.step.fitted and y.step.fitted
-
     # traditional way
     pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
     logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)

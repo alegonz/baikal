@@ -76,7 +76,7 @@ class Step:
 
     def __init__(self,
                  *args,
-                 name:str = None,
+                 name: str = None,
                  trainable: bool = True,
                  function: Optional[Union[str, Callable[..., Any]]] = None,
                  **kwargs):
