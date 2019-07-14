@@ -1,3 +1,6 @@
+clean:
+	rm -rf build dist baikal.egg-info
+
 setup_pkgs:
 	pip3 install --upgrade setuptools wheel
 
@@ -10,8 +13,7 @@ test:
 test-cov:
 	pytest -s -vv --cov-config .coveragerc --cov=baikal tests/
 
-wheel: setup_pkgs
-	rm -rf dist
+wheel: clean setup_pkgs
 	python3 setup.py sdist bdist_wheel
 
 upload: dist
