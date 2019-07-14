@@ -9,7 +9,6 @@ from baikal import Input, Model, Step
 class SVC(Step, sklearn.svm.SVC):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.n_outputs = 1
 
 
 # 2. Build the model

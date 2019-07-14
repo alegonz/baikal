@@ -13,19 +13,16 @@ from baikal.steps import Concatenate
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.n_outputs = 1
 
 
 class RandomForestClassifier(Step, sklearn.ensemble.RandomForestClassifier):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.n_outputs = 1
 
 
 class ExtraTreesClassifier(Step, sklearn.ensemble.ExtraTreesClassifier):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.n_outputs = 1
 
 
 # ------- Load dataset

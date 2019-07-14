@@ -115,7 +115,6 @@ from baikal import Input, Model, Step
 class SVC(Step, sklearn.svm.SVC):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.n_outputs = 1
 
 
 # 2. Build the model
@@ -150,7 +149,7 @@ Steps are defined by combining any class we would like to make a step from with 
 
 1. Define a class that inherits from both the `Step` mixin and the class you wish to make a step of (in that order!).
     * The class from which the step is being defined ***must*** implement the scikit-learn API.
-2. Set the `self.n_outputs` variable to the number of outputs the step should output at predict/transform time (*).
+2. In the class `__init__`, call `super().__init__(...)` and pass the appropriate step parameters.
 
 For example, to make a step for `sklearn.linear_model.LogisticRegression` we do:
 
@@ -162,12 +161,9 @@ from baikal import Step
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     def __init__(self, name=None, **kwargs):
         super(LogisticRegression, self).__init__(name=name, **kwargs)
-        self.n_outputs = 1  # Make sure to set this value!
 ```
 
 Other steps are defined similarly (omitted here for brevity).
-
-(*) Currently, the API requires the user to specify the number of outputs manually. Due to Python's dynamically typed nature, it is not possible to determine in advance the number of outputs a step's predict/transform function will return.
 
 ### 2. Build the model
 

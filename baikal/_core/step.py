@@ -17,20 +17,14 @@ class Step:
     Instructions:
         1. Define a class that inherits from both this mixin and the class you
            wish to make a step of (in that order!).
-        2. Set the `self.n_outputs` variable to the number of outputs the step
-           should output at predict/transform time.
+        2. In the class `__init__`, call `super().__init__(...)` and pass the
+           appropriate step parameters.
 
     Parameters
     ----------
     name
         Name of the step (optional). If no name is passed, a name will be
         automatically generated.
-
-    trainable
-        Whether the step is trainable (True) or not (False). This flag is only
-        meaningful only for steps with a fit method. Setting `trainable=False`
-        allows to skip the step when fitting a Model. This is useful if you
-        want to freeze some pre-trained steps.
 
     function
         Specifies which function must be used when computing the step during
@@ -46,6 +40,16 @@ class Step:
         scikit-learn classes typically implement a predict method (Estimators)
         or a transform method (Transformers), but with this argument you can,
         for example, specify `predict_proba` as the compute function.
+
+    n_outputs
+        The number of outputs of the step's function (predict, transform, or
+        any other callable passed in the `function` argument).
+
+    trainable
+        Whether the step is trainable (True) or not (False). This flag is only
+        meaningful only for steps with a fit method. Setting `trainable=False`
+        allows to skip the step when fitting a Model. This is useful if you
+        want to freeze some pre-trained steps.
 
     Attributes
     ----------
@@ -65,7 +69,6 @@ class Step:
     >>> class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     >>>     def __init__(self, name=None, **kwargs):
     >>>         super(LogisticRegression, self).__init__(name=name, **kwargs)
-    >>>         self.n_outputs = 1  # Make sure to set this value!
     >>>
     >>> logreg = LogisticRegression(C=2.0, function='predict_proba')
     """
@@ -77,20 +80,20 @@ class Step:
     def __init__(self,
                  *args,
                  name: str = None,
-                 trainable: bool = True,
                  function: Optional[Union[str, Callable[..., Any]]] = None,
+                 n_outputs: int = 1,
+                 trainable: bool = True,
                  **kwargs):
         super(Step, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
 
         # Use name as is if it was specified by the user, to avoid the user a surprise
         self.name = name if name is not None else self._generate_unique_name()
-
-        self.inputs = None
-        self.outputs = None
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__
-        self.n_outputs = None  # Client code must override this value when subclassing from Step.
+        self.n_outputs = n_outputs
         self.trainable = trainable
         self.function = self._check_function(function)
+        self.inputs = None
+        self.outputs = None
 
     def _check_function(self, function):
         if function is None:

@@ -13,7 +13,6 @@ from baikal.steps import ColumnStack
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.n_outputs = 1
 
 
 # ------- Load a multi-label dataset

@@ -3,7 +3,7 @@ import inspect
 from baikal import Step
 
 
-def make_step(base_class, n_outputs=1):
+def make_step(base_class):
     """Creates a step subclass from the given base class.
 
     For example, calling
@@ -13,18 +13,18 @@ def make_step(base_class, n_outputs=1):
     is equivalent to
 
         class PCA(Step, sklearn.decomposition.PCA):
-            def __init__(self, name=None, trainable=True, function=None, **kwargs):
-                super(PCA, self).__init__(name=name, trainable=trainable,
-                                          function=function, **kwargs)
-                self.n_outputs = 1
+            def __init__(self, name=None, function=None,
+                         n_outputs=1, trainable=True, **kwargs):
+                super(PCA, self).__init__(name=name,
+                                          function=function,
+                                          n_outputs=n_outputs,
+                                          trainable=trainable,
+                                          , **kwargs)
 
     Parameters
     ----------
     base_class : type
         The base class to inherit from. It must implement the scikit-learn API.
-
-    n_outputs : int, optional (default=1)
-        Number of outputs the step instances return when called (default=1)
 
     Returns
     -------
@@ -33,10 +33,13 @@ def make_step(base_class, n_outputs=1):
 
     """
 
-    def __init__(self, name=None, trainable=True, function=None, **kwargs):
-        super(self.__class__, self).__init__(name=name, trainable=trainable,
-                                             function=function, **kwargs)
-        self.n_outputs = n_outputs
+    def __init__(self, name=None, function=None,
+                 n_outputs=1, trainable=True, **kwargs):
+        super(self.__class__, self).__init__(name=name,
+                                             function=function,
+                                             n_outputs=n_outputs,
+                                             trainable=trainable,
+                                             **kwargs)
 
     metaclass = type(base_class)
     name = base_class.__name__

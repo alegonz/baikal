@@ -44,7 +44,7 @@ class Lambda(Step):
                  function: Callable[..., Any],
                  n_outputs: int = 1,
                  name: Optional[str] = None):
-        super(Lambda, self).__init__(name=name, trainable=False, function=function)
-        self.n_outputs = n_outputs
+        super(Lambda, self).__init__(name=name, function=function,
+                                     n_outputs=n_outputs, trainable=False)
 
     # TODO: Consider adding get_params/set_params to tune function
