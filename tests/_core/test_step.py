@@ -1,4 +1,5 @@
 import pytest
+from baikal._core.step import InputStep
 
 from baikal import Input, Step
 from baikal._core.data_placeholder import DataPlaceholder
@@ -21,6 +22,12 @@ class TestInput:
 
         assert 'InputStep_0' == x0.name
         assert 'InputStep_1' == x1.name
+
+
+class TestInputStep:
+    def test_repr(self):
+        step = InputStep(name='x1')
+        assert "InputStep(name='x1')" == repr(step)
 
 
 class TestStep:
@@ -88,7 +95,9 @@ class TestStep:
             def somefunc(self, X):
                 pass
         step = DummyStep(name='some-step', function='somefunc')
-        assert "DummyStep(name='some-step', trainable=True, function='somefunc')" == repr(step)
+        assert "DummyStep(name='some-step', function='somefunc', " \
+               "n_outputs=1, trainable=True)" == repr(step)
+
         # TODO: Add test for sklearn step
 
     # TODO: Use custom defined class instead of sklearn class to avoid errors due to third-party API changes

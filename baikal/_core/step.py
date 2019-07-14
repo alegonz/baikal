@@ -5,7 +5,47 @@ from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_l
 from baikal._core.utils import listify, make_name, make_repr, make_args_from_attrs
 
 
-class Step:
+class _StepBase:
+    # used to keep track of number of instances and make unique names
+    # a dict-of-dicts with graph and name as keys.
+    _names = dict()
+
+    def __init__(self, *args, name: str = None, n_outputs: int = 1, **kwargs):
+        # Necessary to use this class as a mixin
+        super(_StepBase, self).__init__(*args, **kwargs)
+
+        # Use name as is if it was specified by the user, to avoid the user a surprise
+        self.name = name if name is not None else self._generate_unique_name()
+        # TODO: Add self.n_inputs? Could be used to check inputs in __call__
+        self.n_outputs = n_outputs
+
+    def _generate_unique_name(self):
+        name = self.__class__.__name__
+
+        n_instances = self._names.get(name, 0)
+        unique_name = make_name(name, n_instances, sep='_')
+
+        n_instances += 1
+        self._names[name] = n_instances
+
+        return unique_name
+
+    @classmethod
+    def _clear_names(cls):
+        # For testing purposes only.
+        cls._names.clear()
+
+    def _get_param_names(self):
+        """This is a workaround to override @classmethod binding of the sklearn
+        parent class method so we can feed it the sklearn parent class instead
+        of the children class. We assume client code subclassed from this mixin
+        and a sklearn class, with the sklearn class being the next base class in
+        the mro.
+        """
+        return super(_StepBase, self)._get_param_names.__func__(super(_StepBase, self))
+
+
+class Step(_StepBase):
     """Mixin class to endow scikit-learn classes with Step capabilities.
 
     Steps are defined by combining any class we would like to make a step from
@@ -72,11 +112,6 @@ class Step:
     >>>
     >>> logreg = LogisticRegression(C=2.0, function='predict_proba')
     """
-
-    # used to keep track of number of instances and make unique names
-    # a dict-of-dicts with graph and name as keys.
-    _names = dict()
-
     def __init__(self,
                  *args,
                  name: str = None,
@@ -84,12 +119,8 @@ class Step:
                  n_outputs: int = 1,
                  trainable: bool = True,
                  **kwargs):
-        super(Step, self).__init__(*args, **kwargs)  # Necessary to use this class as a mixin
-
-        # Use name as is if it was specified by the user, to avoid the user a surprise
-        self.name = name if name is not None else self._generate_unique_name()
-        # TODO: Add self.n_inputs? Could be used to check inputs in __call__
-        self.n_outputs = n_outputs
+        # Necessary to use this class as a mixin
+        super(Step, self).__init__(*args, name=name, n_outputs=n_outputs, **kwargs)
         self.trainable = trainable
         self.function = self._check_function(function)
         self.inputs = None
@@ -102,15 +133,16 @@ class Step:
             elif hasattr(self, 'transform'):
                 function = self.transform
             else:
-                raise ValueError('If `function` is not specified, the class must '
-                                 'implement a predict or transform method.')
+                raise ValueError('If `function` is not specified, the class '
+                                 'must implement a predict or transform method.')
         else:
             if isinstance(function, str):
                 function = getattr(self, function)
             elif callable(function):
                 pass
             else:
-                raise ValueError('`function` must be either None, a string or a callable.')
+                raise ValueError('If specified, `function` must be either a '
+                                 'string or a callable.')
         return function
 
     def compute(self, *args, **kwargs):
@@ -159,26 +191,10 @@ class Step:
             outputs.append(DataPlaceholder(self, name))
         return outputs
 
-    def _generate_unique_name(self):
-        name = self.__class__.__name__
-
-        n_instances = self._names.get(name, 0)
-        unique_name = make_name(name, n_instances, sep='_')
-
-        n_instances += 1
-        self._names[name] = n_instances
-
-        return unique_name
-
-    @classmethod
-    def _clear_names(cls):
-        # For testing purposes only.
-        cls._names.clear()
-
     def __repr__(self):
         cls_name = self.__class__.__name__
         parent_repr = super(Step, self).__repr__()
-        step_attrs = ['name', 'trainable', 'function']
+        step_attrs = ['name', 'function', 'n_outputs', 'trainable']
 
         # Insert Step attributes into the parent repr
         # if the repr has the sklearn pattern
@@ -195,28 +211,20 @@ class Step:
         else:
             return make_repr(self, step_attrs)
 
-    def _get_param_names(self):
-        """This is a workaround to override @classmethod binding of the sklearn
-        parent class method so we can feed it the sklearn parent class instead
-        of the children class. We assume client code subclassed from this mixin
-        and a sklearn class, with the sklearn class being the next base class in
-        the mro.
-        """
-        return super(Step, self)._get_param_names.__func__(super(Step, self))
 
-
-class InputStep(Step):
+class InputStep(_StepBase):
     """Special Step subclass for Model inputs.
 
     It is characterized by having no inputs and exactly one output.
     """
     def __init__(self, name=None):
-        super(InputStep, self).__init__(name=name, trainable=False, function=None)
+        super(InputStep, self).__init__(name=name, n_outputs=1)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
 
-    def _check_function(self, function):
-        pass
+    def __repr__(self):
+        step_attrs = ['name']
+        return make_repr(self, step_attrs)
 
 
 def Input(name: Optional[str] = None) -> DataPlaceholder:
