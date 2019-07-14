@@ -72,7 +72,7 @@ class Model(Step):
                  outputs: DataPlaceHolders,
                  name: Optional[str] = None,
                  trainable: bool = True):
-        super(Model, self).__init__(name=name, trainable=trainable)
+        super().__init__(name=name, trainable=trainable)
 
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):

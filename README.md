@@ -160,7 +160,7 @@ from baikal import Step
 # The order of inheritance is important!
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     def __init__(self, name=None, **kwargs):
-        super(LogisticRegression, self).__init__(name=name, **kwargs)
+        super().__init__(name=name, **kwargs)
 ```
 
 Other steps are defined similarly (omitted here for brevity).

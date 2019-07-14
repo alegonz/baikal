@@ -12,7 +12,7 @@ class _StepBase:
 
     def __init__(self, *args, name: str = None, n_outputs: int = 1, **kwargs):
         # Necessary to use this class as a mixin
-        super(_StepBase, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Use name as is if it was specified by the user, to avoid the user a surprise
         self.name = name if name is not None else self._generate_unique_name()
@@ -42,7 +42,7 @@ class _StepBase:
         and a sklearn class, with the sklearn class being the next base class in
         the mro.
         """
-        return super(_StepBase, self)._get_param_names.__func__(super(_StepBase, self))
+        return super()._get_param_names.__func__(super())
 
 
 class Step(_StepBase):
@@ -108,7 +108,7 @@ class Step(_StepBase):
     >>> # The order of inheritance is important!
     >>> class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     >>>     def __init__(self, name=None, **kwargs):
-    >>>         super(LogisticRegression, self).__init__(name=name, **kwargs)
+    >>>         super().__init__(name=name, **kwargs)
     >>>
     >>> logreg = LogisticRegression(C=2.0, function='predict_proba')
     """
@@ -120,7 +120,7 @@ class Step(_StepBase):
                  trainable: bool = True,
                  **kwargs):
         # Necessary to use this class as a mixin
-        super(Step, self).__init__(*args, name=name, n_outputs=n_outputs, **kwargs)
+        super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)
         self.trainable = trainable
         self.function = self._check_function(function)
         self.inputs = None
@@ -193,7 +193,7 @@ class Step(_StepBase):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        parent_repr = super(Step, self).__repr__()
+        parent_repr = super().__repr__()
         step_attrs = ['name', 'function', 'n_outputs', 'trainable']
 
         # Insert Step attributes into the parent repr
@@ -218,7 +218,7 @@ class InputStep(_StepBase):
     It is characterized by having no inputs and exactly one output.
     """
     def __init__(self, name=None):
-        super(InputStep, self).__init__(name=name, n_outputs=1)
+        super().__init__(name=name, n_outputs=1)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
 

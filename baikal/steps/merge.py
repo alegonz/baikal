@@ -6,7 +6,7 @@ from baikal._core.step import Step
 class Concatenate(Step):
     """Step for numpy's concatenate function."""
     def __init__(self, axis=-1, name=None):
-        super(Concatenate, self).__init__(name=name, trainable=False)
+        super().__init__(name=name, trainable=False)
         self.axis = axis
 
     def transform(self, *Xs):
@@ -16,7 +16,7 @@ class Concatenate(Step):
 class Stack(Step):
     """Step for numpy's stack function."""
     def __init__(self, axis=-1, name=None):
-        super(Stack, self).__init__(name=name, trainable=False)
+        super().__init__(name=name, trainable=False)
         self.axis = axis
 
     def transform(self, *Xs):
@@ -26,7 +26,7 @@ class Stack(Step):
 class ColumnStack(Step):
     """Step for numpy's column_stack function."""
     def __init__(self, name=None):
-        super(ColumnStack, self).__init__(name=name, trainable=False)
+        super().__init__(name=name, trainable=False)
 
     def transform(self, *Xs):
         return np.column_stack(Xs)

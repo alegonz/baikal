@@ -11,17 +11,17 @@ from baikal.sklearn import SKLearnWrapper
 
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     def __init__(self, name=None, **kwargs):
-        super(LogisticRegression, self).__init__(name=name, **kwargs)
+        super().__init__(name=name, **kwargs)
 
 
 class RandomForestClassifier(Step, sklearn.ensemble.RandomForestClassifier):
     def __init__(self, name=None, **kwargs):
-        super(RandomForestClassifier, self).__init__(name=name, **kwargs)
+        super().__init__(name=name, **kwargs)
 
 
 class PCA(Step, sklearn.decomposition.PCA):
     def __init__(self, name=None, **kwargs):
-        super(PCA, self).__init__(name=name, **kwargs)
+        super().__init__(name=name, **kwargs)
 
 
 def build_fn():

@@ -15,11 +15,9 @@ def make_step(base_class):
         class PCA(Step, sklearn.decomposition.PCA):
             def __init__(self, name=None, function=None,
                          n_outputs=1, trainable=True, **kwargs):
-                super(PCA, self).__init__(name=name,
-                                          function=function,
-                                          n_outputs=n_outputs,
-                                          trainable=trainable,
-                                          , **kwargs)
+                super().__init__(name=name, function=function,
+                                 n_outputs=n_outputs, trainable=trainable,
+                                 **kwargs)
 
     Parameters
     ----------
