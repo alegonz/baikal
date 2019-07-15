@@ -11,3 +11,5 @@ if [[ "${RUN_TEST_WITH_COVERAGE}" == "1" ]]; then
 else
     make test
 fi
+
+make type-check
