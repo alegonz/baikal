@@ -1,6 +1,6 @@
 import io
 import os
-from typing import Optional
+from typing import Set, Tuple, Optional
 
 try:
     import pydot
@@ -9,7 +9,7 @@ except ImportError:
                       'You can install with `pip install pydot` or'
                       '`pip install baikal[viz]`')
 
-from baikal._core.model import Model
+from baikal._core.model import Model, Step
 from baikal._core.utils import safezip2
 
 
@@ -42,8 +42,8 @@ def plot_model(model: Model,
     """
 
     dot_graph = pydot.Dot(graph_type='digraph', **dot_kwargs)
-    nodes_built = set()
-    edges_built = set()
+    nodes_built = set()  # type: Set[Step]
+    edges_built = set()  # type: Set[Tuple[Step, Step, str]]
 
     def dummy_node(name):
         return pydot.Node(name=name, shape='rect', color='white', fontcolor='white',

@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Union, Callable, Any
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
 from baikal._core.utils import listify, make_name, make_repr, make_args_from_attrs
@@ -8,11 +8,11 @@ from baikal._core.utils import listify, make_name, make_repr, make_args_from_att
 class _StepBase:
     # used to keep track of number of instances and make unique names
     # a dict-of-dicts with graph and name as keys.
-    _names = dict()
+    _names = dict()  # type: Dict[str, int]
 
     def __init__(self, *args, name: str = None, n_outputs: int = 1, **kwargs):
         # Necessary to use this class as a mixin
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)  # type: ignore
 
         # Use name as is if it was specified by the user, to avoid the user a surprise
         self.name = name if name is not None else self._generate_unique_name()
@@ -120,11 +120,12 @@ class Step(_StepBase):
                  trainable: bool = True,
                  **kwargs):
         # Necessary to use this class as a mixin
-        super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)
+        super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)  # type: ignore
+
         self.trainable = trainable
         self.function = self._check_function(function)
-        self.inputs = None
-        self.outputs = None
+        self.inputs = []  # type: List[DataPlaceholder]
+        self.outputs = []  # type: List[DataPlaceholder]
 
     def _check_function(self, function):
         if function is None:
@@ -247,3 +248,10 @@ def Input(name: Optional[str] = None) -> DataPlaceholder:
     # Maybe this can be implemented in InputStep.__new__
     input = InputStep(name)
     return input.outputs[0]  # Input produces exactly one DataPlaceholder output
+
+
+# Notes on typing:
+# mypy produces false positives with mixins, so we use type: ignore
+# See:
+# https://github.com/python/mypy/issues/1996
+# https://github.com/python/mypy/issues/5887

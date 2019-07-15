@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Union, List, Dict, Sequence, Optional, Iterable
+from typing import Union, List, Dict, Set, Iterable, Optional
 
 from baikal._core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal._core.digraph import DiGraph
@@ -9,7 +9,6 @@ from baikal._core.utils import find_duplicated_items, listify, safezip2, SimpleC
 
 
 # Just to avoid function signatures painful to the eye
-strs = Union[str, List[str]]
 DataPlaceHolders = Union[DataPlaceholder, List[DataPlaceholder]]
 ArrayLikes = Union[ArrayLike, List[ArrayLike]]
 DataDict = Dict[Union[DataPlaceholder, str], ArrayLike]
@@ -89,11 +88,6 @@ class Model(Step):
         self.n_outputs = len(outputs)
         self._internal_inputs = inputs
         self._internal_outputs = outputs
-        self._graph = None
-        self._data_placeholders = None
-        self._steps = None
-        self._all_steps_sorted = None
-        self._steps_cache = None
         self._build()
 
     def _build(self):
@@ -114,8 +108,8 @@ class Model(Step):
         self._get_required_steps(self._internal_inputs, self._internal_outputs)
 
     def _get_required_steps(self,
-                            inputs: Sequence[DataPlaceholder],
-                            outputs: Sequence[DataPlaceholder]) -> List[Step]:
+                            inputs: Iterable[DataPlaceholder],
+                            outputs: Iterable[DataPlaceholder]) -> List[Step]:
         """Backtrack from outputs until inputs to get the necessary steps.
         That is, find the ancestors of the nodes that provide the specified
         outputs. Raise an error if there is an ancestor whose input is not in
@@ -126,7 +120,7 @@ class Model(Step):
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
 
-        required_steps = set()
+        required_steps = set()  # type: Set[Step]
         inputs_found = []
 
         # Depth-first search
@@ -150,7 +144,7 @@ class Model(Step):
             required_steps |= backtrack(output)
 
         # Check for missing inputs
-        missing_inputs = []
+        missing_inputs = []  # type: List[DataPlaceholder]
         for step in required_steps:
             if self._graph.in_degree(step) == 0:
                 missing_inputs.extend(step.outputs)
@@ -165,10 +159,11 @@ class Model(Step):
                 raise RuntimeError('Input {} was provided but it is not required '
                                    'to compute the specified outputs.'.format(input.name))
 
-        required_steps = [step for step in self._all_steps_sorted if step in required_steps]
-        self._steps_cache[cache_key] = required_steps
+        required_steps_sorted = [step for step in self._all_steps_sorted
+                                 if step in required_steps]
+        self._steps_cache[cache_key] = required_steps_sorted
 
-        return required_steps
+        return required_steps_sorted
 
     def _normalize_data(self,
                         data: Union[ArrayLikes, DataDict],
@@ -306,7 +301,7 @@ class Model(Step):
 
         # Get steps and their fit_params
         steps = self._get_required_steps(X, y)
-        fit_params_steps = defaultdict(dict)
+        fit_params_steps = defaultdict(dict)  # type: Dict[Step, Dict]
         for param_key, param_value in fit_params.items():
             # TODO: Add check for __. Add error message if step was not found
             step_name, _, param_name = param_key.partition('__')
@@ -331,7 +326,7 @@ class Model(Step):
                 fit_params = fit_params_steps.get(step, {})
 
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                step.fit(*Xs, *ys, **fit_params)
+                step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
 
             # 2) predict/transform phase
             self._compute_step(step, Xs, results_cache)
@@ -340,7 +335,7 @@ class Model(Step):
 
     def predict(self,
                 X: Union[ArrayLikes, DataDict],
-                outputs: Optional[Union[strs, DataPlaceHolders]] = None) -> ArrayLikes:
+                output_names: Optional[Union[str, List[str]]] = None) -> ArrayLikes:
         """
 
         **Models are query-able**. That is, you can request other outputs other
@@ -352,29 +347,30 @@ class Model(Step):
         X
             Input data. It follows the same format as in the fit function.
 
-        outputs
-            Required outputs (optional). You can specify any final or intermediate
-            output by passing the name of its associated data placeholder. If
-            not specified, it will return the outputs specified at instantiation.
+        output_names
+            Names of required outputs (optional). You can specify any final or
+            intermediate output by passing the name of its associated data
+            placeholder. If not specified, it will return the outputs specified
+            at instantiation.
 
         Returns
         -------
         The computed outputs.
         """
         # Intermediate results are stored here
-        # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
-        results_cache = dict()
+        results_cache = dict()  # type: Dict[DataPlaceholder, ArrayLike]
 
-        # Normalize inputs and outputs
+        # Normalize inputs
         X = self._normalize_data(X, self._internal_inputs)
 
-        if outputs is None:
+        # Get required outputs
+        if output_names is None:
             outputs = self._internal_outputs
         else:
-            outputs = listify(outputs)
-            if len(set(outputs)) != len(outputs):
-                raise ValueError('outputs must be unique.')
-            outputs = [self.get_data_placeholder(output) for output in outputs]
+            output_names = listify(output_names)
+            if len(set(output_names)) != len(output_names):
+                raise ValueError('output_names must be unique.')
+            outputs = [self.get_data_placeholder(output) for output in output_names]
 
         steps = self._get_required_steps(X, outputs)
 

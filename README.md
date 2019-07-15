@@ -239,13 +239,13 @@ y_test_pred = model.predict({x1: X1_test, x2: X2_test})
 **Models are query-able**. That is, you can request other outputs other than those specified at model instantiation. This allows querying intermediate outputs and ease debugging. For example, to get both the output from PCA and the ExtraTreesClassifier:
 
 ```python
-outs = model.predict([X1_test, X2_test], outputs=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
+outs = model.predict([X1_test, X2_test], output_names=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
 ```
 
 You don't need to (actually, **baikal** won't let you) pass inputs that are not required the compute the queried output. For example, if we just want the output of PowerTransformer: 
 
 ```python
-outs = model.predict({x2: X2_data}, outputs='PowerTransformer_0/0')
+outs = model.predict({x2: X2_data}, output_names='PowerTransformer_0/0')
 ```
 
 **Models are also nestable**. In fact, Models are steps, too. This allows composing smaller models into bigger ones, like so:

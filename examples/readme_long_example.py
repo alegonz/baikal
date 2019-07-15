@@ -76,4 +76,4 @@ y_test_pred = model.predict([X1_test, X2_test])
 # y_test_pred = model.predict({x1: X1_test, x2: X2_test})
 
 # We can also query any intermediate outputs:
-outs = model.predict([X1_test, X2_test], outputs=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
+outs = model.predict([X1_test, X2_test], output_names=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
