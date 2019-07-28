@@ -2,14 +2,11 @@ import sklearn.svm
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
-from baikal import Input, Model, Step
+from baikal import Input, Model, make_step
 
 
 # 1. Define a step
-class SVC(Step, sklearn.svm.SVC):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
+SVC = make_step(sklearn.svm.SVC)
 
 # 2. Build the model
 x = Input()

@@ -6,41 +6,18 @@ import sklearn.svm
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
-from baikal import Input, Step, Model
+from baikal import Input, Model, make_step
 from baikal.plot import plot_model
 from baikal.steps import Stack
 
 
 # 1. Define the steps
-class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class RandomForestClassifier(Step, sklearn.ensemble.RandomForestClassifier):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class ExtraTreesClassifier(Step, sklearn.ensemble.ExtraTreesClassifier):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class PCA(Step, sklearn.decomposition.PCA):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class SVC(Step, sklearn.svm.SVC):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class PowerTransformer(Step, sklearn.preprocessing.PowerTransformer):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
+LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
+RandomForestClassifier = make_step(sklearn.ensemble.RandomForestClassifier)
+ExtraTreesClassifier = make_step(sklearn.ensemble.ExtraTreesClassifier)
+PCA = make_step(sklearn.decomposition.PCA)
+SVC = make_step(sklearn.svm.SVC)
+PowerTransformer = make_step(sklearn.preprocessing.PowerTransformer)
 
 # 2. Build the model
 x1 = Input()

@@ -5,23 +5,13 @@ import sklearn.linear_model
 from sklearn import datasets
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 
-from baikal import Input, Model, Step
+from baikal import Input, Model, make_step
 from baikal.sklearn import SKLearnWrapper
 
 
-class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class RandomForestClassifier(Step, sklearn.ensemble.RandomForestClassifier):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class PCA(Step, sklearn.decomposition.PCA):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
+LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
+RandomForestClassifier = make_step(sklearn.ensemble.RandomForestClassifier)
+PCA = make_step(sklearn.decomposition.PCA)
 
 
 def build_fn():

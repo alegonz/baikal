@@ -4,26 +4,15 @@ import sklearn.linear_model
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 
-from baikal import Input, Model, Step
+from baikal import Input, Model, make_step
 from baikal.plot import plot_model
 from baikal.steps import Concatenate
 
 
 # ------- Define steps
-class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class RandomForestClassifier(Step, sklearn.ensemble.RandomForestClassifier):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-
-class ExtraTreesClassifier(Step, sklearn.ensemble.ExtraTreesClassifier):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
+LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
+RandomForestClassifier = make_step(sklearn.ensemble.RandomForestClassifier)
+ExtraTreesClassifier = make_step(sklearn.ensemble.ExtraTreesClassifier)
 
 # ------- Load dataset
 data = sklearn.datasets.load_breast_cancer()

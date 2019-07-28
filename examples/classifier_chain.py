@@ -4,16 +4,13 @@ from sklearn.datasets import fetch_openml
 from sklearn.metrics import jaccard_score
 from sklearn.model_selection import train_test_split
 
-from baikal import Input, Model, Step
+from baikal import Input, Model, make_step
 from baikal.plot import plot_model
 from baikal.steps import ColumnStack
 
 
 # ------- Define steps
-class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
+LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
 
 # ------- Load a multi-label dataset
 # (from https://www.openml.org/d/40597)
