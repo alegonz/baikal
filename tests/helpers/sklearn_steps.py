@@ -3,7 +3,7 @@ import sklearn.ensemble
 import sklearn.linear_model
 import sklearn.preprocessing
 
-from baikal.steps.factory import make_step
+from baikal import make_step
 
 LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
 RandomForestClassifier = make_step(sklearn.ensemble.RandomForestClassifier)
