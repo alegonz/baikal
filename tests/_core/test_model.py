@@ -14,7 +14,7 @@ import sklearn.linear_model
 from sklearn.pipeline import Pipeline
 
 from baikal import Model, Input
-from baikal.steps import Concatenate, Lambda, Stack
+from baikal.steps import Concatenate, Stack
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (LogisticRegression, RandomForestClassifier, ExtraTreesClassifier,
