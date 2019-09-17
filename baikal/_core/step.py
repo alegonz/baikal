@@ -14,6 +14,7 @@ class _StepBase:
         # Necessary to use this class as a mixin
         super().__init__(*args, **kwargs)  # type: ignore
 
+        # TODO: name and n_outputs should be read-only attributes
         # Use name as is if it was specified by the user, to avoid the user a surprise
         self.name = name if name is not None else self._generate_unique_name()
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__

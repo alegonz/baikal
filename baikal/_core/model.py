@@ -476,12 +476,14 @@ class Model(Step):
     def _replace_step(self, step_key, new_step):
         # Transfer connectivity configuration from old step
         # to new step and replace old with new
+        # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
         transfer_attrs = ['name', 'trainable', 'inputs', 'outputs']
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
 
         # Update outputs of old step to point to the new step
+        # TODO: The output dataplaceholders should be replaced too
         for output in old_step.outputs:
             output.step = new_step
 
