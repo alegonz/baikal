@@ -38,7 +38,7 @@ class TestStep:
         assert 'LogisticRegression_0' == lr0.name
         assert 'LogisticRegression_1' == lr1.name
 
-    def test_with_invalid_function_argument(self):
+    def test_instantiate_with_invalid_function_argument(self):
         class DummyStep(Step):
             def somefunc(self, X):
                 pass
