@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import pytest
 from baikal._core.step import InputStep
 
@@ -5,8 +7,13 @@ from baikal import Input, Step
 from baikal._core.data_placeholder import DataPlaceholder
 
 from tests.helpers.fixtures import teardown
-from tests.helpers.dummy_steps import DummyMIMO
-from tests.helpers.sklearn_steps import LogisticRegression
+from tests.helpers.dummy_steps import DummyMIMO, DummySISO
+from tests.helpers.sklearn_steps import LogisticRegression, PCA
+
+
+@contextmanager
+def does_not_raise():
+    yield
 
 
 class TestInput:
@@ -72,16 +79,38 @@ class TestStep:
         step = DummyStepWithTransform()
         assert step.function == step.transform
 
-    def test_call(self, teardown):
-        x = Input(name='x')
-        y = LogisticRegression()(x)
+    # Below tests are parametrized to take two kind of fittable steps:
+    # - step that requires y (e.g. Logistic Regression)
+    # - step that does not require y (e.g. PCA)
 
-        assert isinstance(y, DataPlaceholder)
-        assert 'LogisticRegression_0/0' == y.name
+    @pytest.mark.parametrize("step_class", [LogisticRegression, PCA])
+    @pytest.mark.parametrize("trainable", [True, False])
+    def test_call_without_targets(self, step_class, trainable, teardown):
+        x = Input()
+        step_class(trainable=trainable)(x)
+
+    @pytest.mark.parametrize("step_class", [LogisticRegression, PCA])
+    @pytest.mark.parametrize("trainable,expectation", [(True, does_not_raise()),
+                                                       (False, pytest.warns(RuntimeWarning))])
+    def test_call_with_targets(self, step_class, trainable, expectation, teardown):
+        x = Input()
+        yt = Input()
+        with expectation:
+            step_class(trainable=trainable)(x, yt)
+
+    def test_call_without_targets_without_fit_method(self, teardown):
+        x = Input()
+        DummySISO()(x)
+
+    def test_call_with_targets_without_fit_method(self, teardown):
+        x = Input()
+        yt = Input()
+        with pytest.raises(RuntimeError):
+            DummySISO()(x, yt)
 
     def test_call_with_two_inputs(self, teardown):
-        x0 = Input(name='x')
-        x1 = Input(name='x')
+        x0 = Input()
+        x1 = Input()
         y0, y1 = DummyMIMO()([x0, x1])
 
         assert isinstance(y0, DataPlaceholder)
