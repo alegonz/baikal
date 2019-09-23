@@ -31,6 +31,13 @@ class TestInputStep:
 
 
 class TestStep:
+    def test_instantiate_two_without_name(self, teardown):
+        lr0 = LogisticRegression()
+        lr1 = LogisticRegression()
+
+        assert 'LogisticRegression_0' == lr0.name
+        assert 'LogisticRegression_1' == lr1.name
+
     def test_with_invalid_function_argument(self):
         class DummyStep(Step):
             def somefunc(self, X):
@@ -81,14 +88,6 @@ class TestStep:
         assert isinstance(y1, DataPlaceholder)
         assert 'DummyMIMO_0/0' == y0.name
         assert 'DummyMIMO_0/1' == y1.name
-
-    def test_instantiate_two_without_name(self, teardown):
-        x = Input(name='x')
-        y0 = LogisticRegression()(x)
-        y1 = LogisticRegression()(x)
-
-        assert 'LogisticRegression_0/0' == y0.name
-        assert 'LogisticRegression_1/0' == y1.name
 
     def test_repr(self):
         class DummyStep(Step):
