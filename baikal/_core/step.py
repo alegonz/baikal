@@ -217,7 +217,8 @@ class Step(_StepBase):
 class InputStep(_StepBase):
     """Special Step subclass for Model inputs.
 
-    It is characterized by having no inputs and exactly one output.
+    It is characterized by having no inputs (in_degree == 0)
+    and exactly one output (out_degree == 1).
     """
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=1)
