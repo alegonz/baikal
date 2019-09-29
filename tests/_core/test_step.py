@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from functools import partial
 
 import pytest
 from baikal._core.step import InputStep
@@ -90,12 +91,12 @@ class TestStep:
         step_class(trainable=trainable)(x)
 
     @pytest.mark.parametrize("step_class", [LogisticRegression, PCA])
-    @pytest.mark.parametrize("trainable,expectation", [(True, does_not_raise()),
-                                                       (False, pytest.warns(RuntimeWarning))])
+    @pytest.mark.parametrize("trainable,expectation", [(True, does_not_raise),
+                                                       (False, partial(pytest.warns, RuntimeWarning))])
     def test_call_with_targets(self, step_class, trainable, expectation, teardown):
         x = Input()
         yt = Input()
-        with expectation:
+        with expectation():
             step_class(trainable=trainable)(x, yt)
 
     def test_call_without_targets_without_fit_method(self, teardown):
