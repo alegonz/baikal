@@ -108,27 +108,35 @@ class Model(Step):
         self._get_required_steps(self._internal_inputs, self._internal_outputs)
 
     def _get_required_steps(self,
-                            inputs: Iterable[DataPlaceholder],
-                            outputs: Iterable[DataPlaceholder]) -> List[Step]:
-        """Backtrack from outputs until inputs to get the necessary steps.
-        That is, find the ancestors of the nodes that provide the specified
-        outputs. Raise an error if there is an ancestor whose input is not in
-        the specified inputs. We assume a DAG (guaranteed by success of
-        topological_sort).
+                            given_inputs: Iterable[DataPlaceholder],
+                            desired_outputs: Iterable[DataPlaceholder]) -> List[Step]:
+        """Backtrack from the desired outputs until the given inputs to get the
+        required steps. That is, find the ancestors of the nodes that provide
+        the desired outputs. Raise an error if there is an ancestor whose
+        input is not in the given inputs. We assume a DAG (guaranteed by the
+        success of topological_sort) and unique given_inputs and required_outputs
+        (guaranteed by the callers of this function).
         """
-        cache_key = (tuple(sorted(inputs)), tuple(sorted(outputs)))
+        cache_key = (tuple(sorted(given_inputs)),
+                     tuple(sorted(desired_outputs)))
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
 
+        given_inputs = set(given_inputs)
+        desired_outputs = set(desired_outputs)
+        given_inputs_found = set()  # type: Set[DataPlaceholder]
         required_steps = set()  # type: Set[Step]
-        inputs_found = []
 
         # Depth-first search
+        # backtracking stops if any of the following happen:
+        #   - found a given input
+        #   - found a known required step
+        #   - hit an InputStep
         def backtrack(output):
             steps_required_by_output = set()
 
-            if output in inputs:
-                inputs_found.append(output)
+            if output in given_inputs:
+                given_inputs_found.add(output)
                 return steps_required_by_output
 
             parent_step = output.step
@@ -140,24 +148,27 @@ class Model(Step):
                 steps_required_by_output |= backtrack(input)
             return steps_required_by_output
 
-        for output in outputs:
+        for output in desired_outputs:
             required_steps |= backtrack(output)
 
         # Check for missing inputs
-        missing_inputs = []  # type: List[DataPlaceholder]
+        # InputSteps that were reached by backtracking are missing inputs.
+        # We *do not* compare given_inputs_found with self.inputs
+        # because we allow giving intermediate inputs directly.
+        missing_inputs = set()  # type: Set[DataPlaceholder]
         for step in required_steps:
-            if self._graph.in_degree(step) == 0:
-                missing_inputs.extend(step.outputs)
+            if isinstance(step, InputStep):
+                missing_inputs |= set(step.outputs)
 
         if missing_inputs:
-            raise RuntimeError('The following inputs are required but were not specified:\n'
+            raise RuntimeError('The following inputs are required but were not given:\n'
                                '{}'.format(','.join([input.name for input in missing_inputs])))
 
         # Check for any unused inputs
-        for input in inputs:
-            if input not in inputs_found:
-                raise RuntimeError('Input {} was provided but it is not required '
-                                   'to compute the specified outputs.'.format(input.name))
+        unused_inputs = given_inputs - given_inputs_found
+        if unused_inputs:
+            raise RuntimeError('The following inputs were given but are not required:\n'
+                               '{}'.format(','.join([input.name for input in unused_inputs])))
 
         required_steps_sorted = [step for step in self._all_steps_sorted
                                  if step in required_steps]
