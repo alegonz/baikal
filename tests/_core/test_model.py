@@ -24,7 +24,7 @@ from baikal.steps import Concatenate, Stack
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (LogisticRegression, RandomForestClassifier, ExtraTreesClassifier,
                                          PCA, LabelEncoder, StandardScaler)
-from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyMIMO, DummyImproperlyDefined
+from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyImproperlyDefined
 
 pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning:sklearn',
                                         'ignore::FutureWarning:sklearn')
