@@ -92,7 +92,7 @@ class TestStep:
 
     @pytest.mark.parametrize("step_class", [LogisticRegression, PCA])
     @pytest.mark.parametrize("trainable,expectation", [(True, does_not_raise),
-                                                       (False, partial(pytest.warns, RuntimeWarning))])
+                                                       (False, partial(pytest.warns, UserWarning))])
     def test_call_with_targets(self, step_class, trainable, expectation, teardown):
         x = Input()
         y_t = Input()

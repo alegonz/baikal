@@ -79,7 +79,7 @@ class TestInit:
         x2 = Input()
         c = Concatenate()([x1, x2])
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             Model(x1, c)
 
     @pytest.mark.parametrize("step_class", [PCA, LogisticRegression])
@@ -88,7 +88,7 @@ class TestInit:
         x = Input()
         y_t = Input()
         y = step_class(trainable=trainable)(x, y_t)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             Model(x, y)
 
     def test_with_unnecessary_inputs(self, teardown):
@@ -98,10 +98,10 @@ class TestInit:
         h = PCA()(x1)
         y = LogisticRegression()(h, y_t)
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             Model([x1, x2], y, y_t)
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             Model([x1, h], y, y_t)  # x1 is an unnecessary input upstream of h
 
     # TODO: Add case of class without fit method
@@ -111,7 +111,7 @@ class TestInit:
         x = Input()
         y_t = Input()
         y = step_class(trainable=trainable)(x)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             Model(x, y, y_t)  # y_t was not used anywhere
 
     def test_with_duplicated_inputs(self, teardown):
