@@ -44,35 +44,35 @@ class TestInit:
     def test_simple(self, teardown):
         x1 = Input()
         x2 = Input()
-        yt = Input()
+        y_t = Input()
 
         x1_transformed = PCA()(x1)
-        yt_encoded = LabelEncoder()(yt)
+        y_t_encoded = LabelEncoder()(y_t)
         z = Concatenate()([x1_transformed, x2])
-        yp = LogisticRegression()(z, yt_encoded)
+        y = LogisticRegression()(z, y_t_encoded)
         # TODO: support shareable steps to reuse LabelEncoder(function="inverse_transform")
 
         # full model
-        Model([x1, x2], yp, yt)
+        Model([x1, x2], y, y_t)
 
         # submodels
         Model(x1, x1_transformed)
-        Model(z, yp, yt_encoded)
+        Model(z, y, y_t_encoded)
 
     def test_with_wrong_type(self, teardown):
         x = Input()
-        yt = Input()
-        yp = LogisticRegression()(x, yt)
+        y_t = Input()
+        y = LogisticRegression()(x, y_t)
 
         wrong = np.zeros((10,))
         with pytest.raises(ValueError):
-            Model(wrong, yp, yt)
+            Model(wrong, y, y_t)
 
         with pytest.raises(ValueError):
-            Model(x, wrong, yt)
+            Model(x, wrong, y_t)
 
         with pytest.raises(ValueError):
-                Model(x, yp, wrong)
+                Model(x, y, wrong)
 
     def test_with_missing_inputs(self, teardown):
         x1 = Input()
@@ -86,54 +86,54 @@ class TestInit:
     @pytest.mark.parametrize("trainable", [True, False])
     def test_with_missing_targets(self, step_class, trainable, teardown):
         x = Input()
-        yt = Input()
-        yp = step_class(trainable=trainable)(x, yt)
+        y_t = Input()
+        y = step_class(trainable=trainable)(x, y_t)
         with pytest.raises(RuntimeError):
-            Model(x, yp)
+            Model(x, y)
 
     def test_with_unnecessary_inputs(self, teardown):
         x1 = Input()
         x2 = Input()
-        yt = Input()
+        y_t = Input()
         h = PCA()(x1)
-        y = LogisticRegression()(h, yt)
+        y = LogisticRegression()(h, y_t)
 
         with pytest.raises(RuntimeError):
-            Model([x1, x2], y, yt)
+            Model([x1, x2], y, y_t)
 
         with pytest.raises(RuntimeError):
-            Model([x1, h], y, yt)  # x1 is an unnecessary input upstream of h
+            Model([x1, h], y, y_t)  # x1 is an unnecessary input upstream of h
 
     # TODO: Add case of class without fit method
     @pytest.mark.parametrize("step_class", [PCA, LogisticRegression])
     @pytest.mark.parametrize("trainable", [True, False])
     def test_with_unnecessary_targets(self, step_class, trainable, teardown):
         x = Input()
-        yt = Input()
-        yp = step_class(trainable=trainable)(x)
+        y_t = Input()
+        y = step_class(trainable=trainable)(x)
         with pytest.raises(RuntimeError):
-            Model(x, yp, yt)  # yt was not used anywhere
+            Model(x, y, y_t)  # y_t was not used anywhere
 
     def test_with_duplicated_inputs(self, teardown):
         x = Input()
-        yt = Input()
-        yp = LogisticRegression()(x, yt)
+        y_t = Input()
+        y = LogisticRegression()(x, y_t)
         with pytest.raises(ValueError):
-            Model([x, x], yp, yt)
+            Model([x, x], y, y_t)
 
     def test_with_duplicated_outputs(self, teardown):
         x = Input()
-        yt = Input()
-        yp = LogisticRegression()(x, yt)
+        y_t = Input()
+        y = LogisticRegression()(x, y_t)
         with pytest.raises(ValueError):
-            Model(x, [yp, yp], yt)
+            Model(x, [y, y], y_t)
 
     def test_with_duplicated_targets(self, teardown):
         x = Input()
-        yt = Input()
-        yp = LogisticRegression()(x, yt)
+        y_t = Input()
+        y = LogisticRegression()(x, y_t)
         with pytest.raises(ValueError):
-            Model(x, yp, [yt, yt])
+            Model(x, y, [y_t, y_t])
 
     def test_with_steps_with_duplicated_names(self, teardown):
         x = Input()
@@ -240,8 +240,8 @@ class TestFit:
 
     def test_with_undefined_target(self, teardown):
         x = Input()
-        yp = LogisticRegression(trainable=True)(x)
-        model = Model(inputs=x, outputs=yp)
+        y = LogisticRegression(trainable=True)(x)
+        model = Model(inputs=x, outputs=y)
         with pytest.raises(TypeError):
             # LogisticRegression.fit will be called with not enough arguments
             # hence the TypeError
@@ -251,9 +251,9 @@ class TestFit:
                                                        (False, does_not_raise)])
     def test_with_unnecessary_defined_target(self, trainable, expectation, teardown):
         x = Input()
-        yt = Input()
-        yp = PCA(trainable=trainable)(x, yt)  # this target is unnecessary
-        model = Model(inputs=x, outputs=yp, targets=yt)
+        y_t = Input()
+        y = PCA(trainable=trainable)(x, y_t)  # this target is unnecessary
+        model = Model(inputs=x, outputs=y, targets=y_t)
         with expectation():
             model.fit(iris.data)
 

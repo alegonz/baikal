@@ -95,9 +95,9 @@ class TestStep:
                                                        (False, partial(pytest.warns, RuntimeWarning))])
     def test_call_with_targets(self, step_class, trainable, expectation, teardown):
         x = Input()
-        yt = Input()
+        y_t = Input()
         with expectation():
-            step_class(trainable=trainable)(x, yt)
+            step_class(trainable=trainable)(x, y_t)
 
     def test_call_without_targets_without_fit_method(self, teardown):
         x = Input()
@@ -105,9 +105,9 @@ class TestStep:
 
     def test_call_with_targets_without_fit_method(self, teardown):
         x = Input()
-        yt = Input()
+        y_t = Input()
         with pytest.raises(RuntimeError):
-            DummySISO()(x, yt)
+            DummySISO()(x, y_t)
 
     def test_call_with_two_inputs(self, teardown):
         x0 = Input()
