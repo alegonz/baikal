@@ -190,7 +190,7 @@ class TestFit:
         x1, x2, y1, y2, y1_t = dataplaceholders
         X_y_type = request.param
 
-        if X_y_type == List:
+        if X_y_type == List[ArrayLike]:
             return [self.x1_data], self.y1_t_data
         elif X_y_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data}, {y1_t: self.y1_t_data}
@@ -207,7 +207,7 @@ class TestFit:
         x1, x2, y1, y2, y1_t = dataplaceholders
         X_y_type = request.param
 
-        if X_y_type == List:
+        if X_y_type == List[ArrayLike]:
             return [self.x1_data, self.x2_data], []
         elif X_y_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data, x2: self.x2_data}, {}
