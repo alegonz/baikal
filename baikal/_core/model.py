@@ -7,13 +7,13 @@ from baikal._core.step import Step, InputStep
 from baikal._core.typing import ArrayLike
 from baikal._core.utils import find_duplicated_items, listify, safezip2, SimpleCache
 
-
 # Just to avoid function signatures painful to the eye
 DataPlaceHolders = Union[DataPlaceholder, List[DataPlaceholder]]
 ArrayLikes = Union[ArrayLike, List[ArrayLike]]
 DataDict = Dict[Union[DataPlaceholder, str], ArrayLike]
 
 
+# TODO: Update docstrings
 class Model(Step):
     """A Model is a network (more precisely, a directed acyclic graph) of Steps,
     and it is defined from the input/output specification of the pipeline.
@@ -69,25 +69,30 @@ class Model(Step):
     def __init__(self,
                  inputs: DataPlaceHolders,
                  outputs: DataPlaceHolders,
+                 targets: Optional[DataPlaceHolders] = None,
                  name: Optional[str] = None,
                  trainable: bool = True):
         super().__init__(name=name, trainable=trainable)
 
-        inputs = listify(inputs)
-        if not is_data_placeholder_list(inputs):
-            raise ValueError('inputs must be of type DataPlaceholder.')
-        if len(set(inputs)) != len(inputs):
-            raise ValueError('inputs must be unique.')
+        def check(this, what):
+            this = listify(this)
+            if not is_data_placeholder_list(this):
+                raise ValueError("{} must be of type DataPlaceholder.".format(what))
+            if len(set(this)) != len(this):
+                raise ValueError("{} must be unique.".format(what))
+            return this
 
-        outputs = listify(outputs)
-        if not is_data_placeholder_list(outputs):
-            raise ValueError('outputs must be of type DataPlaceholder.')
-        if len(set(outputs)) != len(outputs):
-            raise ValueError('outputs must be unique.')
+        inputs = check(inputs, "inputs")
+        outputs = check(outputs, "outputs")
+        if targets is not None:
+            targets = check(targets, "targets")
+        else:
+            targets = []
 
         self.n_outputs = len(outputs)
         self._internal_inputs = inputs
         self._internal_outputs = outputs
+        self._internal_targets = targets
         self._build()
 
     def _build(self):
@@ -105,31 +110,38 @@ class Model(Step):
 
         self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
         self._steps_cache = SimpleCache()
-        self._get_required_steps(self._internal_inputs, self._internal_outputs)
+        self._get_required_steps(self._internal_inputs, self._internal_targets, self._internal_outputs)
 
     def _get_required_steps(self,
                             given_inputs: Iterable[DataPlaceholder],
+                            given_targets: Iterable[DataPlaceholder],
                             desired_outputs: Iterable[DataPlaceholder]) -> List[Step]:
-        """Backtrack from the desired outputs until the given inputs to get the
-        required steps. That is, find the ancestors of the nodes that provide
-        the desired outputs. Raise an error if there is an ancestor whose
-        input is not in the given inputs. We assume a DAG (guaranteed by the
-        success of topological_sort) and unique given_inputs and required_outputs
-        (guaranteed by the callers of this function).
+        """Backtrack from the desired outputs until the given inputs and targets
+        to get the required steps. That is, find the ancestors of the nodes that
+        provide the desired outputs. Raise an error if there is an ancestor whose
+        input/target is not in the given inputs/targets. We assume a DAG (guaranteed
+        by the success of topological_sort) and unique given_inputs, given_targets
+        and required_outputs (guaranteed by the callers of this function).
+
+        inputs and targets are handled separately to allow ignoring the targets
+        when getting the required steps at predict time.
         """
         cache_key = (tuple(sorted(given_inputs)),
+                     tuple(sorted(given_targets)),
                      tuple(sorted(desired_outputs)))
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
 
         given_inputs = set(given_inputs)
+        given_targets = set(given_targets)
         desired_outputs = set(desired_outputs)
         given_inputs_found = set()  # type: Set[DataPlaceholder]
+        given_targets_found = set()  # type: Set[DataPlaceholder]
         required_steps = set()  # type: Set[Step]
 
         # Depth-first search
         # backtracking stops if any of the following happen:
-        #   - found a given input
+        #   - found a given input or target
         #   - found a known required step
         #   - hit an InputStep
         def backtrack(output):
@@ -139,6 +151,10 @@ class Model(Step):
                 given_inputs_found.add(output)
                 return steps_required_by_output
 
+            if output in given_targets:
+                given_targets_found.add(output)
+                return steps_required_by_output
+
             parent_step = output.step
             if parent_step in required_steps:
                 return steps_required_by_output
@@ -146,29 +162,38 @@ class Model(Step):
             steps_required_by_output = {parent_step}
             for input in parent_step.inputs:
                 steps_required_by_output |= backtrack(input)
+            # TODO: Add if here
+            for target in parent_step.targets:
+                steps_required_by_output |= backtrack(target)
             return steps_required_by_output
 
         for output in desired_outputs:
             required_steps |= backtrack(output)
 
-        # Check for missing inputs
-        # InputSteps that were reached by backtracking are missing inputs.
-        # We *do not* compare given_inputs_found with self.inputs
-        # because we allow giving intermediate inputs directly.
-        missing_inputs = set()  # type: Set[DataPlaceholder]
+        # Check for missing inputs/targets
+        # InputSteps that were reached by backtracking are missing inputs/targets.
+        # We *do not* compare given_inputs_found/given_targets_found with
+        # self._internal_inputs/self._internal_targets because we allow giving
+        # intermediate inputs directly.
+        missing_inputs_or_targets = set()  # type: Set[DataPlaceholder]
         for step in required_steps:
             if isinstance(step, InputStep):
-                missing_inputs |= set(step.outputs)
+                missing_inputs_or_targets |= set(step.outputs)
 
-        if missing_inputs:
-            raise RuntimeError('The following inputs are required but were not given:\n'
-                               '{}'.format(','.join([input.name for input in missing_inputs])))
+        if missing_inputs_or_targets:
+            raise ValueError("The following inputs or targets are required but were not given:\n"
+                             "{}".format(",".join([input.name for input in missing_inputs_or_targets])))
 
-        # Check for any unused inputs
+        # Check for any unused inputs/targets
         unused_inputs = given_inputs - given_inputs_found
         if unused_inputs:
-            raise RuntimeError('The following inputs were given but are not required:\n'
-                               '{}'.format(','.join([input.name for input in unused_inputs])))
+            raise ValueError("The following inputs were given but are not required:\n"
+                             "{}".format(",".join([input.name for input in unused_inputs])))
+
+        unused_targets = given_targets - given_targets_found
+        if unused_targets:
+            raise ValueError("The following targets were given but are not required:\n"
+                             "{}".format(",".join([target.name for target in unused_targets])))
 
         required_steps_sorted = [step for step in self._all_steps_sorted
                                  if step in required_steps]
@@ -502,6 +527,8 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
     from outputs to steps in tandem until hitting a step with no inputs (an
     InputStep).
 
+    It builds the graph including the targets, i.e. the graph at fit time.
+
     Parameters
     ----------
     outputs
@@ -525,6 +552,8 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
         graph.add_node(parent_step)
         for input in parent_step.inputs:
             collect_steps_from(input)
+        for target in parent_step.targets:
+            collect_steps_from(target)
 
     for output in outputs:
         collect_steps_from(output)
@@ -533,13 +562,15 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
     for step in graph:
         for input in step.inputs:
             graph.add_edge(input.step, step, input)
+        for target in step.targets:
+            graph.add_edge(target.step, step, target)
 
     # Check for any nodes (steps) with duplicated names
     duplicated_names = find_duplicated_items([step.name for step in graph])
 
     if duplicated_names:
-        raise RuntimeError('A graph cannot contain steps with duplicated names. '
-                           'Found the following duplicates:\n'
-                           '{}'.format(duplicated_names))
+        raise RuntimeError("A graph cannot contain steps with duplicated names. "
+                           "Found the following duplicates:\n"
+                           "{}".format(duplicated_names))
 
     return graph
