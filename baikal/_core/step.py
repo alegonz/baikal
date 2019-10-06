@@ -1,4 +1,5 @@
 import re
+import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
@@ -46,6 +47,7 @@ class _StepBase:
         return super()._get_param_names.__func__(super())
 
 
+# TODO: Update docstrings
 class Step(_StepBase):
     """Mixin class to endow scikit-learn classes with Step capabilities.
 
@@ -150,8 +152,11 @@ class Step(_StepBase):
     def compute(self, *args, **kwargs):
         return self.function(*args, **kwargs)
 
-    def __call__(self, inputs: Union[DataPlaceholder, List[DataPlaceholder]]) \
-            -> Union[DataPlaceholder, List[DataPlaceholder]]:
+    def __call__(
+            self,
+            inputs: Union[DataPlaceholder, List[DataPlaceholder]],
+            targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None
+    ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the
         output(s) to be used in further steps.
 
@@ -174,11 +179,24 @@ class Step(_StepBase):
         added in future releases.
         """
         inputs = listify(inputs)
-
         if not is_data_placeholder_list(inputs):
-            raise ValueError('Steps must be called with DataPlaceholder inputs.')
+            raise ValueError("inputs must be of type DataPlaceholder.")
+
+        if targets is not None:
+            if not hasattr(self, "fit"):
+                raise RuntimeError("Cannot pass targets to steps that do not have a fit method.")
+            elif not self.trainable:
+                warnings.warn(UserWarning("You are passing targets to a non-trainable step."))
+
+            targets = listify(targets)
+            if not is_data_placeholder_list(targets):
+                raise ValueError("If specified, targets must be of type DataPlaceholder.")
+
+        else:
+            targets = []
 
         self.inputs = inputs
+        self.targets = targets
         self.outputs = self._build_outputs()
 
         if len(self.outputs) == 1:
@@ -224,6 +242,7 @@ class InputStep(_StepBase):
         super().__init__(name=name, n_outputs=1)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
+        self.targets = []
 
     def __repr__(self):
         step_attrs = ['name']
