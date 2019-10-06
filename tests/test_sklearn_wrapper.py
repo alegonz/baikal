@@ -18,7 +18,7 @@ pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning:sklearn',
 
 iris = datasets.load_iris()
 x_data = iris.data
-y_data = iris.target
+y_t_data = iris.target
 random_state = 123
 verbose = 0
 cv = StratifiedKFold(3)  # cv will default to KFold if the estimator is a baikal Model
@@ -32,15 +32,16 @@ def test_grid_search_cv():
     # baikal way
     def build_fn():
         x = Input()
+        y_t = Input()
         h = PCA(random_state=random_state, name='pca')(x)
-        y = LogisticRegression(random_state=random_state, name='logreg')(h)
-        model = Model(x, y)
+        y = LogisticRegression(random_state=random_state, name='logreg')(h, y_t)
+        model = Model(x, y, y_t)
         return model
 
     sk_model = SKLearnWrapper(build_fn)
     gscv_baikal = GridSearchCV(sk_model, param_grid, cv=cv, scoring='accuracy',
                                return_train_score=True, verbose=verbose)
-    gscv_baikal.fit(x_data, y_data)
+    gscv_baikal.fit(x_data, y_t_data)
 
     # traditional way
     pca = sklearn.decomposition.PCA(random_state=random_state)
@@ -49,7 +50,7 @@ def test_grid_search_cv():
 
     gscv_traditional = GridSearchCV(pipe, param_grid, cv=cv, scoring='accuracy',
                                     return_train_score=True, verbose=verbose)
-    gscv_traditional.fit(x_data, y_data)
+    gscv_traditional.fit(x_data, y_t_data)
 
     assert gscv_traditional.best_params_ == gscv_baikal.best_params_
     assert_array_equal(gscv_traditional.cv_results_['mean_train_score'],
@@ -66,15 +67,16 @@ def test_grid_search_cv_with_tunable_step():
     # baikal way
     def build_fn():
         x = Input()
+        y_t = Input()
         h = PCA(random_state=random_state, name='pca')(x)
-        y = LogisticRegression(random_state=random_state, name='classifier')(h)
-        model = Model(x, y)
+        y = LogisticRegression(random_state=random_state, name='classifier')(h, y_t)
+        model = Model(x, y, y_t)
         return model
 
     sk_model = SKLearnWrapper(build_fn)
     gscv_baikal = GridSearchCV(sk_model, param_grid, cv=cv, scoring='accuracy',
                                return_train_score=True, verbose=verbose)
-    gscv_baikal.fit(x_data, y_data)
+    gscv_baikal.fit(x_data, y_t_data)
 
     # traditional way
     pca = sklearn.decomposition.PCA(random_state=random_state)
@@ -83,7 +85,7 @@ def test_grid_search_cv_with_tunable_step():
 
     gscv_traditional = GridSearchCV(pipe, param_grid, cv=cv, scoring='accuracy',
                                     return_train_score=True, verbose=verbose)
-    gscv_traditional.fit(x_data, y_data)
+    gscv_traditional.fit(x_data, y_t_data)
 
     assert gscv_traditional.best_params_ == gscv_baikal.best_params_
     assert_array_equal(gscv_traditional.cv_results_['mean_train_score'],
