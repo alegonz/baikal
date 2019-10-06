@@ -129,6 +129,7 @@ class Step(_StepBase):
         self.function = self._check_function(function)
         self.inputs = []  # type: List[DataPlaceholder]
         self.outputs = []  # type: List[DataPlaceholder]
+        self.targets = []  # type: List[DataPlaceholder]
 
     def _check_function(self, function):
         if function is None:
@@ -243,6 +244,7 @@ class InputStep(_StepBase):
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
         self.targets = []
+        self.trainable = False
 
     def __repr__(self):
         step_attrs = ['name']
