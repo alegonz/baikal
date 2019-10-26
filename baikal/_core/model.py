@@ -116,6 +116,8 @@ class Model(Step):
                             given_inputs: Iterable[DataPlaceholder],
                             given_targets: Iterable[DataPlaceholder],
                             desired_outputs: Iterable[DataPlaceholder],
+                            *,
+                            allow_unused_inputs=False,
                             follow_targets=True,
                             ignore_trainable_false=True) -> List[Step]:
         """Backtrack from the desired outputs until the given inputs and targets
@@ -127,6 +129,8 @@ class Model(Step):
 
         inputs and targets are handled separately to allow ignoring the targets
         when getting the required steps at predict time.
+
+        Unused inputs might be allowed. This is the case in predict.
         """
         cache_key = (tuple(sorted(given_inputs)),
                      tuple(sorted(given_targets)),
@@ -190,7 +194,7 @@ class Model(Step):
 
         # Check for any unused inputs/targets
         unused_inputs = given_inputs - given_inputs_found
-        if unused_inputs:
+        if unused_inputs and not allow_unused_inputs:
             raise ValueError("The following inputs were given but are not required:\n"
                              "{}".format(",".join([input.name for input in unused_inputs])))
 
@@ -404,7 +408,7 @@ class Model(Step):
                 raise ValueError('output_names must be unique.')
             outputs = [self.get_data_placeholder(output) for output in output_names]
 
-        steps = self._get_required_steps(X, [], outputs, follow_targets=False)
+        steps = self._get_required_steps(X, [], outputs, allow_unused_inputs=True, follow_targets=False)
 
         # Compute
         results_cache.update(X)
