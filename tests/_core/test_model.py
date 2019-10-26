@@ -288,7 +288,7 @@ class TestPredict:
         x2 = Input(name='x2')
         y1_t = Input(name='y1_t')
         x1_rescaled = StandardScaler()(x1)
-        y1 = LogisticRegression()(x1_rescaled)
+        y1 = LogisticRegression()(x1_rescaled, y1_t)
         y2 = PCA()(x2)
         return x1, x2, x1_rescaled, y1, y2, y1_t
 
@@ -333,8 +333,8 @@ class TestPredict:
         elif X_type == Dict[str, ArrayLike]:
             return {'x1': self.x1_data}
 
-    def test_with_proper_inputs(self, model, X_proper, outputs, teardown):
-        model.predict(X_proper, *outputs)
+    def test_with_proper_inputs(self, model, X_proper, teardown):
+        model.predict(X_proper)
 
     def test_with_missing_input(self, model, X_missing_input, teardown):
         with pytest.raises(ValueError):
