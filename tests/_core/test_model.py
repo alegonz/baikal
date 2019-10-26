@@ -1,7 +1,6 @@
 import pickle
 import tempfile
 from contextlib import contextmanager
-from functools import partial
 from typing import List, Dict
 
 import numpy as np
@@ -247,14 +246,32 @@ class TestFit:
             # hence the TypeError
             model.fit(iris.data)
 
-    @pytest.mark.parametrize("trainable,expectation", [(True, partial(pytest.raises, ValueError)),
-                                                       (False, does_not_raise)])
-    def test_with_unnecessary_defined_target(self, trainable, expectation, teardown):
+    def test_with_unnecessary_defined_target(self, teardown):
         x = Input()
         y_t = Input()
-        y = PCA(trainable=trainable)(x, y_t)  # this target is unnecessary
+        pca = PCA(trainable=True)
+        y = pca(x, y_t)  # this target is unnecessary
         model = Model(inputs=x, outputs=y, targets=y_t)
-        with expectation():
+        with pytest.raises(ValueError):
+            model.fit(iris.data)
+
+        # fit, this time successfully. targets are superflous
+        # but we need to fit to test as below
+        model.fit(iris.data, iris.target)
+
+        # won't require the target is trainable was set to False
+        pca.trainable = False
+        with does_not_raise():
+            model.fit(iris.data)
+
+    def test_with_non_fitted_non_trainable_step(self, teardown):
+        x = Input()
+        y = PCA(trainable=False)(x)
+        model = Model(inputs=x, outputs=y)
+        with pytest.raises(NotFittedError):
+            # this will raise an error when calling compute
+            # on PCA which was flagged as trainable=False but
+            # hasn't been fitted
             model.fit(iris.data)
 
     # TODO: Add tests with superfluous targets

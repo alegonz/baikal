@@ -115,7 +115,8 @@ class Model(Step):
     def _get_required_steps(self,
                             given_inputs: Iterable[DataPlaceholder],
                             given_targets: Iterable[DataPlaceholder],
-                            desired_outputs: Iterable[DataPlaceholder]) -> List[Step]:
+                            desired_outputs: Iterable[DataPlaceholder],
+                            ignore_trainable_false=True) -> List[Step]:
         """Backtrack from the desired outputs until the given inputs and targets
         to get the required steps. That is, find the ancestors of the nodes that
         provide the desired outputs. Raise an error if there is an ancestor whose
@@ -162,9 +163,11 @@ class Model(Step):
             steps_required_by_output = {parent_step}
             for input in parent_step.inputs:
                 steps_required_by_output |= backtrack(input)
-            # TODO: Add if here
-            for target in parent_step.targets:
-                steps_required_by_output |= backtrack(target)
+
+            if parent_step.trainable or ignore_trainable_false:
+                for target in parent_step.targets:
+                    steps_required_by_output |= backtrack(target)
+
             return steps_required_by_output
 
         for output in desired_outputs:
@@ -203,12 +206,11 @@ class Model(Step):
 
     def _normalize_data(self,
                         data: Union[ArrayLikes, DataDict],
-                        data_placeholders: List[DataPlaceholder],
-                        expand_none=False) -> Dict[DataPlaceholder, ArrayLike]:
+                        data_placeholders: List[DataPlaceholder]) -> Dict[DataPlaceholder, ArrayLike]:
         if isinstance(data, dict):
             return self._normalize_dict(data)
         else:
-            return self._normalize_list(data, data_placeholders, expand_none)
+            return self._normalize_list(data, data_placeholders)
 
     def _normalize_dict(self, data: DataDict) -> Dict[DataPlaceholder, ArrayLike]:
         data_norm = {}
@@ -219,12 +221,8 @@ class Model(Step):
 
     @staticmethod
     def _normalize_list(data: ArrayLikes,
-                        data_placeholders: List[DataPlaceholder],
-                        expand_none) -> Dict[DataPlaceholder, ArrayLike]:
-        if data is None and expand_none:
-            data = [None] * len(data_placeholders)
-        else:
-            data = listify(data)
+                        data_placeholders: List[DataPlaceholder]) -> Dict[DataPlaceholder, ArrayLike]:
+        data = listify(data)
 
         try:
             data_norm = dict(safezip2(data_placeholders, data))
@@ -276,7 +274,6 @@ class Model(Step):
     def fit(self,
             X: Union[ArrayLikes, DataDict],
             y: Optional[Union[ArrayLikes, DataDict]] = None,
-            extra_targets: Optional[DataDict] = None,
             **fit_params):
         """Trains the model on the given input and target data.
 
@@ -327,16 +324,16 @@ class Model(Step):
             if input not in X:
                 raise ValueError('Missing input {}.'.format(input))
 
-        y = self._normalize_data(y, self._internal_outputs, expand_none=True)
-        for output in self._internal_outputs:
-            if output not in y:
-                raise ValueError('Missing output {}.'.format(output))
-
-        if extra_targets is not None:
-            y.update(self._normalize_dict(extra_targets))
+        if y is not None:
+            y = self._normalize_data(y, self._internal_targets)
+            for target in self._internal_targets:
+                if target not in y:
+                    raise ValueError('Missing target {}.'.format(target))
+        else:
+            y = {}
 
         # Get steps and their fit_params
-        steps = self._get_required_steps(X, y)
+        steps = self._get_required_steps(X, y, self._internal_outputs, ignore_trainable_false=False)
         fit_params_steps = defaultdict(dict)  # type: Dict[Step, Dict]
         for param_key, param_value in fit_params.items():
             # TODO: Add check for __. Add error message if step was not found
@@ -355,9 +352,7 @@ class Model(Step):
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
             if hasattr(step, 'fit') and step.trainable:
-                # Filtering out None y's allow us to define fit methods without y=None.
-                ys = [y[o] for o in step.outputs
-                      if o in y and y[o] is not None]
+                ys = [y[t] for t in step.targets]
 
                 fit_params = fit_params_steps.get(step, {})
 
