@@ -116,6 +116,7 @@ class Model(Step):
                             given_inputs: Iterable[DataPlaceholder],
                             given_targets: Iterable[DataPlaceholder],
                             desired_outputs: Iterable[DataPlaceholder],
+                            follow_targets=True,
                             ignore_trainable_false=True) -> List[Step]:
         """Backtrack from the desired outputs until the given inputs and targets
         to get the required steps. That is, find the ancestors of the nodes that
@@ -164,7 +165,7 @@ class Model(Step):
             for input in parent_step.inputs:
                 steps_required_by_output |= backtrack(input)
 
-            if parent_step.trainable or ignore_trainable_false:
+            if follow_targets and (parent_step.trainable or ignore_trainable_false):
                 for target in parent_step.targets:
                     steps_required_by_output |= backtrack(target)
 
@@ -403,7 +404,7 @@ class Model(Step):
                 raise ValueError('output_names must be unique.')
             outputs = [self.get_data_placeholder(output) for output in output_names]
 
-        steps = self._get_required_steps(X, outputs)
+        steps = self._get_required_steps(X, [], outputs, follow_targets=False)
 
         # Compute
         results_cache.update(X)
