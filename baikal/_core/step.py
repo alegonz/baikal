@@ -186,7 +186,31 @@ class Step(_StepBase):
         if targets is not None:
             if not hasattr(self, "fit"):
                 raise RuntimeError("Cannot pass targets to steps that do not have a fit method.")
-            elif not self.trainable:
+
+            # TODO: Consider inspecting the fit signature to determine whether the step
+            # needs a target (i.e. fit(self, X, y)) or not (i.e. fit(self, X, y=None)).
+            # The presence of a default of None for the target might not be reliable
+            # though, as there could be estimators (perhaps semi-supervised) that can take
+            # both target data and None. Also, sklearn has meta-estimators (e.g. Pipeline)
+            # and meta-transformers (e.g. SelectFromModel) that accept both target data
+            # and None.
+            #
+            # Adding this inspection, however, could simplify the API by rejecting early
+            # unnecessary targets (e.g. passing targets to PCA) or warning missing targets
+            # (e.g. not passing targets to LogisticRegression with trainable=True). This
+            # also avoids unintuitive logic to allow superfluous targets during step call,
+            # model instantiation and model fit.
+            #
+            # | requires target |   trainable   | passed target |   result   |
+            # ----------------------------------------------------------------
+            # |       yes       |      True     |      yes      |     ok     |
+            # |       yes       |      True     |      no       |    warn    |
+            # |       yes       |      False    |      yes      |    warn    |
+            # |       yes       |      False    |      no       |     ok     |
+            # |       no        |        -      |      yes      |    error   |
+            # |       no        |        -      |      no       |     ok     |
+
+            if not self.trainable:
                 warnings.warn(UserWarning("You are passing targets to a non-trainable step."))
 
             targets = listify(targets)
