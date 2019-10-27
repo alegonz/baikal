@@ -16,27 +16,22 @@ ExtraTreesClassifier = make_step(sklearn.ensemble.ExtraTreesClassifier)
 
 # ------- Load dataset
 data = sklearn.datasets.load_breast_cancer()
-X, y = data.data, data.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, random_state=0)
+X, y_p = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(X, y_p, test_size=.2, random_state=0)
 
 # ------- Build model
 x = Input()
-y1 = LogisticRegression(function='predict_proba')(x)
-y2 = RandomForestClassifier(function='predict_proba')(x)
-ensemble_features = Concatenate()([y1, y2])
-y = ExtraTreesClassifier()(ensemble_features)
+y_t = Input()
+y_p1 = LogisticRegression(function='predict_proba')(x, y_t)
+y_p2 = RandomForestClassifier(function='predict_proba')(x, y_t)
+ensemble_features = Concatenate()([y_p1, y_p2])
+y_p = ExtraTreesClassifier()(ensemble_features, y_t)
 
-model = Model(x, y)
+model = Model(x, y_p, y_t)
 plot_model(model, filename='stacked_classifiers.png', dpi=96)
 
 # ------- Train model
-# The model output is the output of the ExtraTreesClassifier
-# step, and it requires target data to fit, so we pass y=y_train.
-# The preceding steps (each classifier in the stack) take
-# their target data via the extra_targets argument.
-model.fit(X_train, y=y_train, extra_targets={y1: y_train, y2: y_train})
-# This is also valid, however:
-# model.fit(X_train, {y: y_train, y1: y_train, y2: y_train})
+model.fit(X_train, y_train)
 
 # ------- Evaluate model
 y_train_pred = model.predict(X_train)

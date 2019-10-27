@@ -16,9 +16,10 @@ PCA = make_step(sklearn.decomposition.PCA)
 
 def build_fn():
     x = Input()
+    y_t = Input()
     h = PCA(random_state=random_state, name='pca')(x)
-    y = LogisticRegression(random_state=random_state, name='classifier')(h)
-    model = Model(x, y)
+    y_p = LogisticRegression(random_state=random_state, name='classifier')(h, y_t)
+    model = Model(x, y_p, y_t)
     return model
 
 
