@@ -259,10 +259,19 @@ class TestFit:
             # fails because of the model target specification and trainable=True
             model.fit(iris.data)
 
-        # won't require the target is trainable was set to False
-        pca.trainable = False
-        with does_not_raise():
-            model.fit(iris.data)
+    def test_with_unnecessary_target(self, teardown):
+        x = Input()
+        y_t = Input()
+        logreg = LogisticRegression(trainable=False)
+        y_p = logreg(x, y_t)
+        model = Model(x, y_p, y_t)
+
+        model.fit(iris.data, iris.target)
+
+        # won't require the target is trainable was set to False,
+        # but won't complaing if it was passed to fit
+        logreg.trainable = False
+        model.fit(iris.data, iris.target)
 
     def test_with_non_trainable_step(self, teardown):
         x = Input()
