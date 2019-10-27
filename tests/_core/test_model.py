@@ -227,17 +227,17 @@ class TestFit:
         with pytest.raises(ValueError):
             model.fit(X, y)
 
-    def test_with_nonexisting_input(self, model, teardown):
+    def test_with_unknown_input(self, model, teardown):
         with pytest.raises(ValueError):
-            model.fit({'x1': self.x1_data, 'nonexisting-input': self.x2_data},
+            model.fit({'x1': self.x1_data, 'unknown-input': self.x2_data},
                       {'y1_t_data': self.y1_t_data})
 
-    def test_with_nonexisting_target(self, model, teardown):
+    def test_with_unknown_target(self, model, teardown):
         with pytest.raises(ValueError):
             model.fit({'x1': self.x1_data, 'x2': self.x2_data},
-                      {'nonexisting-target': self.y1_t_data})
+                      {'unknown-target': self.y1_t_data})
 
-    # TODO: Add test of nonexisting input/target passed as a list
+    # TODO: Add test of unknown input/target passed as a list
 
     def test_with_undefined_target(self, teardown):
         x = Input()
@@ -248,7 +248,7 @@ class TestFit:
             # hence the TypeError
             model.fit(iris.data)
 
-    def test_with_unnecessary_defined_target(self, teardown):
+    def test_with_unnecessarily_defined_but_missing_target(self, teardown):
         x = Input()
         y_t = Input()
         pca = PCA(trainable=True)
