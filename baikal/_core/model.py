@@ -522,7 +522,7 @@ class Model(Step):
         # Transfer connectivity configuration from old step
         # to new step and replace old with new
         # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
-        transfer_attrs = ['name', 'trainable', 'inputs', 'outputs']
+        transfer_attrs = ['name', 'trainable', 'inputs', 'outputs', 'targets']
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
