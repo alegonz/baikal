@@ -118,6 +118,7 @@ class Model(Step):
                             desired_outputs: Iterable[DataPlaceholder],
                             *,
                             allow_unused_inputs=False,
+                            allow_unused_targets=False,
                             follow_targets=True,
                             ignore_trainable_false=True) -> List[Step]:
         """Backtrack from the desired outputs until the given inputs and targets
@@ -131,6 +132,7 @@ class Model(Step):
         when getting the required steps at predict time.
 
         Unused inputs might be allowed. This is the case in predict.
+        Unused targets might be allowed. This is the case in fit.
         """
         trainable_flags = tuple((step_name, self.get_step(step_name).trainable)
                                 for step_name in sorted(self._steps))
@@ -141,6 +143,7 @@ class Model(Step):
                      tuple(sorted(given_targets)),
                      tuple(sorted(desired_outputs)),
                      allow_unused_inputs,
+                     allow_unused_targets,
                      follow_targets,
                      ignore_trainable_false,
                      trainable_flags)
@@ -209,7 +212,7 @@ class Model(Step):
                              "{}".format(",".join([input.name for input in unused_inputs])))
 
         unused_targets = given_targets - given_targets_found
-        if unused_targets:
+        if unused_targets and not allow_unused_targets:
             raise ValueError("The following targets were given but are not required:\n"
                              "{}".format(",".join([target.name for target in unused_targets])))
 
@@ -348,7 +351,10 @@ class Model(Step):
             y = {}
 
         # Get steps and their fit_params
-        steps = self._get_required_steps(X, y, self._internal_outputs, ignore_trainable_false=False)
+        # We allow unused targets to allow modifying the trainable flags
+        # without having to change the targets accordingly.
+        steps = self._get_required_steps(X, y, self._internal_outputs,
+                                         allow_unused_targets=True, ignore_trainable_false=False)
         fit_params_steps = defaultdict(dict)  # type: Dict[Step, Dict]
         for param_key, param_value in fit_params.items():
             # TODO: Add check for __. Add error message if step was not found
@@ -420,6 +426,8 @@ class Model(Step):
                 raise ValueError('output_names must be unique.')
             outputs = [self.get_data_placeholder(output) for output in output_names]
 
+        # We allow unused inputs to allow debugging different outputs
+        # without having to change the inputs accordingly.
         steps = self._get_required_steps(X, [], outputs, allow_unused_inputs=True, follow_targets=False)
 
         # Compute
