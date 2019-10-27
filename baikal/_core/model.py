@@ -74,7 +74,7 @@ class Model(Step):
                  trainable: bool = True):
         super().__init__(name=name, trainable=trainable)
 
-        def check(this, what):
+        def check(this: DataPlaceHolders, what: str) -> List:
             this = listify(this)
             if not is_data_placeholder_list(this):
                 raise ValueError("{} must be of type DataPlaceholder.".format(what))
@@ -337,23 +337,23 @@ class Model(Step):
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
 
         # input/output normalization
-        X = self._normalize_data(X, self._internal_inputs)
+        X_norm = self._normalize_data(X, self._internal_inputs)
         for input in self._internal_inputs:
-            if input not in X:
+            if input not in X_norm:
                 raise ValueError('Missing input {}.'.format(input))
 
         if y is not None:
-            y = self._normalize_data(y, self._internal_targets)
+            y_norm = self._normalize_data(y, self._internal_targets)
             for target in self._internal_targets:
-                if target not in y:
+                if target not in y_norm:
                     raise ValueError('Missing target {}.'.format(target))
         else:
-            y = {}
+            y_norm = {}
 
         # Get steps and their fit_params
         # We allow unused targets to allow modifying the trainable flags
         # without having to change the targets accordingly.
-        steps = self._get_required_steps(X, y, self._internal_outputs,
+        steps = self._get_required_steps(X_norm, y_norm, self._internal_outputs,
                                          allow_unused_targets=True, ignore_trainable_false=False)
         fit_params_steps = defaultdict(dict)  # type: Dict[Step, Dict]
         for param_key, param_value in fit_params.items():
@@ -365,7 +365,7 @@ class Model(Step):
         # Intermediate results are stored here
         # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache = dict()
-        results_cache.update(X)
+        results_cache.update(X_norm)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
@@ -373,7 +373,7 @@ class Model(Step):
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
             if hasattr(step, 'fit') and step.trainable:
-                ys = [y[t] for t in step.targets]
+                ys = [y_norm[t] for t in step.targets]
 
                 fit_params = fit_params_steps.get(step, {})
 
@@ -415,7 +415,7 @@ class Model(Step):
         results_cache = dict()  # type: Dict[DataPlaceholder, ArrayLike]
 
         # Normalize inputs
-        X = self._normalize_data(X, self._internal_inputs)
+        X_norm = self._normalize_data(X, self._internal_inputs)
 
         # Get required outputs
         if output_names is None:
@@ -428,10 +428,10 @@ class Model(Step):
 
         # We allow unused inputs to allow debugging different outputs
         # without having to change the inputs accordingly.
-        steps = self._get_required_steps(X, [], outputs, allow_unused_inputs=True, follow_targets=False)
+        steps = self._get_required_steps(X_norm, [], outputs, allow_unused_inputs=True, follow_targets=False)
 
         # Compute
-        results_cache.update(X)
+        results_cache.update(X_norm)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
