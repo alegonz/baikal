@@ -365,7 +365,9 @@ class Model(Step):
                 step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
 
             # 2) predict/transform phase
-            self._compute_step(step, Xs, results_cache)
+            successors = [s for s in self.graph.successors(step)]
+            if successors:
+                self._compute_step(step, Xs, results_cache)
 
         return self
 

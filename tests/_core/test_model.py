@@ -255,24 +255,29 @@ class TestFit:
         with pytest.raises(ValueError):
             model.fit(iris.data)
 
-        # fit, this time successfully. targets are superflous
-        # but we need to fit to test as below
-        model.fit(iris.data, iris.target)
-
         # won't require the target is trainable was set to False
         pca.trainable = False
         with does_not_raise():
             model.fit(iris.data)
 
-    def test_with_non_fitted_non_trainable_step(self, teardown):
+    def test_with_non_trainable_step(self, teardown):
         x = Input()
         y = PCA(trainable=False)(x)
-        model = Model(inputs=x, outputs=y)
+        model = Model(x, y)
+        # this should not raise an error because PCA has no successor steps
+        model.fit(iris.data)
+
+    def test_with_non_fitted_non_trainable_step(self, teardown):
+        x = Input()
+        y_t = Input()
+        z = PCA(trainable=False)(x)
+        y = LogisticRegression()(z, y_t)
+        model = Model(x, y, y_t)
         with pytest.raises(NotFittedError):
             # this will raise an error when calling compute
             # on PCA which was flagged as trainable=False but
             # hasn't been fitted
-            model.fit(iris.data)
+            model.fit(iris.data, iris.target)
 
     # TODO: Add tests with superfluous targets
 
