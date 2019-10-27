@@ -424,26 +424,69 @@ def test_steps_cache(teardown):
     y1 = LogisticRegression(name='LogReg')(x1, y1_t)
     y2 = PCA(name='PCA')(x2)
 
+    hits, misses = 0, 0
+
+    # 1) instantiation always misses
+    misses += 1
     model = Model([x1, x2], [y1, y2], y1_t)
-    assert 0 == model._steps_cache.hits and 1 == model._steps_cache.misses
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
+    # 2) calling fit for the first time, hence a miss
+    misses += 1
     model.fit([x1_data, x2_data], y1_t_data)
-    assert 1 == model._steps_cache.hits and 1 == model._steps_cache.misses
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
+    # 3) same as above, just different format, hence a hit
+    hits += 1
     model.fit({x1: x1_data, x2: x2_data}, {y1_t: y1_t_data})
-    assert 2 == model._steps_cache.hits and 1 == model._steps_cache.misses
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
-    model.predict({'x1': x1_data, 'x2': x2_data}, ['PCA/0', 'LogReg/0'])
-    assert 3 == model._steps_cache.hits and 1 == model._steps_cache.misses
+    # 4) trainable flags are considered in cache keys, hence a miss
+    misses += 1
+    model.get_step('LogReg').trainable = False
+    model.fit([x1_data, x2_data], y1_t_data)  # NOTE: target is superfluous, but it affects caching
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
+    # 5) same as above, just different format, hence a hit
+    hits += 1
+    model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+
+    # 6) we drop the (superflous) target, hence a miss
+    misses += 1
+    model.fit({x1: x1_data, x2: x2_data})
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+
+    # 7) same as above, hence a hit
+    hits += 1
+    model.fit({x1: x1_data, x2: x2_data})
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+
+    # 8) we restore the flag, becoming the same as 2) and 3), hence a hit
+    hits += 1
+    model.get_step('LogReg').trainable = True
+    model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+
+    # 9) new inputs/targets/outputs signature, hence a miss
+    misses += 1
     model.predict([x1_data, x2_data])
-    assert 4 == model._steps_cache.hits and 1 == model._steps_cache.misses
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
-    model.predict({x1: x1_data}, 'LogReg/0')
-    assert 4 == model._steps_cache.hits and 2 == model._steps_cache.misses
+    # 10) same inputs/outputs signature as 9), hence a hit
+    hits += 1
+    model.predict({'x1': x1_data, 'x2': x2_data}, ['PCA/0', 'LogReg/0'])
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
+    # 11) new inputs/outputs signature, hence a miss
+    misses += 1
     model.predict({x1: x1_data}, 'LogReg/0')
-    assert 5 == model._steps_cache.hits and 2 == model._steps_cache.misses
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+
+    # 12) same as above, hence a hit
+    hits += 1
+    model.predict({x1: x1_data}, 'LogReg/0')
+    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
 
 def test_multiedge(teardown):

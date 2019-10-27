@@ -132,9 +132,19 @@ class Model(Step):
 
         Unused inputs might be allowed. This is the case in predict.
         """
+        trainable_flags = tuple((step_name, self.get_step(step_name).trainable)
+                                for step_name in sorted(self._steps))
+
+        # We use as keys all the information that affects the
+        # computation of the required steps
         cache_key = (tuple(sorted(given_inputs)),
                      tuple(sorted(given_targets)),
-                     tuple(sorted(desired_outputs)))
+                     tuple(sorted(desired_outputs)),
+                     allow_unused_inputs,
+                     follow_targets,
+                     ignore_trainable_false,
+                     trainable_flags)
+
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
 
