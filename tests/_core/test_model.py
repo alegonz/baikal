@@ -237,6 +237,8 @@ class TestFit:
             model.fit({'x1': self.x1_data, 'x2': self.x2_data},
                       {'nonexisting-target': self.y1_t_data})
 
+    # TODO: Add test of nonexisting input/target passed as a list
+
     def test_with_undefined_target(self, teardown):
         x = Input()
         y = LogisticRegression(trainable=True)(x)
@@ -250,9 +252,11 @@ class TestFit:
         x = Input()
         y_t = Input()
         pca = PCA(trainable=True)
-        y = pca(x, y_t)  # this target is unnecessary
+        # The target passed to PCA is unnecessary (see notes in Step.__call__)
+        y = pca(x, y_t)
         model = Model(inputs=x, outputs=y, targets=y_t)
         with pytest.raises(ValueError):
+            # fails because of the model target specification and trainable=True
             model.fit(iris.data)
 
         # won't require the target is trainable was set to False
@@ -279,7 +283,20 @@ class TestFit:
             # hasn't been fitted
             model.fit(iris.data, iris.target)
 
-    # TODO: Add tests with superfluous targets
+    @pytest.mark.parametrize(
+        "step_class, trainable",
+        [
+            (PCA, True),
+            (PCA, False),
+            (LogisticRegression, False)
+        ]
+    )
+    def test_with_superfluous_target(self, step_class, trainable, teardown):
+        x = Input()
+        y_t = Input()
+        z = step_class(trainable=trainable)(x, y_t)
+        model = Model(x, z, y_t)
+        model.fit(iris.data, iris.target)  # should not raise any errors
 
 
 class TestPredict:
