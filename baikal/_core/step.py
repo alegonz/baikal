@@ -54,8 +54,9 @@ class Step(_StepBase):
     Steps are defined by combining any class we would like to make a step from
     with this mixin class. This mixin, among other things, endows the class of
     interest with a `__call__` method, making the class callable on the outputs
-    (`DataPlaceholder` objects) of previous steps. You can make a step from any
-    class you like, so long that class implements the scikit-learn API.
+    (`DataPlaceholder` objects) of previous steps and optional targets (also
+    `DataPlaceholder` objects). You can make a step from any class you like,
+    so long that class implements the scikit-learn API.
 
     Instructions:
         1. Define a class that inherits from both this mixin and the class you
@@ -101,6 +102,9 @@ class Step(_StepBase):
 
     outputs
         Outputs of the step.
+
+    targets
+        Targets of the step.
 
     n_outputs
         Number of outputs the step must be produce.
@@ -166,6 +170,9 @@ class Step(_StepBase):
         inputs
             Input(s) to the step.
 
+        targets
+            Target(s) to the step.
+
         Returns
         -------
         DataPlaceholder
@@ -173,11 +180,11 @@ class Step(_StepBase):
 
         Notes
         -----
-        Currently, calling the same step on different inputs to reuse the step
-        (similar to the concept of shared layers and nodes in Keras) is not
-        supported. Calling a step twice on different inputs will override the
-        connectivity from the first call. Support for shareable steps might be
-        added in future releases.
+        Currently, calling the same step on different inputs and targets to
+        reuse the step (similar to the concept of shared layers and nodes in
+        Keras) is not supported. Calling a step twice on different inputs will
+        override the connectivity from the first call. Support for shareable
+        steps might be added in future releases.
         """
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):

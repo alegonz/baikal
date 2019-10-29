@@ -29,6 +29,9 @@ class Model(Step):
     outputs
         Outputs of the model.
 
+    targets
+        Targets of the model.
+
     name
         Name of the model (optional). If no name is passed, a name will be
         automatically generated.
@@ -305,23 +308,20 @@ class Model(Step):
                 - A single array-like object (in the case of a single input)
                 - A list of array-like objects (in the case of multiple inputs)
                 - A dictionary mapping DataPlaceholders (or their names) to
-                  array-like objects.
+                  array-like objects. The keys must be among the inputs passed
+                  at instantiation.
         y
             Target data (dependent variables) (optional). It can be either of:
-                - None (in the case the single output is associated to a
-                  non-trainable or unsupervised learning step)
-                - A single array-like object (in the case of a single output)
-                - A list of the above (in the case of multiple outputs)
-                - A dictionary mapping DataPlaceholders (or their names) to
-                  array-like objects or None. You can also include target data
-                  required by intermediate steps not specified in the model outputs.
-        extra_targets
-            Target data required by intermediate steps not specified in the
-            model outputs. If specified, it must be a dictionary mapping
-            DataPlaceholders (or their names) to array-like objects or None.
+                - None (in the case all steps are either non-trainable and/or
+                  unsupervised learning steps)
+                - A single array-like object (in the case of a single target)
+                - A list of array-like objects(in the case of multiple targets)
+                - A dictionary mapping target DataPlaceholders (or their names) to
+                  array-like objects. The keys must be among the targets passed
+                  at instantiation.
 
-            While contents of `extra_targets` can be included in the contents of
-            `y`, this separate argument exists to pass target data to nested models.
+                Targets required by steps that were set as non-trainable might
+                be omitted.
 
         fit_params
             Parameters passed to the fit method of each model step, where each
@@ -335,6 +335,7 @@ class Model(Step):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
+        # TODO: How to behave when fit was called on a Model (and Step) that is trainable=False?
 
         # input/output normalization
         X_norm = self._normalize_data(X, self._internal_inputs)
