@@ -83,6 +83,7 @@ class TestInit:
 
     @pytest.mark.parametrize("step_class", [PCA, LogisticRegression])
     @pytest.mark.parametrize("trainable", [True, False])
+    @pytest.mark.filterwarnings("ignore:You are passing targets to a non-trainable step.")
     def test_with_missing_targets(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
@@ -262,14 +263,14 @@ class TestFit:
     def test_with_unnecessary_target(self, teardown):
         x = Input()
         y_t = Input()
-        logreg = LogisticRegression(trainable=False)
+        logreg = LogisticRegression()
         y_p = logreg(x, y_t)
         model = Model(x, y_p, y_t)
 
         model.fit(iris.data, iris.target)
 
         # won't require the target is trainable was set to False,
-        # but won't complaing if it was passed to fit
+        # but won't complain if it was passed to fit
         logreg.trainable = False
         model.fit(iris.data, iris.target)
 
@@ -300,6 +301,7 @@ class TestFit:
             (LogisticRegression, False)
         ]
     )
+    @pytest.mark.filterwarnings("ignore:You are passing targets to a non-trainable step.")
     def test_with_superfluous_target(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
