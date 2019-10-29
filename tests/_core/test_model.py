@@ -3,11 +3,11 @@ import tempfile
 from contextlib import contextmanager
 from typing import List, Dict
 
+import joblib
 import numpy as np
 import pytest
 import sklearn.decomposition
 import sklearn.ensemble
-import sklearn.externals.joblib
 import sklearn.linear_model
 from numpy.testing import assert_array_equal, assert_allclose
 from sklearn import datasets
@@ -694,7 +694,7 @@ def test_nested_model_ensemble(teardown):
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
-@pytest.mark.parametrize('dump,load', [(sklearn.externals.joblib.dump, sklearn.externals.joblib.load),
+@pytest.mark.parametrize('dump,load', [(joblib.dump, joblib.load),
                                        (pickle.dump, pickle.load)])
 def test_model_joblib_serialization(teardown, dump, load):
     x_data = iris.data
