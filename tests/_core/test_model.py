@@ -4,20 +4,19 @@ from contextlib import contextmanager
 from typing import List, Dict
 
 import numpy as np
-from baikal._core.typing import ArrayLike
-
-from baikal._core.data_placeholder import DataPlaceholder
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
-from sklearn import datasets
 import sklearn.decomposition
 import sklearn.ensemble
 import sklearn.externals.joblib
-from sklearn.exceptions import NotFittedError
 import sklearn.linear_model
+from numpy.testing import assert_array_equal, assert_allclose
+from sklearn import datasets
+from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 
 from baikal import Model, Input
+from baikal._core.data_placeholder import DataPlaceholder
+from baikal._core.typing import ArrayLike
 from baikal.steps import Concatenate, Stack
 
 from tests.helpers.fixtures import teardown
