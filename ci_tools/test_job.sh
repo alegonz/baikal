@@ -7,7 +7,7 @@ make setup_dev
 
 if [[ "${RUN_TEST_WITH_COVERAGE}" == "1" ]]; then
     make test-cov
-    codecov --token=${CODECOV_TOKEN}
+    make upload-cov
 else
     make test
 fi
