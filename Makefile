@@ -10,7 +10,9 @@ clean:
 setup_dev: venv
 	. venv/bin/activate; \
 	pip install -U pip; \
-	pip install -e .[dev,viz]
+	pip install -e .[dev,viz]; \
+	pip install pre-commit; \
+	pre-commit install
 
 test:
 	. venv/bin/activate; \
