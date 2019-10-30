@@ -34,11 +34,13 @@ ensemble_features = Stack()([y1, y2, y3])
 y_p = SVC()(ensemble_features, y_t)
 
 model = Model([x1, x2], y_p, y_t)
-plot_model(model, filename='multiple_input_nonlinear_pipeline_example_plot.png')
+plot_model(model, filename="multiple_input_nonlinear_pipeline_example_plot.png")
 
 # 3. Train the model
 dataset = load_breast_cancer()
-X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(
+    dataset.data, dataset.target, random_state=0
+)
 
 # Let's suppose the dataset is originally split in two
 X1_train, X2_train = X_train[:, :15], X_train[:, 15:]
@@ -53,4 +55,6 @@ y_test_pred = model.predict([X1_test, X2_test])
 # y_test_pred = model.predict({x1: X1_test, x2: X2_test})
 
 # We can also query any intermediate outputs:
-outs = model.predict([X1_test, X2_test], output_names=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
+outs = model.predict(
+    [X1_test, X2_test], output_names=["ExtraTreesClassifier_0/0", "PCA_0/0"]
+)

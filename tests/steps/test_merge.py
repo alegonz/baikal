@@ -29,11 +29,9 @@ def test_concatenate(teardown):
     y = Concatenate(axis=1)([x1, x2])
     model = Model([x1, x2], y)
 
-    x1_data = np.array([[1, 2],
-                        [10, 20]])
+    x1_data = np.array([[1, 2], [10, 20]])
 
-    x2_data = np.array([[3, 4, 5],
-                        [30, 40, 50]])
+    x2_data = np.array([[3, 4, 5], [30, 40, 50]])
 
     y_expected = np.concatenate([x1_data, x2_data], axis=1)
 
@@ -48,11 +46,9 @@ def test_stack(teardown):
     y = Stack(axis=1)([x1, x2])
     model = Model([x1, x2], y)
 
-    x1_data = np.array([[1, 2],
-                        [10, 20]])
+    x1_data = np.array([[1, 2], [10, 20]])
 
-    x2_data = np.array([[3, 4],
-                        [30, 40]])
+    x2_data = np.array([[3, 4], [30, 40]])
 
     y_expected = np.stack([x1_data, x2_data], axis=1)
 

@@ -5,8 +5,10 @@
 
 from setuptools import find_packages, setup
 
-PACKAGE_NAME = 'baikal'
-DESCRIPTION = 'A graph-based functional API for building complex scikit-learn pipelines.'
+PACKAGE_NAME = "baikal"
+DESCRIPTION = (
+    "A graph-based functional API for building complex scikit-learn pipelines."
+)
 LONG_DESCRIPTION = """
 **baikal is a graph-based, functional API for building complex machine learning 
 pipelines of objects that implement the scikit-learn API**. It is mostly inspired 
@@ -41,53 +43,47 @@ with code that looks like this:
 **baikal** is compatible with Python >=3.5 and is distributed under the 
 BSD 3-clause license.
 """
-PROJECT_URL = 'https://github.com/alegonz/baikal'
-LICENSE = 'new BSD'
-AUTHOR = 'Alejandro González Tineo'
-AUTHOR_EMAIL = 'alejandrojgt@gmail.com'
-PYTHON_REQUIRES = '>=3.5'
-INSTALL_REQUIRES = ['numpy']
+PROJECT_URL = "https://github.com/alegonz/baikal"
+LICENSE = "new BSD"
+AUTHOR = "Alejandro González Tineo"
+AUTHOR_EMAIL = "alejandrojgt@gmail.com"
+PYTHON_REQUIRES = ">=3.5"
+INSTALL_REQUIRES = ["numpy"]
 EXTRAS_REQUIRE = {
-    'dev': [
-        'codecov',
-        'joblib',
-        'mypy',
-        'pytest',
-        'pytest-cov',
-        'sklearn'
-    ],
-    'viz': [
-        'pydot'
-    ]}
+    "dev": ["codecov", "joblib", "mypy", "pytest", "pytest-cov", "sklearn"],
+    "viz": ["pydot"],
+}
 CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
-    'Intended Audience :: Science/Research',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved :: BSD License',
-    'Topic :: Software Development',
-    'Topic :: Scientific/Engineering',
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7',
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
 ]
 
 # Execute _version.py to get __version__ variable in context
-exec(open('baikal/_version.py', encoding='utf-8').read())
+exec(open("baikal/_version.py", encoding="utf-8").read())
 
-setup(name=PACKAGE_NAME,
-      version=__version__,
-      description=DESCRIPTION,
-      long_description=LONG_DESCRIPTION,
-      long_description_content_type='text/x-rst',
-      url=PROJECT_URL,
-      license=LICENSE,
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      python_requires=PYTHON_REQUIRES,
-      install_requires=INSTALL_REQUIRES,
-      extras_require=EXTRAS_REQUIRE,
-      include_package_data=True,
-      classifiers=CLASSIFIERS,
-      packages=find_packages(exclude=['tests']))
+setup(
+    name=PACKAGE_NAME,
+    version=__version__,
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/x-rst",
+    url=PROJECT_URL,
+    license=LICENSE,
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    python_requires=PYTHON_REQUIRES,
+    install_requires=INSTALL_REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
+    include_package_data=True,
+    classifiers=CLASSIFIERS,
+    packages=find_packages(exclude=["tests"]),
+)

@@ -43,10 +43,10 @@ class SKLearnWrapper:
             Parameter names mapped to their values.
         """
         params = self._model.get_params(deep=True)
-        params['build_fn'] = self.build_fn
+        params["build_fn"] = self.build_fn
         return params
 
-    def set_params(self, **params) -> 'SKLearnWrapper':
+    def set_params(self, **params) -> "SKLearnWrapper":
         """Set the parameters of this estimator.
 
         Parameters
@@ -60,7 +60,7 @@ class SKLearnWrapper:
         -------
         self
         """
-        self.build_fn = params.pop('build_fn', self.build_fn)
+        self.build_fn = params.pop("build_fn", self.build_fn)
         self._model.set_params(**params)
         return self
 
