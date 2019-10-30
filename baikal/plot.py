@@ -13,6 +13,7 @@ from baikal._core.model import Model, Step
 from baikal._core.utils import safezip2
 
 
+# TODO: Add option to plot targets
 def plot_model(model: Model,
                filename: Optional[str] = None,
                show: bool = False,

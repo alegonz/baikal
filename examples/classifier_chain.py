@@ -23,16 +23,17 @@ n_targets = Y.shape[1]
 
 # ------- Build model
 x = Input()
-
-ys = []
+ys_t, ys_p = [], []
 for j in range(n_targets):
-    x_stacked = ColumnStack()([x, *ys[:j]])
-    yj = LogisticRegression(solver='lbfgs')(x_stacked)
-    ys.append(yj)
+    x_stacked = ColumnStack()(inputs=[x, *ys_p[:j]])
+    yj_t = Input()
+    yj_p = LogisticRegression(solver='lbfgs')(inputs=x_stacked, targets=yj_t)
+    ys_t.append(yj_t)
+    ys_p.append(yj_p)
 
-y = ColumnStack()(ys)
+y_pred = ColumnStack()(ys_p)
 
-model = Model(x, y)
+model = Model(inputs=x, outputs=y_pred, targets=ys_t)
 plot_model(model, filename='classifier_chain.png', dpi=96)  # This might take a few seconds
 
 # ------- Train model
@@ -40,12 +41,8 @@ np.random.seed(87)
 order = np.arange(n_targets)
 np.random.shuffle(order)
 
-# The model output is the output of the Stack step, which is
-# not a trainable step, so we pass y=None.
-# The preceding steps (each classifier of the chain) take
-# their target data via the extra_targets argument.
-extra_targets = {ys[j]: Y_train[:, order[j]] for j in range(n_targets)}
-model.fit(X_train, y=None, extra_targets=extra_targets)
+ys_train = {ys_t[j]: Y_train[:, order[j]] for j in range(n_targets)}
+model.fit(X_train, ys_train)
 
 # ------- Evaluate model
 Y_train_pred = model.predict(X_train)

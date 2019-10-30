@@ -22,17 +22,18 @@ PowerTransformer = make_step(sklearn.preprocessing.PowerTransformer)
 # 2. Build the model
 x1 = Input()
 x2 = Input()
+y_t = Input()
 
-y1 = ExtraTreesClassifier()(x1)
-y2 = RandomForestClassifier()(x2)
+y1 = ExtraTreesClassifier()(x1, y_t)
+y2 = RandomForestClassifier()(x2, y_t)
 z = PowerTransformer()(x2)
 z = PCA()(z)
-y3 = LogisticRegression()(z)
+y3 = LogisticRegression()(z, y_t)
 
 ensemble_features = Stack()([y1, y2, y3])
-y = SVC()(ensemble_features)
+y_p = SVC()(ensemble_features, y_t)
 
-model = Model([x1, x2], y)
+model = Model([x1, x2], y_p, y_t)
 plot_model(model, filename='multiple_input_nonlinear_pipeline_example_plot.png')
 
 # 3. Train the model
@@ -43,8 +44,7 @@ X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target
 X1_train, X2_train = X_train[:, :15], X_train[:, 15:]
 X1_test, X2_test = X_test[:, :15], X_test[:, 15:]
 
-model.fit(X=[X1_train, X2_train], y=y_train,
-          extra_targets={y1: y_train, y2: y_train, y3: y_train})
+model.fit([X1_train, X2_train], y_train)
 
 # 4. Use the model
 y_test_pred = model.predict([X1_test, X2_test])

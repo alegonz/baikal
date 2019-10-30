@@ -50,17 +50,18 @@ with code that looks like this:
 ```python
 x1 = Input()
 x2 = Input()
+y_t = Input()
 
-y1 = ExtraTreesClassifier()(x1)
-y2 = RandomForestClassifier()(x2)
+y1 = ExtraTreesClassifier()(x1, y_t)
+y2 = RandomForestClassifier()(x2, y_t)
 z = PowerTransformer()(x2)
 z = PCA()(z)
-y3 = LogisticRegression()(z)
+y3 = LogisticRegression()(z, y_t)
 
 ensemble_features = Stack()([y1, y2, y3])
-y = SVC()(ensemble_features)
+y = SVC()(ensemble_features, y_t)
 
-model = Model([x1, x2], y)
+model = Model([x1, x2], y, y_t)
 ```
 
 ### Why baikal?
@@ -68,7 +69,7 @@ model = Model([x1, x2], y)
 The pipeline above (to the best of the author's knowledge) cannot be easily built using [scikit-learn's composite estimators API](https://scikit-learn.org/stable/modules/compose.html#pipelines-and-composite-estimators) as you encounter some limitations:
 
 1. It is aimed at linear pipelines
-    - You could add some step parallelism with the (currently experimental) [`ColumnTransformer`](https://scikit-learn.org/stable/modules/compose.html#columntransformer-for-heterogeneous-data) API, but this is limited to transformer objects.
+    - You could add some step parallelism with the [`ColumnTransformer`](https://scikit-learn.org/stable/modules/compose.html#columntransformer-for-heterogeneous-data) API, but this is limited to transformer objects.
 2. Classifiers/Regressors can only be used at the end of the pipeline.
     - This means we cannot use the predicted labels (or their probabilities) as features to other classifiers/regressors.
     - You could leverage mlxtend's [`StackingClassifier`](http://rasbt.github.io/mlxtend/user_guide/classifier/StackingClassifier/#stackingclassifier) and come up with some clever combination of the above composite estimators (`Pipeline`s, `ColumnTransformer`s, and `StackingClassifier`s, etc), but you might end up with code that feels hard-to-follow and verbose.
@@ -108,20 +109,18 @@ import sklearn.svm
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
-from baikal import Input, Model, Step
+from baikal import make_step, Input, Model
 
 
 # 1. Define a step
-class SVC(Step, sklearn.svm.SVC):
-    def __init__(self, name=None, function=None, n_outputs=1, trainable=True, **kwargs):
-        super().__init__(name=name, function=function,
-                         n_outputs=n_outputs, trainable=trainable, **kwargs)
+SVC = make_step(sklearn.svm.SVC)
 
 
 # 2. Build the model
 x = Input()
-y = SVC(C=1.0, kernel='rbf', gamma=0.5)(x)
-model = Model(x, y)
+y_t = Input()
+y = SVC(C=1.0, kernel='rbf', gamma=0.5)(x, y_t)
+model = Model(x, y, y_t)
 
 # 3. Train the model
 dataset = load_breast_cancer()
@@ -142,14 +141,24 @@ As shown in the short example above, the **baikal** API consists of four basic s
 3. Train the model
 4. Use the model
 
-Let's take a look at each of them in detail. Full examples can be found in the project's 'examples' folder.
+Let's take a look at each of them in detail. Full examples can be found in the project's [examples](examples) folder.
 
 ### 1. Define the steps
 
-Steps are defined by combining any class we would like to make a step from with the `Step` mixin class. The `Step` mixin, among other things, endows the class of interest with a `__call__` method, making the class callable on the outputs (`DataPlaceholder` objects) of previous steps. You can make a step from any class you like, so long that class implements the [scikit-learn API](https://scikit-learn.org/stable/developers/contributing.html#different-objects). To make a step you only have to:
+A step is defined very easily, just feed the provided `make_step` function with the class you want to make a step from:
+
+```python
+import sklearn.linear_model
+from baikal import make_step
+
+LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
+```
+
+You can make a step from any class you like, so long that class implements the [scikit-learn API](https://scikit-learn.org/stable/developers/contributing.html#different-objects).
+
+What this function is doing under the hood, is to combine the given class with the `Step` mixin class. The `Step` mixin, among other things, endows the given class with a `__call__` method, making the class callable on the outputs (`DataPlaceholder` objects) of previous steps. If you prefer to do this manually, you only have to:
 
 1. Define a class that inherits from both the `Step` mixin and the class you wish to make a step of (in that order!).
-    * The class from which the step is being defined ***must*** implement the scikit-learn API.
 2. In the class `__init__`, call `super().__init__(...)` and pass the appropriate step parameters.
 
 For example, to make a step for `sklearn.linear_model.LogisticRegression` we do:
@@ -167,20 +176,13 @@ class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
 
 Other steps are defined similarly (omitted here for brevity).
 
-The library also provides a `make_step` utilily function that does the above for you:
-
-```python
-import sklearn.linear_model
-from baikal import make_step
-
-LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
-```
-
 ### 2. Build the model
 
 Once we have defined the steps, we can make a model like shown below. First, you create the initial step, that serves as the entry-point to the model, by calling the `Input` helper function. This outputs a DataPlaceholder representing one of the inputs to the model. Then, all you have to do is to instantiate the steps and call them on the outputs (DataPlaceholders from previous steps) as you deem appropriate. Finally, you instantiate the model with the inputs/outputs (also DataPlaceholders) that specify your pipeline.
 
 This style should feel familiar to users of Keras.
+
+Note that steps that require target data (like `ExtraTreesClassifier`, `RandomForestClassifier`, `LogisticRegression` and `SVC`) are called with two arguments. These arguments correspond to the inputs (e.g. `x1`, `x2`) and targets (e.g. `y_t`) of the step. These targets are specified to the Model at instantiation via the third argument. **baikal** pipelines are made of complex, heterogenous, non-differentiable steps (e.g. a whole RandomForestClassifier, with its own internal learning algorithm), so there's no some magic automatic differentiation that backpropagates the target information from the outputs to the appropriate steps, so we must specify which step needs which targets directly.
 
 ```python
 from baikal import Input, Model
@@ -189,30 +191,30 @@ from baikal.steps import Stack
 # Assume the steps below were already defined
 x1 = Input()
 x2 = Input()
+y_t = Input()
 
-y1 = ExtraTreesClassifier()(x1)
-y2 = RandomForestClassifier()(x2)
+y1 = ExtraTreesClassifier()(x1, y_t)
+y2 = RandomForestClassifier()(x2, y_t)
 z = PowerTransformer()(x2)
 z = PCA()(z)
-y3 = LogisticRegression()(z)
+y3 = LogisticRegression()(z, y_t)
 
 ensemble_features = Stack()([y1, y2, y3])
-y = SVC()(ensemble_features)
+y = SVC()(ensemble_features, y_t)
 
-model = Model([x1, x2], y)
+model = Model([x1, x2], y, y_t)
 ```
 
 (*) Steps are called on and output DataPlaceHolders. DataPlaceholders are produced and consumed exclusively by Steps, so you do not need to instantiate these yourself.
 
-Note: Currently, calling the same step on different inputs to reuse the step (similar to the concept of shared layers and nodes in Keras) is not supported. Calling a step twice on different inputs will override the connectivity from the first call. Support for shareable steps might be added in future releases.
+Note: Currently, calling the same step on different inputs and targets to reuse the step (similar to the concept of shared layers and nodes in Keras) is not supported. Calling a step twice on different inputs will override the connectivity from the first call. Support for shareable steps might be added in future releases.
 
 ### 3. Train the model
 
 Now that we have built a model, we are ready to train it. The model also follows the scikit-learn API, as it has a fit method:
 
 ```python
-model.fit(X=[X1_train, X2_train], y=y_train,
-          extra_targets={y1: y_train, y2: y_train, y3: y_train})
+model.fit(X=[X1_train, X2_train], y=y_train)
 ```
 
 The model will automatically propagate the data through the pipeline and fit any internal steps that require training.
@@ -222,19 +224,13 @@ The fit function takes three arguments:
     - It can be either of the following:
         - A single array-like object (in the case of a single input)
         - A list of array-like objects (in the case of multiple inputs)
-        - A dictionary mapping DataPlaceholders (or their names) to array-like objects.
+        - A dictionary mapping DataPlaceholders (or their names) to array-like objects. The keys must be among the inputs passed at instantiation.
 - `y` (optional): Target data (dependent variables).
     - It can either of the following:
-        - A single array-like object (in the case of a single output)
-        - None (in the case the single output is associated to a non-trainable or unsupervised learning step)
-        - A list of array-like objects or None (in the case of multiple outputs)
-        - A dictionary mapping DataPlaceholders (or their names) to array-like objects or None.
-    - If passed as a dictionary, you can also include target data required by intermediate steps not specified in the model outputs.
-- `extra_targets` (optional): Target data required by intermediate steps not specified in the model outputs. 
-    - If specified, it must be a dictionary mapping DataPlaceholders (or their names) to array-like objects or None.
-    - While contents of `extra_targets` can be included in the contents of `y`, this separate argument exists to pass target data to nested models.
-    
-It is important to note that **baikal** pipelines are made of complex, heterogenous, non-differentiable steps (e.g. a whole RandomForestClassifier, with its own internal learning algorithm), so there's no some magic automatic differentiation that backpropagates the target information from the outputs to the appropriate steps, so we must specify which step needs which targets directly.
+        - None (in the case all steps are either non-trainable and/or unsupervised learning steps)
+        - A single array-like object (in the case of a single target)
+        - A list of array-like objects (in the case of multiple targets)
+        - A dictionary mapping DataPlaceholders (or their names) to array-like objects. The keys must be among the targets passed at instantiation.
 
 ### 4. Use the model
 
@@ -253,7 +249,7 @@ y_test_pred = model.predict({x1: X1_test, x2: X2_test})
 outs = model.predict([X1_test, X2_test], output_names=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
 ```
 
-You don't need to (actually, **baikal** won't let you) pass inputs that are not required the compute the queried output. For example, if we just want the output of PowerTransformer: 
+You don't need to pass inputs that are not required to compute the queried output. For example, if we just want the output of `PowerTransformer`: 
 
 ```python
 outs = model.predict({x2: X2_data}, output_names='PowerTransformer_0/0')
@@ -269,11 +265,12 @@ submodel2 = ...
 
 # Now we make an stacked classifier from both submodels
 x = Input()
+y_t = Input()
 y1 = submodel1(x)
-y2 = submodel2(x)
+y2 = submodel2(x, y_t)
 z = Stack()([y1, y2])
-y = SVC()(z)
-bigmodel = Model(x, y)
+y = SVC()(z, y_t)
+bigmodel = Model(x, y, y_t)
 
 ```
 
@@ -303,9 +300,10 @@ A future release of **baikal** plans to include a custom `GridSearchCV` API, bas
 # 1. Define a function that returns your baikal model
 def build_fn():
     x = Input()
+    y_t = Input()
     h = PCA(random_state=random_state, name='pca')(x)
-    y = LogisticRegression(random_state=random_state, name='classifier')(h)
-    model = Model(x, y)
+    y = LogisticRegression(random_state=random_state, name='classifier')(h, y_t)
+    model = Model(x, y, y_t)
     return model
 
 # 2. Define a parameter grid
@@ -356,12 +354,13 @@ Similar to the the example in the quick-start above, stacks of classifiers (or r
 
 ```python
 x = Input()
-y1 = LogisticRegression(function='predict_proba')(x)
-y2 = RandomForestClassifier(function='predict_proba')(x)
+y_t = Input()
+y1 = LogisticRegression(function='predict_proba')(x, y_t)
+y2 = RandomForestClassifier(function='predict_proba')(x, y_t)
 ensemble_features = Stack()([y1, y2])
-y = ExtraTreesClassifier()(ensemble_features)
+y = ExtraTreesClassifier()(ensemble_features, y_t)
 
-model = Model(x, y)
+model = Model(x, y, y_t)
 ```
 
 Click [here](examples/stacked_classifiers.py) for a full example.
@@ -372,16 +371,17 @@ The API also lends itself for more interesting configurations, such as that of [
 
 ```python
 x = Input()
-
-ys = []
+ys_t, ys_p = [], []
 for j in range(n_targets):
-    x_stacked = ColumnStack()([x, *ys[:j]])
-    yj = LogisticRegression()(x_stacked)
-    ys.append(yj)
+    x_stacked = ColumnStack()(inputs=[x, *ys_p[:j]])
+    yj_t = Input()
+    yj_p = LogisticRegression(solver='lbfgs')(inputs=x_stacked, targets=yj_t)
+    ys_t.append(yj_t)
+    ys_p.append(yj_p)
 
-y = ColumnStack()(ys)
+y_pred = ColumnStack()(ys_p)
 
-model = Model(x, y)
+model = Model(inputs=x, outputs=y_pred, targets=ys_t)
 ```
 
 Click [here](examples/classifier_chain.py) for a full example.
@@ -390,14 +390,14 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 
 ## Next development steps
 - [x] Make a step class factory function.
-- [ ] Make a custom `GridSearchCV` API, based on the original scikit-learn implementation, that can handle baikal models with multiple inputs and outputs natively.
-- [ ] Add support for steps that can take extra options in their predict method.
+- [x] Treat targets as first-class citizens in the Model. Currently, targets are not treated like formal inputs of the graph, and the only way a Model handles them is via the `Model.fit` interface, which makes difficult applying steps to them (e.g. log transformation on regression targets).
 - [ ] Add parallelization and caching of intermediate results to `Model.fit` and `Model.predict` with joblib (`Parallel` and `Memory` API).
+- [ ] Make a custom `GridSearchCV` API, based on the original scikit-learn implementation, that can handle baikal models with multiple inputs and outputs natively.
 - [ ] Make steps shareable.
+- [ ] Add support for steps that can take extra options in their predict method.
 - [ ] Grow the merge steps module and add support for data structures other than numpy arrays (e.g. pandas dataframes). Some steps that could be added are: 
     - Single array aggregation (sum, average, maximum, minimum, etc).
     - Element-wise aggregation of multiple arrays.
-- [ ] Treat targets as first-class citizens in the Model. Currently, targets are not treated like formal inputs of the graph, and the only way a Model handles them is via the `Model.fit` interface, which makes difficult applying steps to them (e.g. log transformation on regression targets).
 
 ## Contributing
 

@@ -1,4 +1,5 @@
 import re
+import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
@@ -14,6 +15,7 @@ class _StepBase:
         # Necessary to use this class as a mixin
         super().__init__(*args, **kwargs)  # type: ignore
 
+        # TODO: name and n_outputs should be read-only attributes
         # Use name as is if it was specified by the user, to avoid the user a surprise
         self.name = name if name is not None else self._generate_unique_name()
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__
@@ -45,14 +47,16 @@ class _StepBase:
         return super()._get_param_names.__func__(super())
 
 
+# TODO: Update docstrings
 class Step(_StepBase):
     """Mixin class to endow scikit-learn classes with Step capabilities.
 
     Steps are defined by combining any class we would like to make a step from
     with this mixin class. This mixin, among other things, endows the class of
     interest with a `__call__` method, making the class callable on the outputs
-    (`DataPlaceholder` objects) of previous steps. You can make a step from any
-    class you like, so long that class implements the scikit-learn API.
+    (`DataPlaceholder` objects) of previous steps and optional targets (also
+    `DataPlaceholder` objects). You can make a step from any class you like,
+    so long that class implements the scikit-learn API.
 
     Instructions:
         1. Define a class that inherits from both this mixin and the class you
@@ -99,6 +103,9 @@ class Step(_StepBase):
     outputs
         Outputs of the step.
 
+    targets
+        Targets of the step.
+
     n_outputs
         Number of outputs the step must be produce.
 
@@ -126,6 +133,7 @@ class Step(_StepBase):
         self.function = self._check_function(function)
         self.inputs = []  # type: List[DataPlaceholder]
         self.outputs = []  # type: List[DataPlaceholder]
+        self.targets = []  # type: List[DataPlaceholder]
 
     def _check_function(self, function):
         if function is None:
@@ -149,8 +157,11 @@ class Step(_StepBase):
     def compute(self, *args, **kwargs):
         return self.function(*args, **kwargs)
 
-    def __call__(self, inputs: Union[DataPlaceholder, List[DataPlaceholder]]) \
-            -> Union[DataPlaceholder, List[DataPlaceholder]]:
+    def __call__(
+            self,
+            inputs: Union[DataPlaceholder, List[DataPlaceholder]],
+            targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None
+    ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the
         output(s) to be used in further steps.
 
@@ -159,6 +170,9 @@ class Step(_StepBase):
         inputs
             Input(s) to the step.
 
+        targets
+            Target(s) to the step.
+
         Returns
         -------
         DataPlaceholder
@@ -166,18 +180,55 @@ class Step(_StepBase):
 
         Notes
         -----
-        Currently, calling the same step on different inputs to reuse the step
-        (similar to the concept of shared layers and nodes in Keras) is not
-        supported. Calling a step twice on different inputs will override the
-        connectivity from the first call. Support for shareable steps might be
-        added in future releases.
+        Currently, calling the same step on different inputs and targets to
+        reuse the step (similar to the concept of shared layers and nodes in
+        Keras) is not supported. Calling a step twice on different inputs will
+        override the connectivity from the first call. Support for shareable
+        steps might be added in future releases.
         """
         inputs = listify(inputs)
-
         if not is_data_placeholder_list(inputs):
-            raise ValueError('Steps must be called with DataPlaceholder inputs.')
+            raise ValueError("inputs must be of type DataPlaceholder.")
+
+        if targets is not None:
+            if not hasattr(self, "fit"):
+                raise RuntimeError("Cannot pass targets to steps that do not have a fit method.")
+
+            # TODO: Consider inspecting the fit signature to determine whether the step
+            # needs a target (i.e. fit(self, X, y)) or not (i.e. fit(self, X, y=None)).
+            # The presence of a default of None for the target might not be reliable
+            # though, as there could be estimators (perhaps semi-supervised) that can take
+            # both target data and None. Also, sklearn has meta-estimators (e.g. Pipeline)
+            # and meta-transformers (e.g. SelectFromModel) that accept both target data
+            # and None.
+            #
+            # Adding this inspection, however, could simplify the API by rejecting early
+            # unnecessary targets (e.g. passing targets to PCA) or warning missing targets
+            # (e.g. not passing targets to LogisticRegression with trainable=True). This
+            # also avoids unintuitive logic to allow superfluous targets during step call,
+            # model instantiation and model fit.
+            #
+            # | requires target |   trainable   | passed target |   result   |
+            # ----------------------------------------------------------------
+            # |       yes       |      True     |      yes      |     ok     |
+            # |       yes       |      True     |      no       |    warn    |
+            # |       yes       |      False    |      yes      |    warn    |
+            # |       yes       |      False    |      no       |     ok     |
+            # |       no        |        -      |      yes      |    error   |
+            # |       no        |        -      |      no       |     ok     |
+
+            if not self.trainable:
+                warnings.warn(UserWarning("You are passing targets to a non-trainable step."))
+
+            targets = listify(targets)
+            if not is_data_placeholder_list(targets):
+                raise ValueError("If specified, targets must be of type DataPlaceholder.")
+
+        else:
+            targets = []
 
         self.inputs = inputs
+        self.targets = targets
         self.outputs = self._build_outputs()
 
         if len(self.outputs) == 1:
@@ -216,12 +267,15 @@ class Step(_StepBase):
 class InputStep(_StepBase):
     """Special Step subclass for Model inputs.
 
-    It is characterized by having no inputs and exactly one output.
+    It is characterized by having no inputs (in_degree == 0)
+    and exactly one output (out_degree == 1).
     """
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=1)
         self.inputs = []
         self.outputs = [DataPlaceholder(self, self.name)]
+        self.targets = []
+        self.trainable = False
 
     def __repr__(self):
         step_attrs = ['name']

@@ -18,6 +18,7 @@ class DataPlaceholder:
     instantiate these yourself.
     """
     def __init__(self, step, name):
+        # TODO: These should be read-only attributes
         self.step = step
         self.name = name
 
@@ -30,3 +31,5 @@ class DataPlaceholder:
         if self.__class__ is other.__class__:
             return self.name < other.name
         return NotImplemented
+
+    # TODO: Do we need an __eq__ method?

@@ -7,13 +7,13 @@ from baikal._core.step import Step, InputStep
 from baikal._core.typing import ArrayLike
 from baikal._core.utils import find_duplicated_items, listify, safezip2, SimpleCache
 
-
 # Just to avoid function signatures painful to the eye
 DataPlaceHolders = Union[DataPlaceholder, List[DataPlaceholder]]
 ArrayLikes = Union[ArrayLike, List[ArrayLike]]
 DataDict = Dict[Union[DataPlaceholder, str], ArrayLike]
 
 
+# TODO: Update docstrings
 class Model(Step):
     """A Model is a network (more precisely, a directed acyclic graph) of Steps,
     and it is defined from the input/output specification of the pipeline.
@@ -28,6 +28,9 @@ class Model(Step):
 
     outputs
         Outputs of the model.
+
+    targets
+        Targets of the model.
 
     name
         Name of the model (optional). If no name is passed, a name will be
@@ -69,25 +72,30 @@ class Model(Step):
     def __init__(self,
                  inputs: DataPlaceHolders,
                  outputs: DataPlaceHolders,
+                 targets: Optional[DataPlaceHolders] = None,
                  name: Optional[str] = None,
                  trainable: bool = True):
         super().__init__(name=name, trainable=trainable)
 
-        inputs = listify(inputs)
-        if not is_data_placeholder_list(inputs):
-            raise ValueError('inputs must be of type DataPlaceholder.')
-        if len(set(inputs)) != len(inputs):
-            raise ValueError('inputs must be unique.')
+        def check(this: DataPlaceHolders, what: str) -> List:
+            this = listify(this)
+            if not is_data_placeholder_list(this):
+                raise ValueError("{} must be of type DataPlaceholder.".format(what))
+            if len(set(this)) != len(this):
+                raise ValueError("{} must be unique.".format(what))
+            return this
 
-        outputs = listify(outputs)
-        if not is_data_placeholder_list(outputs):
-            raise ValueError('outputs must be of type DataPlaceholder.')
-        if len(set(outputs)) != len(outputs):
-            raise ValueError('outputs must be unique.')
+        inputs = check(inputs, "inputs")
+        outputs = check(outputs, "outputs")
+        if targets is not None:
+            targets = check(targets, "targets")
+        else:
+            targets = []
 
         self.n_outputs = len(outputs)
         self._internal_inputs = inputs
         self._internal_outputs = outputs
+        self._internal_targets = targets
         self._build()
 
     def _build(self):
@@ -105,30 +113,68 @@ class Model(Step):
 
         self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
         self._steps_cache = SimpleCache()
-        self._get_required_steps(self._internal_inputs, self._internal_outputs)
+        self._get_required_steps(self._internal_inputs, self._internal_targets, self._internal_outputs)
 
     def _get_required_steps(self,
-                            inputs: Iterable[DataPlaceholder],
-                            outputs: Iterable[DataPlaceholder]) -> List[Step]:
-        """Backtrack from outputs until inputs to get the necessary steps.
-        That is, find the ancestors of the nodes that provide the specified
-        outputs. Raise an error if there is an ancestor whose input is not in
-        the specified inputs. We assume a DAG (guaranteed by success of
-        topological_sort).
+                            given_inputs: Iterable[DataPlaceholder],
+                            given_targets: Iterable[DataPlaceholder],
+                            desired_outputs: Iterable[DataPlaceholder],
+                            *,
+                            allow_unused_inputs=False,
+                            allow_unused_targets=False,
+                            follow_targets=True,
+                            ignore_trainable_false=True) -> List[Step]:
+        """Backtrack from the desired outputs until the given inputs and targets
+        to get the required steps. That is, find the ancestors of the nodes that
+        provide the desired outputs. Raise an error if there is an ancestor whose
+        input/target is not in the given inputs/targets. We assume a DAG (guaranteed
+        by the success of topological_sort) and unique given_inputs, given_targets
+        and required_outputs (guaranteed by the callers of this function).
+
+        inputs and targets are handled separately to allow ignoring the targets
+        when getting the required steps at predict time.
+
+        Unused inputs might be allowed. This is the case in predict.
+        Unused targets might be allowed. This is the case in fit.
         """
-        cache_key = (tuple(sorted(inputs)), tuple(sorted(outputs)))
+        trainable_flags = tuple((step_name, self.get_step(step_name).trainable)
+                                for step_name in sorted(self._steps))
+
+        # We use as keys all the information that affects the
+        # computation of the required steps
+        cache_key = (tuple(sorted(given_inputs)),
+                     tuple(sorted(given_targets)),
+                     tuple(sorted(desired_outputs)),
+                     allow_unused_inputs,
+                     allow_unused_targets,
+                     follow_targets,
+                     ignore_trainable_false,
+                     trainable_flags)
+
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
 
+        given_inputs = set(given_inputs)
+        given_targets = set(given_targets)
+        desired_outputs = set(desired_outputs)
+        given_inputs_found = set()  # type: Set[DataPlaceholder]
+        given_targets_found = set()  # type: Set[DataPlaceholder]
         required_steps = set()  # type: Set[Step]
-        inputs_found = []
 
         # Depth-first search
+        # backtracking stops if any of the following happen:
+        #   - found a given input or target
+        #   - found a known required step
+        #   - hit an InputStep
         def backtrack(output):
             steps_required_by_output = set()
 
-            if output in inputs:
-                inputs_found.append(output)
+            if output in given_inputs:
+                given_inputs_found.add(output)
+                return steps_required_by_output
+
+            if output in given_targets:
+                given_targets_found.add(output)
                 return steps_required_by_output
 
             parent_step = output.step
@@ -138,26 +184,40 @@ class Model(Step):
             steps_required_by_output = {parent_step}
             for input in parent_step.inputs:
                 steps_required_by_output |= backtrack(input)
+
+            if follow_targets and (parent_step.trainable or ignore_trainable_false):
+                for target in parent_step.targets:
+                    steps_required_by_output |= backtrack(target)
+
             return steps_required_by_output
 
-        for output in outputs:
+        for output in desired_outputs:
             required_steps |= backtrack(output)
 
-        # Check for missing inputs
-        missing_inputs = []  # type: List[DataPlaceholder]
+        # Check for missing inputs/targets
+        # InputSteps that were reached by backtracking are missing inputs/targets.
+        # We *do not* compare given_inputs_found/given_targets_found with
+        # self._internal_inputs/self._internal_targets because we allow giving
+        # intermediate inputs directly.
+        missing_inputs_or_targets = set()  # type: Set[DataPlaceholder]
         for step in required_steps:
-            if self._graph.in_degree(step) == 0:
-                missing_inputs.extend(step.outputs)
+            if isinstance(step, InputStep):
+                missing_inputs_or_targets |= set(step.outputs)
 
-        if missing_inputs:
-            raise RuntimeError('The following inputs are required but were not specified:\n'
-                               '{}'.format(','.join([input.name for input in missing_inputs])))
+        if missing_inputs_or_targets:
+            raise ValueError("The following inputs or targets are required but were not given:\n"
+                             "{}".format(",".join([input.name for input in missing_inputs_or_targets])))
 
-        # Check for any unused inputs
-        for input in inputs:
-            if input not in inputs_found:
-                raise RuntimeError('Input {} was provided but it is not required '
-                                   'to compute the specified outputs.'.format(input.name))
+        # Check for any unused inputs/targets
+        unused_inputs = given_inputs - given_inputs_found
+        if unused_inputs and not allow_unused_inputs:
+            raise ValueError("The following inputs were given but are not required:\n"
+                             "{}".format(",".join([input.name for input in unused_inputs])))
+
+        unused_targets = given_targets - given_targets_found
+        if unused_targets and not allow_unused_targets:
+            raise ValueError("The following targets were given but are not required:\n"
+                             "{}".format(",".join([target.name for target in unused_targets])))
 
         required_steps_sorted = [step for step in self._all_steps_sorted
                                  if step in required_steps]
@@ -167,12 +227,11 @@ class Model(Step):
 
     def _normalize_data(self,
                         data: Union[ArrayLikes, DataDict],
-                        data_placeholders: List[DataPlaceholder],
-                        expand_none=False) -> Dict[DataPlaceholder, ArrayLike]:
+                        data_placeholders: List[DataPlaceholder]) -> Dict[DataPlaceholder, ArrayLike]:
         if isinstance(data, dict):
             return self._normalize_dict(data)
         else:
-            return self._normalize_list(data, data_placeholders, expand_none)
+            return self._normalize_list(data, data_placeholders)
 
     def _normalize_dict(self, data: DataDict) -> Dict[DataPlaceholder, ArrayLike]:
         data_norm = {}
@@ -183,12 +242,8 @@ class Model(Step):
 
     @staticmethod
     def _normalize_list(data: ArrayLikes,
-                        data_placeholders: List[DataPlaceholder],
-                        expand_none) -> Dict[DataPlaceholder, ArrayLike]:
-        if data is None and expand_none:
-            data = [None] * len(data_placeholders)
-        else:
-            data = listify(data)
+                        data_placeholders: List[DataPlaceholder]) -> Dict[DataPlaceholder, ArrayLike]:
+        data = listify(data)
 
         try:
             data_norm = dict(safezip2(data_placeholders, data))
@@ -240,7 +295,6 @@ class Model(Step):
     def fit(self,
             X: Union[ArrayLikes, DataDict],
             y: Optional[Union[ArrayLikes, DataDict]] = None,
-            extra_targets: Optional[DataDict] = None,
             **fit_params):
         """Trains the model on the given input and target data.
 
@@ -254,23 +308,20 @@ class Model(Step):
                 - A single array-like object (in the case of a single input)
                 - A list of array-like objects (in the case of multiple inputs)
                 - A dictionary mapping DataPlaceholders (or their names) to
-                  array-like objects.
+                  array-like objects. The keys must be among the inputs passed
+                  at instantiation.
         y
             Target data (dependent variables) (optional). It can be either of:
-                - None (in the case the single output is associated to a
-                  non-trainable or unsupervised learning step)
-                - A single array-like object (in the case of a single output)
-                - A list of the above (in the case of multiple outputs)
-                - A dictionary mapping DataPlaceholders (or their names) to
-                  array-like objects or None. You can also include target data
-                  required by intermediate steps not specified in the model outputs.
-        extra_targets
-            Target data required by intermediate steps not specified in the
-            model outputs. If specified, it must be a dictionary mapping
-            DataPlaceholders (or their names) to array-like objects or None.
+                - None (in the case all steps are either non-trainable and/or
+                  unsupervised learning steps)
+                - A single array-like object (in the case of a single target)
+                - A list of array-like objects(in the case of multiple targets)
+                - A dictionary mapping target DataPlaceholders (or their names) to
+                  array-like objects. The keys must be among the targets passed
+                  at instantiation.
 
-            While contents of `extra_targets` can be included in the contents of
-            `y`, this separate argument exists to pass target data to nested models.
+                Targets required by steps that were set as non-trainable might
+                be omitted.
 
         fit_params
             Parameters passed to the fit method of each model step, where each
@@ -284,23 +335,27 @@ class Model(Step):
         # TODO: Consider using joblib's Parallel and Memory classes to parallelize and cache computations
         # In graph parlance, the 'parallelizable' paths of a graph are called 'disjoint paths'
         # https://stackoverflow.com/questions/37633941/get-list-of-parallel-paths-in-a-directed-graph
+        # TODO: How to behave when fit was called on a Model (and Step) that is trainable=False?
 
         # input/output normalization
-        X = self._normalize_data(X, self._internal_inputs)
+        X_norm = self._normalize_data(X, self._internal_inputs)
         for input in self._internal_inputs:
-            if input not in X:
+            if input not in X_norm:
                 raise ValueError('Missing input {}.'.format(input))
 
-        y = self._normalize_data(y, self._internal_outputs, expand_none=True)
-        for output in self._internal_outputs:
-            if output not in y:
-                raise ValueError('Missing output {}.'.format(output))
-
-        if extra_targets is not None:
-            y.update(self._normalize_dict(extra_targets))
+        if y is not None:
+            y_norm = self._normalize_data(y, self._internal_targets)
+            for target in self._internal_targets:
+                if target not in y_norm:
+                    raise ValueError('Missing target {}.'.format(target))
+        else:
+            y_norm = {}
 
         # Get steps and their fit_params
-        steps = self._get_required_steps(X, y)
+        # We allow unused targets to allow modifying the trainable flags
+        # without having to change the targets accordingly.
+        steps = self._get_required_steps(X_norm, y_norm, self._internal_outputs,
+                                         allow_unused_targets=True, ignore_trainable_false=False)
         fit_params_steps = defaultdict(dict)  # type: Dict[Step, Dict]
         for param_key, param_value in fit_params.items():
             # TODO: Add check for __. Add error message if step was not found
@@ -311,7 +366,7 @@ class Model(Step):
         # Intermediate results are stored here
         # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache = dict()
-        results_cache.update(X)
+        results_cache.update(X_norm)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
@@ -319,9 +374,7 @@ class Model(Step):
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
             if hasattr(step, 'fit') and step.trainable:
-                # Filtering out None y's allow us to define fit methods without y=None.
-                ys = [y[o] for o in step.outputs
-                      if o in y and y[o] is not None]
+                ys = [y_norm[t] for t in step.targets]
 
                 fit_params = fit_params_steps.get(step, {})
 
@@ -329,7 +382,9 @@ class Model(Step):
                 step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
 
             # 2) predict/transform phase
-            self._compute_step(step, Xs, results_cache)
+            successors = [s for s in self.graph.successors(step)]
+            if successors:
+                self._compute_step(step, Xs, results_cache)
 
         return self
 
@@ -361,7 +416,7 @@ class Model(Step):
         results_cache = dict()  # type: Dict[DataPlaceholder, ArrayLike]
 
         # Normalize inputs
-        X = self._normalize_data(X, self._internal_inputs)
+        X_norm = self._normalize_data(X, self._internal_inputs)
 
         # Get required outputs
         if output_names is None:
@@ -372,10 +427,12 @@ class Model(Step):
                 raise ValueError('output_names must be unique.')
             outputs = [self.get_data_placeholder(output) for output in output_names]
 
-        steps = self._get_required_steps(X, outputs)
+        # We allow unused inputs to allow debugging different outputs
+        # without having to change the inputs accordingly.
+        steps = self._get_required_steps(X_norm, [], outputs, allow_unused_inputs=True, follow_targets=False)
 
         # Compute
-        results_cache.update(X)
+        results_cache.update(X_norm)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
@@ -465,12 +522,14 @@ class Model(Step):
     def _replace_step(self, step_key, new_step):
         # Transfer connectivity configuration from old step
         # to new step and replace old with new
-        transfer_attrs = ['name', 'trainable', 'inputs', 'outputs']
+        # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
+        transfer_attrs = ['name', 'trainable', 'inputs', 'outputs', 'targets']
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
 
         # Update outputs of old step to point to the new step
+        # TODO: The output dataplaceholders should be replaced too
         for output in old_step.outputs:
             output.step = new_step
 
@@ -488,6 +547,8 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
     It does so by backtracking recursively in depth-first fashion, jumping
     from outputs to steps in tandem until hitting a step with no inputs (an
     InputStep).
+
+    It builds the graph including the targets, i.e. the graph at fit time.
 
     Parameters
     ----------
@@ -512,6 +573,8 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
         graph.add_node(parent_step)
         for input in parent_step.inputs:
             collect_steps_from(input)
+        for target in parent_step.targets:
+            collect_steps_from(target)
 
     for output in outputs:
         collect_steps_from(output)
@@ -520,13 +583,15 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
     for step in graph:
         for input in step.inputs:
             graph.add_edge(input.step, step, input)
+        for target in step.targets:
+            graph.add_edge(target.step, step, target)
 
     # Check for any nodes (steps) with duplicated names
     duplicated_names = find_duplicated_items([step.name for step in graph])
 
     if duplicated_names:
-        raise RuntimeError('A graph cannot contain steps with duplicated names. '
-                           'Found the following duplicates:\n'
-                           '{}'.format(duplicated_names))
+        raise RuntimeError("A graph cannot contain steps with duplicated names. "
+                           "Found the following duplicates:\n"
+                           "{}".format(duplicated_names))
 
     return graph
