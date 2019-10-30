@@ -17,6 +17,14 @@
     </a>
   </td>
 </tr>
+<tr>
+  <td>Code style</td>
+  <td>
+    <a href="https://github.com/psf/black">
+    <img src="https://img.shields.io/badge/code%20style-black-000000.svg">
+    </a>
+  </td>
+</tr>
 </table>
 
 A graph-based functional API for building complex scikit-learn pipelines.
