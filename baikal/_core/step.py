@@ -25,7 +25,7 @@ class _StepBase:
         name = self.__class__.__name__
 
         n_instances = self._names.get(name, 0)
-        unique_name = make_name(name, n_instances, sep='_')
+        unique_name = make_name(name, n_instances, sep="_")
 
         n_instances += 1
         self._names[name] = n_instances
@@ -119,13 +119,16 @@ class Step(_StepBase):
     >>>
     >>> logreg = LogisticRegression(C=2.0, function='predict_proba')
     """
-    def __init__(self,
-                 *args,
-                 name: str = None,
-                 function: Optional[Union[str, Callable[..., Any]]] = None,
-                 n_outputs: int = 1,
-                 trainable: bool = True,
-                 **kwargs):
+
+    def __init__(
+        self,
+        *args,
+        name: str = None,
+        function: Optional[Union[str, Callable[..., Any]]] = None,
+        n_outputs: int = 1,
+        trainable: bool = True,
+        **kwargs
+    ):
         # Necessary to use this class as a mixin
         super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)  # type: ignore
 
@@ -137,30 +140,33 @@ class Step(_StepBase):
 
     def _check_function(self, function):
         if function is None:
-            if hasattr(self, 'predict'):
+            if hasattr(self, "predict"):
                 function = self.predict
-            elif hasattr(self, 'transform'):
+            elif hasattr(self, "transform"):
                 function = self.transform
             else:
-                raise ValueError('If `function` is not specified, the class '
-                                 'must implement a predict or transform method.')
+                raise ValueError(
+                    "If `function` is not specified, the class "
+                    "must implement a predict or transform method."
+                )
         else:
             if isinstance(function, str):
                 function = getattr(self, function)
             elif callable(function):
                 pass
             else:
-                raise ValueError('If specified, `function` must be either a '
-                                 'string or a callable.')
+                raise ValueError(
+                    "If specified, `function` must be either a " "string or a callable."
+                )
         return function
 
     def compute(self, *args, **kwargs):
         return self.function(*args, **kwargs)
 
     def __call__(
-            self,
-            inputs: Union[DataPlaceholder, List[DataPlaceholder]],
-            targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None
+        self,
+        inputs: Union[DataPlaceholder, List[DataPlaceholder]],
+        targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None,
     ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the
         output(s) to be used in further steps.
@@ -192,7 +198,9 @@ class Step(_StepBase):
 
         if targets is not None:
             if not hasattr(self, "fit"):
-                raise RuntimeError("Cannot pass targets to steps that do not have a fit method.")
+                raise RuntimeError(
+                    "Cannot pass targets to steps that do not have a fit method."
+                )
 
             # TODO: Consider inspecting the fit signature to determine whether the step
             # needs a target (i.e. fit(self, X, y)) or not (i.e. fit(self, X, y=None)).
@@ -218,11 +226,15 @@ class Step(_StepBase):
             # |       no        |        -      |      no       |     ok     |
 
             if not self.trainable:
-                warnings.warn(UserWarning("You are passing targets to a non-trainable step."))
+                warnings.warn(
+                    UserWarning("You are passing targets to a non-trainable step.")
+                )
 
             targets = listify(targets)
             if not is_data_placeholder_list(targets):
-                raise ValueError("If specified, targets must be of type DataPlaceholder.")
+                raise ValueError(
+                    "If specified, targets must be of type DataPlaceholder."
+                )
 
         else:
             targets = []
@@ -246,18 +258,18 @@ class Step(_StepBase):
     def __repr__(self):
         cls_name = self.__class__.__name__
         parent_repr = super().__repr__()
-        step_attrs = ['name', 'function', 'n_outputs', 'trainable']
+        step_attrs = ["name", "function", "n_outputs", "trainable"]
 
         # Insert Step attributes into the parent repr
         # if the repr has the sklearn pattern
-        sklearn_pattern = '^' + cls_name + '\((.*)\)$'
+        sklearn_pattern = "^" + cls_name + "\((.*)\)$"
         match = re.search(sklearn_pattern, parent_repr, re.DOTALL)
         if match:
             parent_args = match.group(1)
-            indentations = re.findall('[ \t]{2,}', parent_args)
-            indent = min(indentations, key=len) if indentations else ''
+            indentations = re.findall("[ \t]{2,}", parent_args)
+            indent = min(indentations, key=len) if indentations else ""
             step_args = make_args_from_attrs(self, step_attrs)
-            repr = '{}({},\n{}{})'.format(cls_name, step_args, indent, parent_args)
+            repr = "{}({},\n{}{})".format(cls_name, step_args, indent, parent_args)
             return repr
 
         else:
@@ -270,6 +282,7 @@ class InputStep(_StepBase):
     It is characterized by having no inputs (in_degree == 0)
     and exactly one output (out_degree == 1).
     """
+
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=1)
         self.inputs = []
@@ -278,7 +291,7 @@ class InputStep(_StepBase):
         self.trainable = False
 
     def __repr__(self):
-        step_attrs = ['name']
+        step_attrs = ["name"]
         return make_repr(self, step_attrs)
 
 

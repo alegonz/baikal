@@ -20,12 +20,24 @@ from baikal._core.typing import ArrayLike
 from baikal.steps import Concatenate, Stack
 
 from tests.helpers.fixtures import teardown
-from tests.helpers.sklearn_steps import (LogisticRegression, RandomForestClassifier, ExtraTreesClassifier,
-                                         PCA, LabelEncoder, StandardScaler)
-from tests.helpers.dummy_steps import DummySISO, DummySIMO, DummyMISO, DummyImproperlyDefined
+from tests.helpers.sklearn_steps import (
+    LogisticRegression,
+    RandomForestClassifier,
+    ExtraTreesClassifier,
+    PCA,
+    LabelEncoder,
+    StandardScaler,
+)
+from tests.helpers.dummy_steps import (
+    DummySISO,
+    DummySIMO,
+    DummyMISO,
+    DummyImproperlyDefined,
+)
 
-pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning:sklearn',
-                                        'ignore::FutureWarning:sklearn')
+pytestmark = pytest.mark.filterwarnings(
+    "ignore::DeprecationWarning:sklearn", "ignore::FutureWarning:sklearn"
+)
 
 iris = datasets.load_iris()
 
@@ -70,7 +82,7 @@ class TestInit:
             Model(x, wrong, y_t)
 
         with pytest.raises(ValueError):
-                Model(x, y, wrong)
+            Model(x, y, wrong)
 
     def test_with_missing_inputs(self, teardown):
         x1 = Input()
@@ -82,7 +94,9 @@ class TestInit:
 
     @pytest.mark.parametrize("step_class", [PCA, LogisticRegression])
     @pytest.mark.parametrize("trainable", [True, False])
-    @pytest.mark.filterwarnings("ignore:You are passing targets to a non-trainable step.")
+    @pytest.mark.filterwarnings(
+        "ignore:You are passing targets to a non-trainable step."
+    )
     def test_with_missing_targets(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
@@ -136,8 +150,8 @@ class TestInit:
 
     def test_with_steps_with_duplicated_names(self, teardown):
         x = Input()
-        h = PCA(name='duplicated-name')(x)
-        y = LogisticRegression(name='duplicated-name')(h)
+        h = PCA(name="duplicated-name")(x)
+        y = LogisticRegression(name="duplicated-name")(h)
 
         with pytest.raises(RuntimeError):
             Model(x, y)
@@ -150,9 +164,9 @@ class TestFit:
 
     @pytest.fixture
     def dataplaceholders(self):
-        x1 = Input(name='x1')
-        x2 = Input(name='x2')
-        y1_t = Input(name='y1_t')
+        x1 = Input(name="x1")
+        x2 = Input(name="x2")
+        y1_t = Input(name="y1_t")
         y1 = LogisticRegression()(x1, y1_t)
         y2 = PCA()(x2)
         return x1, x2, y1, y2, y1_t
@@ -163,10 +177,7 @@ class TestFit:
         return Model([x1, x2], [y1, y2], y1_t)
 
     @pytest.fixture(
-        params=[
-            List[ArrayLike],
-            Dict[DataPlaceholder, ArrayLike],
-            Dict[str, ArrayLike]]
+        params=[List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]
     )
     def X_y_proper(self, dataplaceholders, request):
         x1, x2, y1, y2, y1_t = dataplaceholders
@@ -177,13 +188,10 @@ class TestFit:
         elif X_y_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data, x2: self.x2_data}, {y1_t: self.y1_t_data}
         elif X_y_type == Dict[str, ArrayLike]:
-            return {'x1': self.x1_data, 'x2': self.x2_data}, {'y1_t': self.y1_t_data}
+            return {"x1": self.x1_data, "x2": self.x2_data}, {"y1_t": self.y1_t_data}
 
     @pytest.fixture(
-        params=[
-            List[ArrayLike],
-            Dict[DataPlaceholder, ArrayLike],
-            Dict[str, ArrayLike]]
+        params=[List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]
     )
     def X_y_missing_input(self, dataplaceholders, request):
         x1, x2, y1, y2, y1_t = dataplaceholders
@@ -194,13 +202,10 @@ class TestFit:
         elif X_y_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data}, {y1_t: self.y1_t_data}
         elif X_y_type == Dict[str, ArrayLike]:
-            return {'x1': self.x1_data}, {'y1_t': self.y1_t_data}
+            return {"x1": self.x1_data}, {"y1_t": self.y1_t_data}
 
     @pytest.fixture(
-        params=[
-            List[ArrayLike],
-            Dict[DataPlaceholder, ArrayLike],
-            Dict[str, ArrayLike]]
+        params=[List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]
     )
     def X_y_missing_target(self, dataplaceholders, request):
         x1, x2, y1, y2, y1_t = dataplaceholders
@@ -211,7 +216,7 @@ class TestFit:
         elif X_y_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data, x2: self.x2_data}, {}
         elif X_y_type == Dict[str, ArrayLike]:
-            return {'x1': self.x1_data, 'x2': self.x2_data}, {}
+            return {"x1": self.x1_data, "x2": self.x2_data}, {}
 
     def test_with_proper_inputs_and_targets(self, model, X_y_proper, teardown):
         X, y = X_y_proper
@@ -229,13 +234,17 @@ class TestFit:
 
     def test_with_unknown_input(self, model, teardown):
         with pytest.raises(ValueError):
-            model.fit({'x1': self.x1_data, 'unknown-input': self.x2_data},
-                      {'y1_t_data': self.y1_t_data})
+            model.fit(
+                {"x1": self.x1_data, "unknown-input": self.x2_data},
+                {"y1_t_data": self.y1_t_data},
+            )
 
     def test_with_unknown_target(self, model, teardown):
         with pytest.raises(ValueError):
-            model.fit({'x1': self.x1_data, 'x2': self.x2_data},
-                      {'unknown-target': self.y1_t_data})
+            model.fit(
+                {"x1": self.x1_data, "x2": self.x2_data},
+                {"unknown-target": self.y1_t_data},
+            )
 
     # TODO: Add test of unknown input/target passed as a list
 
@@ -294,13 +303,11 @@ class TestFit:
 
     @pytest.mark.parametrize(
         "step_class, trainable",
-        [
-            (PCA, True),
-            (PCA, False),
-            (LogisticRegression, False)
-        ]
+        [(PCA, True), (PCA, False), (LogisticRegression, False)],
     )
-    @pytest.mark.filterwarnings("ignore:You are passing targets to a non-trainable step.")
+    @pytest.mark.filterwarnings(
+        "ignore:You are passing targets to a non-trainable step."
+    )
     def test_with_superfluous_target(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
@@ -316,9 +323,9 @@ class TestPredict:
 
     @pytest.fixture
     def dataplaceholders(self):
-        x1 = Input(name='x1')
-        x2 = Input(name='x2')
-        y1_t = Input(name='y1_t')
+        x1 = Input(name="x1")
+        x2 = Input(name="x2")
+        y1_t = Input(name="y1_t")
         x1_rescaled = StandardScaler()(x1)
         y1 = LogisticRegression()(x1_rescaled, y1_t)
         y2 = PCA()(x2)
@@ -332,10 +339,7 @@ class TestPredict:
         return model
 
     @pytest.fixture(
-        params=[
-            List[ArrayLike],
-            Dict[DataPlaceholder, ArrayLike],
-            Dict[str, ArrayLike]]
+        params=[List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]
     )
     def X_proper(self, dataplaceholders, request):
         x1, x2, *_ = dataplaceholders
@@ -346,13 +350,10 @@ class TestPredict:
         elif X_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data, x2: self.x2_data}
         elif X_type == Dict[str, ArrayLike]:
-            return {'x1': self.x1_data, 'x2': self.x2_data}
+            return {"x1": self.x1_data, "x2": self.x2_data}
 
     @pytest.fixture(
-        params=[
-            List[ArrayLike],
-            Dict[DataPlaceholder, ArrayLike],
-            Dict[str, ArrayLike]]
+        params=[List[ArrayLike], Dict[DataPlaceholder, ArrayLike], Dict[str, ArrayLike]]
     )
     def X_missing_input(self, dataplaceholders, request):
         x1, x2, *_ = dataplaceholders
@@ -363,7 +364,7 @@ class TestPredict:
         elif X_type == Dict[DataPlaceholder, ArrayLike]:
             return {x1: self.x1_data}
         elif X_type == Dict[str, ArrayLike]:
-            return {'x1': self.x1_data}
+            return {"x1": self.x1_data}
 
     def test_with_proper_inputs(self, model, X_proper, teardown):
         model.predict(X_proper)
@@ -374,25 +375,29 @@ class TestPredict:
 
     def test_with_nonexisting_input(self, model, teardown):
         with pytest.raises(ValueError):
-            model.predict({'x1': self.x1_data, 'nonexisting-input': self.x2_data})
+            model.predict({"x1": self.x1_data, "nonexisting-input": self.x2_data})
 
     def test_with_nonexisting_output(self, model, teardown):
         with pytest.raises(ValueError):
-            model.predict({'x1': self.x1_data, 'x2': self.x2_data},
-                          ['non-existing-output', 'PCA_0/0'])
+            model.predict(
+                {"x1": self.x1_data, "x2": self.x2_data},
+                ["non-existing-output", "PCA_0/0"],
+            )
 
     def test_with_unnecessary_input(self, model, teardown):
         # x2 is not needed to compute PCA_0/0
-        model.predict({'x1': self.x1_data, 'x2': self.x2_data}, 'PCA_0/0')
+        model.predict({"x1": self.x1_data, "x2": self.x2_data}, "PCA_0/0")
 
     def test_with_duplicated_output(self, model, teardown):
         with pytest.raises(ValueError):
-            model.predict([self.x1_data, self.x2_data],
-                          ['LogisticRegression_0/0', 'LogisticRegression_0/0', 'PCA_0/0'])
+            model.predict(
+                [self.x1_data, self.x2_data],
+                ["LogisticRegression_0/0", "LogisticRegression_0/0", "PCA_0/0"],
+            )
 
-    @pytest.mark.parametrize("output", ['LogisticRegression_0/0', 'StandardScaler_0/0'])
+    @pytest.mark.parametrize("output", ["LogisticRegression_0/0", "StandardScaler_0/0"])
     def test_with_specified_output(self, model, output, teardown):
-        model.predict({'x1': self.x1_data}, output)
+        model.predict({"x1": self.x1_data}, output)
 
     def test_with_improperly_defined_step(self, teardown):
         x = Input()
@@ -405,9 +410,9 @@ class TestPredict:
     def test_predict_with_not_fitted_steps(self, teardown):
         x_data = iris.data
 
-        x = Input(name='x')
+        x = Input(name="x")
         xt = PCA(n_components=2)(x)
-        y = LogisticRegression(multi_class='multinomial', solver='lbfgs')(xt)
+        y = LogisticRegression(multi_class="multinomial", solver="lbfgs")(xt)
 
         model = Model(x, y)
         with pytest.raises(NotFittedError):
@@ -419,11 +424,11 @@ def test_steps_cache(teardown):
     x2_data = iris.data[:, 2:]
     y1_t_data = iris.target
 
-    x1 = Input(name='x1')
-    x2 = Input(name='x2')
-    y1_t = Input(name='y1_t')
-    y1 = LogisticRegression(name='LogReg')(x1, y1_t)
-    y2 = PCA(name='PCA')(x2)
+    x1 = Input(name="x1")
+    x2 = Input(name="x2")
+    y1_t = Input(name="y1_t")
+    y1 = LogisticRegression(name="LogReg")(x1, y1_t)
+    y2 = PCA(name="PCA")(x2)
 
     hits, misses = 0, 0
 
@@ -444,8 +449,10 @@ def test_steps_cache(teardown):
 
     # 4) trainable flags are considered in cache keys, hence a miss
     misses += 1
-    model.get_step('LogReg').trainable = False
-    model.fit([x1_data, x2_data], y1_t_data)  # NOTE: target is superfluous, but it affects caching
+    model.get_step("LogReg").trainable = False
+    model.fit(
+        [x1_data, x2_data], y1_t_data
+    )  # NOTE: target is superfluous, but it affects caching
     assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
     # 5) same as above, just different format, hence a hit
@@ -465,7 +472,7 @@ def test_steps_cache(teardown):
 
     # 8) we restore the flag, becoming the same as 2) and 3), hence a hit
     hits += 1
-    model.get_step('LogReg').trainable = True
+    model.get_step("LogReg").trainable = True
     model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
     assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
@@ -476,17 +483,17 @@ def test_steps_cache(teardown):
 
     # 10) same inputs/outputs signature as 9), hence a hit
     hits += 1
-    model.predict({'x1': x1_data, 'x2': x2_data}, ['PCA/0', 'LogReg/0'])
+    model.predict({"x1": x1_data, "x2": x2_data}, ["PCA/0", "LogReg/0"])
     assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
     # 11) new inputs/outputs signature, hence a miss
     misses += 1
-    model.predict({x1: x1_data}, 'LogReg/0')
+    model.predict({x1: x1_data}, "LogReg/0")
     assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
     # 12) same as above, hence a hit
     hits += 1
-    model.predict({x1: x1_data}, 'LogReg/0')
+    model.predict({x1: x1_data}, "LogReg/0")
     assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
 
 
@@ -539,17 +546,28 @@ def test_fit_predict_pipeline(teardown):
     # baikal way
     x = Input()
     y_t = Input()
-    x_pca = PCA(n_components=n_components, random_state=random_state, name='pca')(x)
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg')(x_pca, y_t)
+    x_pca = PCA(n_components=n_components, random_state=random_state, name="pca")(x)
+    y = LogisticRegression(
+        multi_class="multinomial",
+        solver="lbfgs",
+        random_state=random_state,
+        name="logreg",
+    )(x_pca, y_t)
 
     model = Model(x, y, y_t)
     y_pred_baikal = model.fit(x_data, y_t_data).predict(x_data)
 
     # traditional way
-    pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
-    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
+    pca = sklearn.decomposition.PCA(
+        n_components=n_components, random_state=random_state
+    )
+    logreg = sklearn.linear_model.LogisticRegression(
+        multi_class="multinomial", solver="lbfgs", random_state=random_state
+    )
     x_data_transformed = pca.fit_transform(x_data)
-    y_pred_traditional = logreg.fit(x_data_transformed, y_t_data).predict(x_data_transformed)
+    y_pred_traditional = logreg.fit(x_data_transformed, y_t_data).predict(
+        x_data_transformed
+    )
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
@@ -599,8 +617,10 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     # baikal way
     x = Input()
     y_t = Input()
-    y1 = LogisticRegression(random_state=random_state, function='predict_proba')(x, y_t)
-    y2 = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state, function='apply')(x, y_t)
+    y1 = LogisticRegression(random_state=random_state, function="predict_proba")(x, y_t)
+    y2 = RandomForestClassifier(
+        n_estimators=n_estimators, random_state=random_state, function="apply"
+    )(x, y_t)
     features = Concatenate(axis=1)([y1, y2])
     y = LogisticRegression(random_state=random_state)(features, y_t)
 
@@ -613,7 +633,9 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     logreg.fit(x_data, y_t_data)
     logreg_proba = logreg.predict_proba(x_data)
 
-    random_forest = sklearn.ensemble.RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)
+    random_forest = sklearn.ensemble.RandomForestClassifier(
+        n_estimators=n_estimators, random_state=random_state
+    )
     random_forest.fit(x_data, y_t_data)
     random_forest_leafidx = random_forest.apply(x_data)
 
@@ -659,13 +681,19 @@ def test_nested_model_ensemble(teardown):
     n_components = 2
 
     # ----------- baikal way
-    ensemble_model_baikal = make_ensemble_model(n_components, random_state, x_data, y_t_data)
+    ensemble_model_baikal = make_ensemble_model(
+        n_components, random_state, x_data, y_t_data
+    )
     y_pred_baikal = ensemble_model_baikal.predict(x_data)
 
     # ----------- traditional way
     # Submodel 1
-    submodel1 = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
-    pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
+    submodel1 = sklearn.linear_model.LogisticRegression(
+        multi_class="multinomial", solver="lbfgs", random_state=random_state
+    )
+    pca = sklearn.decomposition.PCA(
+        n_components=n_components, random_state=random_state
+    )
     pca.fit(x_data)
     pca_trans = pca.transform(x_data)
     submodel1.fit(pca_trans, y_t_data)
@@ -681,28 +709,35 @@ def test_nested_model_ensemble(teardown):
     extra_trees_pred = extra_trees.predict(x_data)
 
     features = np.stack([random_forest_pred, extra_trees_pred], axis=1)
-    submodel2 = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
+    submodel2 = sklearn.linear_model.LogisticRegression(
+        multi_class="multinomial", solver="lbfgs", random_state=random_state
+    )
     submodel2.fit(features, y_t_data)
     submodel2_pred = submodel2.predict(features)
 
     # Ensemble model
     features = np.stack([submodel1_pred, submodel2_pred], axis=1)
-    ensemble_model_traditional = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
+    ensemble_model_traditional = sklearn.linear_model.LogisticRegression(
+        multi_class="multinomial", solver="lbfgs", random_state=random_state
+    )
     ensemble_model_traditional.fit(features, y_t_data)
     y_pred_traditional = ensemble_model_traditional.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
-@pytest.mark.parametrize('dump,load', [(joblib.dump, joblib.load),
-                                       (pickle.dump, pickle.load)])
+@pytest.mark.parametrize(
+    "dump,load", [(joblib.dump, joblib.load), (pickle.dump, pickle.load)]
+)
 def test_model_joblib_serialization(teardown, dump, load):
     x_data = iris.data
     y_t_data = iris.target
     random_state = 123
     n_components = 2
 
-    ensemble_model_baikal = make_ensemble_model(n_components, random_state, x_data, y_t_data)
+    ensemble_model_baikal = make_ensemble_model(
+        n_components, random_state, x_data, y_t_data
+    )
     y_pred_baikal = ensemble_model_baikal.predict(x_data)
 
     # Persist model to a file
@@ -722,32 +757,41 @@ def test_fit_params(teardown):
     n_components = 2
 
     sample_weight = y_t_data + 1  # Just weigh the classes differently
-    fit_params = {'logreg__sample_weight': sample_weight}
+    fit_params = {"logreg__sample_weight": sample_weight}
 
     # baikal way
     x = Input()
     y_t = Input()
-    x_pca = PCA(n_components=n_components, random_state=random_state, name='pca')(x)
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg')(x_pca, y_t)
+    x_pca = PCA(n_components=n_components, random_state=random_state, name="pca")(x)
+    y = LogisticRegression(
+        multi_class="multinomial",
+        solver="lbfgs",
+        random_state=random_state,
+        name="logreg",
+    )(x_pca, y_t)
 
     model = Model(x, y, y_t)
     model.fit(x_data, y_t_data, **fit_params)
 
     # traditional way
-    pca = sklearn.decomposition.PCA(n_components=n_components, random_state=random_state)
-    logreg = sklearn.linear_model.LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state)
-    pipe = Pipeline([('pca', pca), ('logreg', logreg)])
+    pca = sklearn.decomposition.PCA(
+        n_components=n_components, random_state=random_state
+    )
+    logreg = sklearn.linear_model.LogisticRegression(
+        multi_class="multinomial", solver="lbfgs", random_state=random_state
+    )
+    pipe = Pipeline([("pca", pca), ("logreg", logreg)])
     pipe.fit(x_data, y_t_data, **fit_params)
 
     # Use assert_allclose instead of all equal due to small numerical differences
     # between fit_transform(...) and fit(...).transform(...)
-    assert_allclose(model.get_step('logreg').coef_, pipe.named_steps['logreg'].coef_)
+    assert_allclose(model.get_step("logreg").coef_, pipe.named_steps["logreg"].coef_)
 
 
 def test_get_params(teardown):
-    pca = PCA(name='pca')
-    logreg = LogisticRegression(name='logreg')
-    concat = Concatenate(name='concat')  # a step without get_params/set_params
+    pca = PCA(name="pca")
+    logreg = LogisticRegression(name="logreg")
+    concat = Concatenate(name="concat")  # a step without get_params/set_params
 
     x = Input()
     h = pca(x)
@@ -755,40 +799,42 @@ def test_get_params(teardown):
     y = logreg(c)
     model = Model(x, y)
 
-    expected = {'pca': pca,
-                'logreg': logreg,
-                'concat': concat,
-                'pca__n_components': None,
-                'pca__whiten': False,
-                'pca__tol': 0.0,
-                'pca__svd_solver': 'auto',
-                'pca__copy': True,
-                'pca__random_state': None,
-                'pca__iterated_power': 'auto',
-                'logreg__C': 1.0,
-                'logreg__class_weight': None,
-                'logreg__dual': False,
-                'logreg__fit_intercept': True,
-                'logreg__intercept_scaling': 1,
-                'logreg__max_iter': 100,
-                'logreg__multi_class': 'warn',
-                'logreg__n_jobs': None,
-                'logreg__penalty': 'l2',
-                'logreg__random_state': None,
-                'logreg__solver': 'warn',
-                'logreg__tol': 0.0001,
-                'logreg__verbose': 0,
-                'logreg__warm_start': False,
-                'logreg__l1_ratio': None}
+    expected = {
+        "pca": pca,
+        "logreg": logreg,
+        "concat": concat,
+        "pca__n_components": None,
+        "pca__whiten": False,
+        "pca__tol": 0.0,
+        "pca__svd_solver": "auto",
+        "pca__copy": True,
+        "pca__random_state": None,
+        "pca__iterated_power": "auto",
+        "logreg__C": 1.0,
+        "logreg__class_weight": None,
+        "logreg__dual": False,
+        "logreg__fit_intercept": True,
+        "logreg__intercept_scaling": 1,
+        "logreg__max_iter": 100,
+        "logreg__multi_class": "warn",
+        "logreg__n_jobs": None,
+        "logreg__penalty": "l2",
+        "logreg__random_state": None,
+        "logreg__solver": "warn",
+        "logreg__tol": 0.0001,
+        "logreg__verbose": 0,
+        "logreg__warm_start": False,
+        "logreg__l1_ratio": None,
+    }
 
     params = model.get_params()
     assert expected == params
 
 
 def test_set_params(teardown):
-    pca = PCA(name='pca')
-    classifier = RandomForestClassifier(name='classifier')
-    concat = Concatenate(name='concat')  # a step without get_params/set_params
+    pca = PCA(name="pca")
+    classifier = RandomForestClassifier(name="classifier")
+    concat = Concatenate(name="concat")  # a step without get_params/set_params
 
     x = Input()
     h = pca(x)
@@ -797,63 +843,67 @@ def test_set_params(teardown):
     model = Model(x, y)
 
     # Fails when setting params on step that does not implement set_params
-    new_params_wrong = {'concat__axis': 2}
+    new_params_wrong = {"concat__axis": 2}
     with pytest.raises(AttributeError):
         model.set_params(**new_params_wrong)
 
     # Fails when setting params on step that does not exist
-    new_params_wrong = {'non_existent_step__param': 42}
+    new_params_wrong = {"non_existent_step__param": 42}
     with pytest.raises(ValueError):
         model.set_params(**new_params_wrong)
 
     # Fails when setting a non-existent param in a step
-    new_params_wrong = {'pca__non_existent_param': 42}
+    new_params_wrong = {"pca__non_existent_param": 42}
     with pytest.raises(ValueError):
         model.set_params(**new_params_wrong)
 
     new_classifier = LogisticRegression()
-    new_params = {'classifier': new_classifier,
-                  'pca__n_components': 4,
-                  'pca__whiten': True,
-                  'classifier__C': 100.0,
-                  'classifier__fit_intercept': False,
-                  'classifier__penalty': 'l1'}
+    new_params = {
+        "classifier": new_classifier,
+        "pca__n_components": 4,
+        "pca__whiten": True,
+        "classifier__C": 100.0,
+        "classifier__fit_intercept": False,
+        "classifier__penalty": "l1",
+    }
 
     model.set_params(**new_params)
     params = model.get_params()
 
-    expected = {'pca': pca,
-                'classifier': new_classifier,
-                'concat': concat,
-                'pca__n_components': 4,
-                'pca__whiten': True,
-                'pca__tol': 0.0,
-                'pca__svd_solver': 'auto',
-                'pca__copy': True,
-                'pca__random_state': None,
-                'pca__iterated_power': 'auto',
-                'classifier__C': 100.0,
-                'classifier__class_weight': None,
-                'classifier__dual': False,
-                'classifier__fit_intercept': False,
-                'classifier__intercept_scaling': 1,
-                'classifier__max_iter': 100,
-                'classifier__multi_class': 'warn',
-                'classifier__n_jobs': None,
-                'classifier__penalty': 'l1',
-                'classifier__random_state': None,
-                'classifier__solver': 'warn',
-                'classifier__tol': 0.0001,
-                'classifier__verbose': 0,
-                'classifier__warm_start': False,
-                'classifier__l1_ratio': None}
+    expected = {
+        "pca": pca,
+        "classifier": new_classifier,
+        "concat": concat,
+        "pca__n_components": 4,
+        "pca__whiten": True,
+        "pca__tol": 0.0,
+        "pca__svd_solver": "auto",
+        "pca__copy": True,
+        "pca__random_state": None,
+        "pca__iterated_power": "auto",
+        "classifier__C": 100.0,
+        "classifier__class_weight": None,
+        "classifier__dual": False,
+        "classifier__fit_intercept": False,
+        "classifier__intercept_scaling": 1,
+        "classifier__max_iter": 100,
+        "classifier__multi_class": "warn",
+        "classifier__n_jobs": None,
+        "classifier__penalty": "l1",
+        "classifier__random_state": None,
+        "classifier__solver": "warn",
+        "classifier__tol": 0.0001,
+        "classifier__verbose": 0,
+        "classifier__warm_start": False,
+        "classifier__l1_ratio": None,
+    }
 
     assert expected == params
 
 
 def test_get_set_params_invariance(teardown):
-    pca = PCA(name='pca')
-    classifier = RandomForestClassifier(name='classifier')
+    pca = PCA(name="pca")
+    classifier = RandomForestClassifier(name="classifier")
 
     x = Input()
     h = pca(x)
@@ -872,7 +922,9 @@ def test_trainable_flag(teardown):
     random_state = 123
     n_components = 2
 
-    ensemble_model_baikal = make_ensemble_model(n_components, random_state, x_data, y_t_data)
+    ensemble_model_baikal = make_ensemble_model(
+        n_components, random_state, x_data, y_t_data
+    )
 
     # Set sub-model 1's LogisticRegression to untrainable and
     # retrain model on a subset of the data
@@ -881,11 +933,13 @@ def test_trainable_flag(teardown):
     idx = np.random.choice(np.arange(len(x_data)), size=n_samples, replace=False)
     x_data_sub, y_t_data_sub = x_data[idx], y_t_data[idx]
 
-    logreg_sub1 = ensemble_model_baikal.get_step('submodel1').get_step('logreg_sub1')
-    logreg_ensemble = ensemble_model_baikal.get_step('logreg_ensemble')
+    logreg_sub1 = ensemble_model_baikal.get_step("submodel1").get_step("logreg_sub1")
+    logreg_ensemble = ensemble_model_baikal.get_step("logreg_ensemble")
 
     logreg_sub1_coef_original = logreg_sub1.coef_.copy()  # This one should not change
-    logreg_ensemble_coef_original = logreg_ensemble.coef_.copy()  # This one should change
+    logreg_ensemble_coef_original = (
+        logreg_ensemble.coef_.copy()
+    )  # This one should change
     logreg_sub1.trainable = False
 
     ensemble_model_baikal.fit(x_data_sub, y_t_data_sub)
@@ -894,36 +948,57 @@ def test_trainable_flag(teardown):
 
     assert_array_equal(logreg_sub1_coef_original, logreg_sub1_coef_retrained)
     with pytest.raises(AssertionError):
-        assert_array_equal(logreg_ensemble_coef_original, logreg_ensemble_coef_retrained)
+        assert_array_equal(
+            logreg_ensemble_coef_original, logreg_ensemble_coef_retrained
+        )
 
 
 def make_ensemble_model(n_components, random_state, x_data, y_t_data):
     # An unnecessarily complex Model
 
     # Sub-model 1
-    x1 = Input(name='x1')
-    y1_t = Input(name='y1_t')
-    h1 = PCA(n_components=n_components, random_state=random_state, name='pca_sub1')(x1)
-    y1 = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg_sub1')(h1, y1_t)
-    submodel1 = Model(x1, y1, y1_t, name='submodel1')
+    x1 = Input(name="x1")
+    y1_t = Input(name="y1_t")
+    h1 = PCA(n_components=n_components, random_state=random_state, name="pca_sub1")(x1)
+    y1 = LogisticRegression(
+        multi_class="multinomial",
+        solver="lbfgs",
+        random_state=random_state,
+        name="logreg_sub1",
+    )(h1, y1_t)
+    submodel1 = Model(x1, y1, y1_t, name="submodel1")
 
     # Sub-model 2 (a nested ensemble model)
-    x2 = Input(name='x2')
-    y2_t = Input(name='y2_t')
-    y2_1 = RandomForestClassifier(random_state=random_state, name='rforest_sub2')(x2, y2_t)
-    y2_2 = ExtraTreesClassifier(random_state=random_state, name='extrees_sub2')(x2, y2_t)
-    features = Stack(axis=1, name='stack_sub2')([y2_1, y2_2])
-    y2 = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg_sub2')(features, y2_t)
-    submodel2 = Model(x2, y2, y2_t, name='submodel2')
+    x2 = Input(name="x2")
+    y2_t = Input(name="y2_t")
+    y2_1 = RandomForestClassifier(random_state=random_state, name="rforest_sub2")(
+        x2, y2_t
+    )
+    y2_2 = ExtraTreesClassifier(random_state=random_state, name="extrees_sub2")(
+        x2, y2_t
+    )
+    features = Stack(axis=1, name="stack_sub2")([y2_1, y2_2])
+    y2 = LogisticRegression(
+        multi_class="multinomial",
+        solver="lbfgs",
+        random_state=random_state,
+        name="logreg_sub2",
+    )(features, y2_t)
+    submodel2 = Model(x2, y2, y2_t, name="submodel2")
 
     # Ensemble of submodels
-    x = Input(name='x')
-    y_t = Input(name='y_t')
+    x = Input(name="x")
+    y_t = Input(name="y_t")
     y1 = submodel1(x, y_t)
     y2 = submodel2(x, y_t)
-    features = Stack(axis=1, name='stack')([y1, y2])
-    y = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=random_state, name='logreg_ensemble')(features, y_t)
-    ensemble_model_baikal = Model(x, y, y_t, name='ensemble')
+    features = Stack(axis=1, name="stack")([y1, y2])
+    y = LogisticRegression(
+        multi_class="multinomial",
+        solver="lbfgs",
+        random_state=random_state,
+        name="logreg_ensemble",
+    )(features, y_t)
+    ensemble_model_baikal = Model(x, y, y_t, name="ensemble")
 
     ensemble_model_baikal.fit(x_data, y_t_data)
 

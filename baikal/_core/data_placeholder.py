@@ -17,13 +17,14 @@ class DataPlaceholder:
     produced and consumed exclusively by Steps, so you shouldn't need to
     instantiate these yourself.
     """
+
     def __init__(self, step, name):
         # TODO: These should be read-only attributes
         self.step = step
         self.name = name
 
     def __repr__(self):
-        attrs = ['step', 'name']
+        attrs = ["step", "name"]
         return make_repr(self, attrs)
 
     # Make it sortable to aid cache hits in Model._get_required_steps

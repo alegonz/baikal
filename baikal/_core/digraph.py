@@ -80,7 +80,7 @@ class DiGraph:
 
     def _check_node_in_graph(self, node):
         if node not in self:
-            raise NodeNotFoundError('{} is not in the graph.'.format(node))
+            raise NodeNotFoundError("{} is not in the graph.".format(node))
 
     def topological_sort(self):
         # Implemented using depth-first search
@@ -89,9 +89,10 @@ class DiGraph:
 
         sorted_nodes = deque(maxlen=n_nodes)
         visited_nodes = set()
-        unvisited_nodes = deque(sorted(self._predecessors,
-                                       key=lambda k: len(self._predecessors[k])),
-                                maxlen=n_nodes)
+        unvisited_nodes = deque(
+            sorted(self._predecessors, key=lambda k: len(self._predecessors[k])),
+            maxlen=n_nodes,
+        )
 
         # It is not mandatory, but to have more intuitive orderings,
         # we start depth-first search from nodes without predecessors (inputs)
@@ -100,7 +101,7 @@ class DiGraph:
             if node in sorted_nodes:
                 return
             if node in visited_nodes:
-                raise CyclicDiGraphError('DiGraph is not acyclic.')
+                raise CyclicDiGraphError("DiGraph is not acyclic.")
 
             visited_nodes.add(node)
             for successor in self._successors[node]:

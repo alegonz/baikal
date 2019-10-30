@@ -69,12 +69,14 @@ class Model(Step):
         Set the parameters of the model.
     """
 
-    def __init__(self,
-                 inputs: DataPlaceHolders,
-                 outputs: DataPlaceHolders,
-                 targets: Optional[DataPlaceHolders] = None,
-                 name: Optional[str] = None,
-                 trainable: bool = True):
+    def __init__(
+        self,
+        inputs: DataPlaceHolders,
+        outputs: DataPlaceHolders,
+        targets: Optional[DataPlaceHolders] = None,
+        name: Optional[str] = None,
+        trainable: bool = True,
+    ):
         super().__init__(name=name, trainable=trainable)
 
         def check(this: DataPlaceHolders, what: str) -> List:
@@ -111,19 +113,25 @@ class Model(Step):
         # Collect steps
         self._steps = {step.name: step for step in self._graph}
 
-        self._all_steps_sorted = self._graph.topological_sort()  # Fail early if graph is acyclic
+        self._all_steps_sorted = (
+            self._graph.topological_sort()
+        )  # Fail early if graph is acyclic
         self._steps_cache = SimpleCache()
-        self._get_required_steps(self._internal_inputs, self._internal_targets, self._internal_outputs)
+        self._get_required_steps(
+            self._internal_inputs, self._internal_targets, self._internal_outputs
+        )
 
-    def _get_required_steps(self,
-                            given_inputs: Iterable[DataPlaceholder],
-                            given_targets: Iterable[DataPlaceholder],
-                            desired_outputs: Iterable[DataPlaceholder],
-                            *,
-                            allow_unused_inputs=False,
-                            allow_unused_targets=False,
-                            follow_targets=True,
-                            ignore_trainable_false=True) -> List[Step]:
+    def _get_required_steps(
+        self,
+        given_inputs: Iterable[DataPlaceholder],
+        given_targets: Iterable[DataPlaceholder],
+        desired_outputs: Iterable[DataPlaceholder],
+        *,
+        allow_unused_inputs=False,
+        allow_unused_targets=False,
+        follow_targets=True,
+        ignore_trainable_false=True
+    ) -> List[Step]:
         """Backtrack from the desired outputs until the given inputs and targets
         to get the required steps. That is, find the ancestors of the nodes that
         provide the desired outputs. Raise an error if there is an ancestor whose
@@ -137,19 +145,23 @@ class Model(Step):
         Unused inputs might be allowed. This is the case in predict.
         Unused targets might be allowed. This is the case in fit.
         """
-        trainable_flags = tuple((step_name, self.get_step(step_name).trainable)
-                                for step_name in sorted(self._steps))
+        trainable_flags = tuple(
+            (step_name, self.get_step(step_name).trainable)
+            for step_name in sorted(self._steps)
+        )
 
         # We use as keys all the information that affects the
         # computation of the required steps
-        cache_key = (tuple(sorted(given_inputs)),
-                     tuple(sorted(given_targets)),
-                     tuple(sorted(desired_outputs)),
-                     allow_unused_inputs,
-                     allow_unused_targets,
-                     follow_targets,
-                     ignore_trainable_false,
-                     trainable_flags)
+        cache_key = (
+            tuple(sorted(given_inputs)),
+            tuple(sorted(given_targets)),
+            tuple(sorted(desired_outputs)),
+            allow_unused_inputs,
+            allow_unused_targets,
+            follow_targets,
+            ignore_trainable_false,
+            trainable_flags,
+        )
 
         if cache_key in self._steps_cache:
             return self._steps_cache[cache_key]
@@ -205,29 +217,40 @@ class Model(Step):
                 missing_inputs_or_targets |= set(step.outputs)
 
         if missing_inputs_or_targets:
-            raise ValueError("The following inputs or targets are required but were not given:\n"
-                             "{}".format(",".join([input.name for input in missing_inputs_or_targets])))
+            raise ValueError(
+                "The following inputs or targets are required but were not given:\n"
+                "{}".format(
+                    ",".join([input.name for input in missing_inputs_or_targets])
+                )
+            )
 
         # Check for any unused inputs/targets
         unused_inputs = given_inputs - given_inputs_found
         if unused_inputs and not allow_unused_inputs:
-            raise ValueError("The following inputs were given but are not required:\n"
-                             "{}".format(",".join([input.name for input in unused_inputs])))
+            raise ValueError(
+                "The following inputs were given but are not required:\n"
+                "{}".format(",".join([input.name for input in unused_inputs]))
+            )
 
         unused_targets = given_targets - given_targets_found
         if unused_targets and not allow_unused_targets:
-            raise ValueError("The following targets were given but are not required:\n"
-                             "{}".format(",".join([target.name for target in unused_targets])))
+            raise ValueError(
+                "The following targets were given but are not required:\n"
+                "{}".format(",".join([target.name for target in unused_targets]))
+            )
 
-        required_steps_sorted = [step for step in self._all_steps_sorted
-                                 if step in required_steps]
+        required_steps_sorted = [
+            step for step in self._all_steps_sorted if step in required_steps
+        ]
         self._steps_cache[cache_key] = required_steps_sorted
 
         return required_steps_sorted
 
-    def _normalize_data(self,
-                        data: Union[ArrayLikes, DataDict],
-                        data_placeholders: List[DataPlaceholder]) -> Dict[DataPlaceholder, ArrayLike]:
+    def _normalize_data(
+        self,
+        data: Union[ArrayLikes, DataDict],
+        data_placeholders: List[DataPlaceholder],
+    ) -> Dict[DataPlaceholder, ArrayLike]:
         if isinstance(data, dict):
             return self._normalize_dict(data)
         else:
@@ -236,13 +259,16 @@ class Model(Step):
     def _normalize_dict(self, data: DataDict) -> Dict[DataPlaceholder, ArrayLike]:
         data_norm = {}
         for key, value in data.items():
-            key = self.get_data_placeholder(key.name if isinstance(key, DataPlaceholder) else key)
+            key = self.get_data_placeholder(
+                key.name if isinstance(key, DataPlaceholder) else key
+            )
             data_norm[key] = value
         return data_norm
 
     @staticmethod
-    def _normalize_list(data: ArrayLikes,
-                        data_placeholders: List[DataPlaceholder]) -> Dict[DataPlaceholder, ArrayLike]:
+    def _normalize_list(
+        data: ArrayLikes, data_placeholders: List[DataPlaceholder]
+    ) -> Dict[DataPlaceholder, ArrayLike]:
         data = listify(data)
 
         try:
@@ -250,10 +276,12 @@ class Model(Step):
 
         except ValueError as e:
             # TODO: Improve this message
-            message = 'When passing inputs/outputs as a list or a single array, ' \
-                      'the number of arrays must match the number of inputs/outputs ' \
-                      'specified at instantiation. ' \
-                      'Got {}, expected: {}.'.format(len(data), len(data_placeholders))
+            message = (
+                "When passing inputs/outputs as a list or a single array, "
+                "the number of arrays must match the number of inputs/outputs "
+                "specified at instantiation. "
+                "Got {}, expected: {}.".format(len(data), len(data_placeholders))
+            )
             raise ValueError(message) from e
 
         return data_norm
@@ -273,7 +301,7 @@ class Model(Step):
         # Steps are assumed to have unique names (guaranteed by success of _build_graph)
         if name in self._steps.keys():
             return self._steps[name]
-        raise ValueError('{} was not found in the model.'.format(name))
+        raise ValueError("{} was not found in the model.".format(name))
 
     def get_data_placeholder(self, name: str) -> DataPlaceholder:
         """Get a data placeholder (graph half-edge) in the model by name.
@@ -290,12 +318,14 @@ class Model(Step):
         # If the step names are unique, so are the data_placeholder names
         if name in self._data_placeholders.keys():
             return self._data_placeholders[name]
-        raise ValueError('{} was not found in the model.'.format(name))
+        raise ValueError("{} was not found in the model.".format(name))
 
-    def fit(self,
-            X: Union[ArrayLikes, DataDict],
-            y: Optional[Union[ArrayLikes, DataDict]] = None,
-            **fit_params):
+    def fit(
+        self,
+        X: Union[ArrayLikes, DataDict],
+        y: Optional[Union[ArrayLikes, DataDict]] = None,
+        **fit_params
+    ):
         """Trains the model on the given input and target data.
 
         The model will automatically propagate the data through the pipeline and
@@ -341,25 +371,30 @@ class Model(Step):
         X_norm = self._normalize_data(X, self._internal_inputs)
         for input in self._internal_inputs:
             if input not in X_norm:
-                raise ValueError('Missing input {}.'.format(input))
+                raise ValueError("Missing input {}.".format(input))
 
         if y is not None:
             y_norm = self._normalize_data(y, self._internal_targets)
             for target in self._internal_targets:
                 if target not in y_norm:
-                    raise ValueError('Missing target {}.'.format(target))
+                    raise ValueError("Missing target {}.".format(target))
         else:
             y_norm = {}
 
         # Get steps and their fit_params
         # We allow unused targets to allow modifying the trainable flags
         # without having to change the targets accordingly.
-        steps = self._get_required_steps(X_norm, y_norm, self._internal_outputs,
-                                         allow_unused_targets=True, ignore_trainable_false=False)
+        steps = self._get_required_steps(
+            X_norm,
+            y_norm,
+            self._internal_outputs,
+            allow_unused_targets=True,
+            ignore_trainable_false=False,
+        )
         fit_params_steps = defaultdict(dict)  # type: Dict[Step, Dict]
         for param_key, param_value in fit_params.items():
             # TODO: Add check for __. Add error message if step was not found
-            step_name, _, param_name = param_key.partition('__')
+            step_name, _, param_name = param_key.partition("__")
             step = self.get_step(step_name)
             fit_params_steps[step][param_name] = param_value
 
@@ -373,7 +408,7 @@ class Model(Step):
 
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
-            if hasattr(step, 'fit') and step.trainable:
+            if hasattr(step, "fit") and step.trainable:
                 ys = [y_norm[t] for t in step.targets]
 
                 fit_params = fit_params_steps.get(step, {})
@@ -388,9 +423,11 @@ class Model(Step):
 
         return self
 
-    def predict(self,
-                X: Union[ArrayLikes, DataDict],
-                output_names: Optional[Union[str, List[str]]] = None) -> ArrayLikes:
+    def predict(
+        self,
+        X: Union[ArrayLikes, DataDict],
+        output_names: Optional[Union[str, List[str]]] = None,
+    ) -> ArrayLikes:
         """
 
         **Models are query-able**. That is, you can request other outputs other
@@ -424,12 +461,14 @@ class Model(Step):
         else:
             output_names = listify(output_names)
             if len(set(output_names)) != len(output_names):
-                raise ValueError('output_names must be unique.')
+                raise ValueError("output_names must be unique.")
             outputs = [self.get_data_placeholder(output) for output in output_names]
 
         # We allow unused inputs to allow debugging different outputs
         # without having to change the inputs accordingly.
-        steps = self._get_required_steps(X_norm, [], outputs, allow_unused_inputs=True, follow_targets=False)
+        steps = self._get_required_steps(
+            X_norm, [], outputs, allow_unused_inputs=True, follow_targets=False
+        )
 
         # Compute
         results_cache.update(X_norm)
@@ -456,8 +495,12 @@ class Model(Step):
         try:
             cache.update(safezip2(step.outputs, output_data))
         except ValueError as e:
-            message = 'The number of output data elements ({}) does not match ' \
-                      'the number of {} outputs ({}).'.format(len(output_data), step.name, len(step.outputs))
+            message = (
+                "The number of output data elements ({}) does not match "
+                "the number of {} outputs ({}).".format(
+                    len(output_data), step.name, len(step.outputs)
+                )
+            )
             raise RuntimeError(message) from e
 
     def get_params(self, deep=True):
@@ -479,9 +522,9 @@ class Model(Step):
             if isinstance(step, InputStep):
                 continue
             params[step.name] = step
-            if hasattr(step, 'get_params'):
+            if hasattr(step, "get_params"):
                 for param_name, value in step.get_params(deep).items():
-                    params['{}__{}'.format(step.name, param_name)] = value
+                    params["{}__{}".format(step.name, param_name)] = value
         return params
 
     def set_params(self, **params):
@@ -509,7 +552,7 @@ class Model(Step):
         # Collect params by step
         step_params = defaultdict(dict)
         for key, value in params.items():
-            step_name, _, param_name = key.partition('__')
+            step_name, _, param_name = key.partition("__")
             step_params[step_name][param_name] = value
 
         # Set params for each step
@@ -523,7 +566,7 @@ class Model(Step):
         # Transfer connectivity configuration from old step
         # to new step and replace old with new
         # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
-        transfer_attrs = ['name', 'trainable', 'inputs', 'outputs', 'targets']
+        transfer_attrs = ["name", "trainable", "inputs", "outputs", "targets"]
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
@@ -590,8 +633,10 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
     duplicated_names = find_duplicated_items([step.name for step in graph])
 
     if duplicated_names:
-        raise RuntimeError("A graph cannot contain steps with duplicated names. "
-                           "Found the following duplicates:\n"
-                           "{}".format(duplicated_names))
+        raise RuntimeError(
+            "A graph cannot contain steps with duplicated names. "
+            "Found the following duplicates:\n"
+            "{}".format(duplicated_names)
+        )
 
     return graph

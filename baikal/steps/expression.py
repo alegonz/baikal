@@ -40,11 +40,15 @@ class Lambda(Step):
     [[0.5 1. ]
      [1.5 2. ]]
     """
-    def __init__(self,
-                 function: Callable[..., Any],
-                 n_outputs: int = 1,
-                 name: Optional[str] = None):
-        super().__init__(name=name, function=function,
-                         n_outputs=n_outputs, trainable=False)
+
+    def __init__(
+        self,
+        function: Callable[..., Any],
+        n_outputs: int = 1,
+        name: Optional[str] = None,
+    ):
+        super().__init__(
+            name=name, function=function, n_outputs=n_outputs, trainable=False
+        )
 
     # TODO: Consider adding get_params/set_params to tune function

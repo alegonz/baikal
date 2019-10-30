@@ -22,19 +22,19 @@ class TestInput:
         x0 = Input()
 
         assert isinstance(x0, DataPlaceholder)
-        assert 'InputStep_0' == x0.name
+        assert "InputStep_0" == x0.name
 
     def test_instantiate_two_without_name(self, teardown):
         x0 = Input()
         x1 = Input()
 
-        assert 'InputStep_0' == x0.name
-        assert 'InputStep_1' == x1.name
+        assert "InputStep_0" == x0.name
+        assert "InputStep_1" == x1.name
 
 
 class TestInputStep:
     def test_repr(self):
-        step = InputStep(name='x1')
+        step = InputStep(name="x1")
         assert "InputStep(name='x1')" == repr(step)
 
 
@@ -43,8 +43,8 @@ class TestStep:
         lr0 = LogisticRegression()
         lr1 = LogisticRegression()
 
-        assert 'LogisticRegression_0' == lr0.name
-        assert 'LogisticRegression_1' == lr1.name
+        assert "LogisticRegression_0" == lr0.name
+        assert "LogisticRegression_1" == lr1.name
 
     def test_instantiate_with_invalid_function_argument(self):
         class DummyStep(Step):
@@ -62,7 +62,7 @@ class TestStep:
         with pytest.raises(ValueError):
             DummyStep(function=None)
 
-        step = DummyStep(function='somefunc')
+        step = DummyStep(function="somefunc")
         print("")
         print(step.function)
         print(step.somefunc)
@@ -91,8 +91,10 @@ class TestStep:
         step_class(trainable=trainable)(x)
 
     @pytest.mark.parametrize("step_class", [LogisticRegression, PCA])
-    @pytest.mark.parametrize("trainable,expectation", [(True, does_not_raise),
-                                                       (False, partial(pytest.warns, UserWarning))])
+    @pytest.mark.parametrize(
+        "trainable,expectation",
+        [(True, does_not_raise), (False, partial(pytest.warns, UserWarning))],
+    )
     def test_call_with_targets(self, step_class, trainable, expectation, teardown):
         x = Input()
         y_t = Input()
@@ -116,16 +118,19 @@ class TestStep:
 
         assert isinstance(y0, DataPlaceholder)
         assert isinstance(y1, DataPlaceholder)
-        assert 'DummyMIMO_0/0' == y0.name
-        assert 'DummyMIMO_0/1' == y1.name
+        assert "DummyMIMO_0/0" == y0.name
+        assert "DummyMIMO_0/1" == y1.name
 
     def test_repr(self):
         class DummyStep(Step):
             def somefunc(self, X):
                 pass
-        step = DummyStep(name='some-step', function='somefunc')
-        assert "DummyStep(name='some-step', function='somefunc', " \
-               "n_outputs=1, trainable=True)" == repr(step)
+
+        step = DummyStep(name="some-step", function="somefunc")
+        assert (
+            "DummyStep(name='some-step', function='somefunc', "
+            "n_outputs=1, trainable=True)" == repr(step)
+        )
 
         # TODO: Add test for sklearn step
 
@@ -134,52 +139,54 @@ class TestStep:
         step = LogisticRegression()
         params = step.get_params()
 
-        expected = {'C': 1.0,
-                    'class_weight': None,
-                    'dual': False,
-                    'fit_intercept': True,
-                    'intercept_scaling': 1,
-                    'max_iter': 100,
-                    'multi_class': 'warn',
-                    'n_jobs': None,
-                    'penalty': 'l2',
-                    'random_state': None,
-                    'solver': 'warn',
-                    'tol': 0.0001,
-                    'verbose': 0,
-                    'warm_start': False,
-                    'l1_ratio': None}
+        expected = {
+            "C": 1.0,
+            "class_weight": None,
+            "dual": False,
+            "fit_intercept": True,
+            "intercept_scaling": 1,
+            "max_iter": 100,
+            "multi_class": "warn",
+            "n_jobs": None,
+            "penalty": "l2",
+            "random_state": None,
+            "solver": "warn",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": False,
+            "l1_ratio": None,
+        }
 
         assert expected == params
 
     def test_set_params(self, teardown):
         step = LogisticRegression()
 
-        new_params_wrong = {'non_existent_param': 42}
+        new_params_wrong = {"non_existent_param": 42}
         with pytest.raises(ValueError):
             step.set_params(**new_params_wrong)
 
-        new_params = {'C': 100.0,
-                      'fit_intercept': False,
-                      'penalty': 'l1'}
+        new_params = {"C": 100.0, "fit_intercept": False, "penalty": "l1"}
 
         step.set_params(**new_params)
         params = step.get_params()
 
-        expected = {'C': 100.0,
-                    'class_weight': None,
-                    'dual': False,
-                    'fit_intercept': False,
-                    'intercept_scaling': 1,
-                    'max_iter': 100,
-                    'multi_class': 'warn',
-                    'n_jobs': None,
-                    'penalty': 'l1',
-                    'random_state': None,
-                    'solver': 'warn',
-                    'tol': 0.0001,
-                    'verbose': 0,
-                    'warm_start': False,
-                    'l1_ratio': None}
+        expected = {
+            "C": 100.0,
+            "class_weight": None,
+            "dual": False,
+            "fit_intercept": False,
+            "intercept_scaling": 1,
+            "max_iter": 100,
+            "multi_class": "warn",
+            "n_jobs": None,
+            "penalty": "l1",
+            "random_state": None,
+            "solver": "warn",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": False,
+            "l1_ratio": None,
+        }
 
         assert expected == params
