@@ -94,7 +94,7 @@ class Model(Step):
         else:
             targets = []
 
-        self.n_outputs = len(outputs)
+        self._n_outputs = len(outputs)
         self._internal_inputs = inputs
         self._internal_outputs = outputs
         self._internal_targets = targets
@@ -566,7 +566,7 @@ class Model(Step):
         # Transfer connectivity configuration from old step
         # to new step and replace old with new
         # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
-        transfer_attrs = ["name", "trainable", "inputs", "outputs", "targets"]
+        transfer_attrs = ["_name", "trainable", "_inputs", "_outputs", "_targets"]
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
@@ -574,7 +574,7 @@ class Model(Step):
         # Update outputs of old step to point to the new step
         # TODO: The output dataplaceholders should be replaced too
         for output in old_step.outputs:
-            output.step = new_step
+            output._step = new_step
 
         # Rebuild model
         self._build()

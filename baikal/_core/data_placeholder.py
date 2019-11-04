@@ -19,9 +19,16 @@ class DataPlaceholder:
     """
 
     def __init__(self, step, name):
-        # TODO: These should be read-only attributes
-        self.step = step
-        self.name = name
+        self._step = step
+        self._name = name
+
+    @property
+    def step(self):
+        return self._step
+
+    @property
+    def name(self):
+        return self._name
 
     def __repr__(self):
         attrs = ["step", "name"]
@@ -30,7 +37,7 @@ class DataPlaceholder:
     # Make it sortable to aid cache hits in Model._get_required_steps
     def __lt__(self, other):
         if self.__class__ is other.__class__:
-            return self.name < other.name
+            return self._name < other.name
         return NotImplemented
 
     # TODO: Do we need an __eq__ method?
