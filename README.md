@@ -407,6 +407,6 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 ### Setting up the development environment
 1. Clone the project from github.
 2. (Optional) Setup a python virtual environment and activate it.
-3. From the project root folder run: `make setup_develop`. This will install the package in development mode.
+3. From the project root folder run: `make setup_dev`. This will install the package in development mode.
 4. To run the tests use: `make test`, or `make test-cov` to include coverage.
     - The tests include a test for the plot utility, so you need to install graphviz.
