@@ -25,6 +25,22 @@
     </a>
   </td>
 </tr>
+<tr>
+  <td>Latest Release</td>
+  <td>
+    <a href="https://pypi.org/project/baikal/">
+    <img src="https://img.shields.io/pypi/v/baikal.svg" alt="latest release" />
+    </a>
+  </td>
+</tr>
+<tr>
+  <td>License</td>
+  <td>
+    <a href="https://github.com/alegonz/baikal/blob/master/LICENSE">
+    <img src="https://img.shields.io/pypi/l/baikal.svg" alt="license" />
+    </a>
+  </td>
+</tr>
 </table>
 
 A graph-based functional API for building complex scikit-learn pipelines.
