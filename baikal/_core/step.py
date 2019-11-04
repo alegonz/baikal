@@ -262,7 +262,7 @@ class Step(_StepBase):
 
         # Insert Step attributes into the parent repr
         # if the repr has the sklearn pattern
-        sklearn_pattern = "^" + cls_name + "\((.*)\)$"
+        sklearn_pattern = r"^" + cls_name + r"\((.*)\)$"
         match = re.search(sklearn_pattern, parent_repr, re.DOTALL)
         if match:
             parent_args = match.group(1)
