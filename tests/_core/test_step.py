@@ -63,9 +63,6 @@ class TestStep:
             DummyStep(function=None)
 
         step = DummyStep(function="somefunc")
-        print("")
-        print(step.function)
-        print(step.somefunc)
         assert step.function == step.somefunc
 
         def anotherfunc():
