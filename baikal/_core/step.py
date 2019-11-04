@@ -15,11 +15,10 @@ class _StepBase:
         # Necessary to use this class as a mixin
         super().__init__(*args, **kwargs)  # type: ignore
 
-        # TODO: name and n_outputs should be read-only attributes
         # Use name as is if it was specified by the user, to avoid the user a surprise
-        self.name = name if name is not None else self._generate_unique_name()
+        self._name = name if name is not None else self._generate_unique_name()
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__
-        self.n_outputs = n_outputs
+        self._n_outputs = n_outputs
 
     def _generate_unique_name(self):
         name = self.__class__.__name__
@@ -45,6 +44,26 @@ class _StepBase:
         the mro.
         """
         return super()._get_param_names.__func__(super())
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def n_outputs(self):
+        return self._n_outputs
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def outputs(self):
+        return self._outputs
+
+    @property
+    def targets(self):
+        return self._targets
 
 
 # TODO: Update docstrings
@@ -134,9 +153,9 @@ class Step(_StepBase):
 
         self.trainable = trainable
         self.function = self._check_function(function)
-        self.inputs = []  # type: List[DataPlaceholder]
-        self.outputs = []  # type: List[DataPlaceholder]
-        self.targets = []  # type: List[DataPlaceholder]
+        self._inputs = []  # type: List[DataPlaceholder]
+        self._outputs = []  # type: List[DataPlaceholder]
+        self._targets = []  # type: List[DataPlaceholder]
 
     def _check_function(self, function):
         if function is None:
@@ -239,19 +258,19 @@ class Step(_StepBase):
         else:
             targets = []
 
-        self.inputs = inputs
-        self.targets = targets
-        self.outputs = self._build_outputs()
+        self._inputs = inputs
+        self._targets = targets
+        self._outputs = self._build_outputs()
 
-        if len(self.outputs) == 1:
-            return self.outputs[0]
+        if len(self._outputs) == 1:
+            return self._outputs[0]
         else:
-            return self.outputs
+            return self._outputs
 
     def _build_outputs(self) -> List[DataPlaceholder]:
         outputs = []
-        for i in range(self.n_outputs):
-            name = make_name(self.name, i)
+        for i in range(self._n_outputs):
+            name = make_name(self._name, i)
             outputs.append(DataPlaceholder(self, name))
         return outputs
 
@@ -285,9 +304,9 @@ class InputStep(_StepBase):
 
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=1)
-        self.inputs = []
-        self.outputs = [DataPlaceholder(self, self.name)]
-        self.targets = []
+        self._inputs = []
+        self._outputs = [DataPlaceholder(self, self._name)]
+        self._targets = []
         self.trainable = False
 
     def __repr__(self):
