@@ -60,8 +60,9 @@ With **baikal** you can
 - nest pipelines;
 - use prediction probabilities or any other kind of output as inputs to other steps in the pipeline;
 - query intermediate outputs, easing debugging;
-- freeze/unfreeze steps that do not require fitting;
-- define and add custom steps easily.
+- freeze steps that do not require fitting;
+- define and add custom steps easily;
+- plot pipelines.
 
 All with boilerplate-free, readable code.
 
@@ -115,7 +116,6 @@ from baikal import make_step, Input, Model
 
 # 1. Define a step
 SVC = make_step(sklearn.svm.SVC)
-
 
 # 2. Build the model
 x = Input()
@@ -407,8 +407,9 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 - Contributions to extend/refactor/improve/document the API are also welcome! **baikal** is currently a one-man operation, and it could benefit from more minds and hands working on it :)
 
 ### Setting up the development environment
-1. Clone the project from github.
-2. (Optional) Setup a python virtual environment and activate it.
-3. From the project root folder run: `make setup_dev`. This will install the package in development mode.
-4. To run the tests use: `make test`, or `make test-cov` to include coverage.
+1. Clone the project.
+2. From the project root folder run: `make setup_dev`.
+    - This will create a virtualenv and install the package in development mode.
+    - You need Python 3.5 or above.
+3. To run the tests use: `make test`, or `make test-cov` to include coverage.
     - The tests include a test for the plot utility, so you need to install graphviz.
