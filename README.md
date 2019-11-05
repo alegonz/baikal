@@ -51,6 +51,20 @@ y = SVC()(ensemble_features, y_t)
 model = Model([x1, x2], y, y_t)
 ```
 
+### The pitch
+
+With **baikal** you can
+
+- build non-linear pipelines effortlessly;
+- handle multiple inputs and outputs;
+- nest pipelines;
+- use prediction probabilities or any other kind of output as inputs to other steps in the pipeline;
+- query intermediate outputs, easing debugging;
+- freeze/unfreeze steps that do not require fitting;
+- define and add custom steps easily.
+
+All with boilerplate-free, readable code.
+
 ### Why baikal?
 
 The pipeline above (to the best of the author's knowledge) cannot be easily built using [scikit-learn's composite estimators API](https://scikit-learn.org/stable/modules/compose.html#pipelines-and-composite-estimators) as you encounter some limitations:
@@ -378,7 +392,8 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 ## Next development steps
 - [x] Make a step class factory function.
 - [x] Treat targets as first-class citizens in the Model. Currently, targets are not treated like formal inputs of the graph, and the only way a Model handles them is via the `Model.fit` interface, which makes difficult applying steps to them (e.g. log transformation on regression targets).
-- [ ] Add parallelization and caching of intermediate results to `Model.fit` and `Model.predict` with joblib (`Parallel` and `Memory` API).
+- [ ] (**in progress**) Add parallelization to `Model.fit` and `Model.predict` (using joblib `Parallel` API).
+- [ ] Add caching of intermediate results to `Model.fit` and `Model.predict` (using joblib `Memory` API).
 - [ ] Make a custom `GridSearchCV` API, based on the original scikit-learn implementation, that can handle baikal models with multiple inputs and outputs natively.
 - [ ] Make steps shareable.
 - [ ] Add support for steps that can take extra options in their predict method.
