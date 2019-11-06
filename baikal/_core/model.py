@@ -402,6 +402,7 @@ class Model(Step):
         # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
         results_cache = dict()
         results_cache.update(X_norm)
+        results_cache.update(y_norm)
 
         for step in steps:
             Xs = [results_cache[i] for i in step.inputs]
@@ -409,7 +410,7 @@ class Model(Step):
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
             if hasattr(step, "fit") and step.trainable:
-                ys = [y_norm[t] for t in step.targets]
+                ys = [results_cache[t] for t in step.targets]
 
                 fit_params = fit_params_steps.get(step, {})
 
