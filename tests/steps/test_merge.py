@@ -1,8 +1,10 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 
 from baikal import Model, Input
-from baikal.steps import ColumnStack, Concatenate, Stack
+from baikal._core.utils import listify, safezip2
+from baikal.steps import ColumnStack, Concatenate, Stack, Split
 
 from tests.helpers.fixtures import teardown
 
@@ -49,3 +51,19 @@ def test_stack(teardown):
     y_pred = model.predict([x1_data, x2_data])
 
     assert_array_equal(y_pred, y_expected)
+
+
+@pytest.mark.parametrize(
+    "x,indices_or_sections", [(np.array([1, 2, 3]), 3), (np.array([1, 2, 3]), [1]),]
+)
+def test_split(x, indices_or_sections, teardown):
+    x1 = Input()
+    ys = Split(indices_or_sections, axis=0)(x1)
+    model = Model(x1, ys)
+
+    y_expected = np.split(x, indices_or_sections, axis=0)
+    y_pred = model.predict(x)
+    y_pred = listify(y_pred)
+
+    for actual, expected in safezip2(y_pred, y_expected):
+        assert_array_equal(actual, expected)
