@@ -1,5 +1,6 @@
 # Unfortunately we cannot name this module lambda.py so
 # we are stuck with this unintuitive module name.
+from functools import partial
 from typing import Optional, Any, Callable
 
 from baikal._core.step import Step
@@ -46,9 +47,13 @@ class Lambda(Step):
         function: Callable[..., Any],
         n_outputs: int = 1,
         name: Optional[str] = None,
+        **kwargs
     ):
         super().__init__(
-            name=name, function=function, n_outputs=n_outputs, trainable=False
+            name=name,
+            function=partial(function, **kwargs),
+            n_outputs=n_outputs,
+            trainable=False,
         )
 
     # TODO: Consider adding get_params/set_params to tune function
