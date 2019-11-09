@@ -17,10 +17,11 @@ from sklearn.pipeline import Pipeline
 from baikal import Model, Input
 from baikal._core.data_placeholder import DataPlaceholder
 from baikal._core.typing import ArrayLike
-from baikal.steps import Concatenate, Stack
+from baikal.steps import Concatenate, Stack, Lambda
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (
+    LinearRegression,
     LogisticRegression,
     RandomForestClassifier,
     ExtraTreesClassifier,
@@ -518,6 +519,21 @@ def test_lazy_model(teardown):
     x_pred = model.predict(x_data)
 
     assert_array_equal(x_pred, x_data)
+
+
+def test_transformed_target(teardown):
+    x = Input()
+    y_t = Input()
+    y_t_mod = Lambda(lambda y: np.log(y))(y_t)
+    y_p_mod = LinearRegression()(x, y_t_mod)
+    y_p = Lambda(lambda y: np.exp(y))(y_p_mod)
+    model = Model(x, y_p, y_t)
+
+    x_data = np.arange(4).reshape(-1, 1)
+    y_t_data = np.exp(2 * x_data).ravel()
+    model.fit(x_data, y_t_data)
+
+    assert_array_equal(model.get_step("LinearRegression_0").coef_, np.array([2.0]))
 
 
 def test_fit_and_predict_model_with_no_fittable_steps(teardown):

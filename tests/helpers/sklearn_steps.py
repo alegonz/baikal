@@ -5,6 +5,7 @@ import sklearn.preprocessing
 
 from baikal import make_step
 
+LinearRegression = make_step(sklearn.linear_model.LinearRegression)
 LogisticRegression = make_step(sklearn.linear_model.LogisticRegression)
 RandomForestClassifier = make_step(sklearn.ensemble.RandomForestClassifier)
 ExtraTreesClassifier = make_step(sklearn.ensemble.ExtraTreesClassifier)
