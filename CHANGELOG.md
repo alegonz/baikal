@@ -6,14 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - This CHANGELOG file.
-- `make_step` factory function to ease definition of steps.
-- Added type-check using mypy.
-- Introduced new targets API [(PR #1)](https://github.com/alegonz/baikal/pull/1).
+- Introduced new targets API ([PR #1](https://github.com/alegonz/baikal/pull/1)).
     - Steps now take an optional `targets` argument at call time to specify inputs for target data at fit time.
     - Correspondingly, `Model` also takes an additional argument for these targets.
     - The `extra_targets` argument in `Model.fit` was removed.
-- Adopted code style black [(PR #3)](https://github.com/alegonz/baikal/pull/3).
+- Step enhancements
+    - `make_step` factory function to ease definition of steps.
+    - Added support for function arguments to Lambda step ([(PR #8)](https://github.com/alegonz/baikal/pull/8)).
+    - Added new Split step ([(PR #9)](https://github.com/alegonz/baikal/pull/9)).
+
+### Fixes
 - Some refactoring and minor fixes.
+- Bug fixes ([(PR #6)](https://github.com/alegonz/baikal/pull/6), [(PR #7)](https://github.com/alegonz/baikal/pull/7))
 
 ## [0.1.0] - 2019-06-01
 ### Added
