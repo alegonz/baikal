@@ -1,7 +1,5 @@
 from typing import Union, Any, List, Tuple
 
-# TODO: Add unit tests of this module
-
 
 def listify(x: Union[Any, List[Any], Tuple[Any]]) -> List[Any]:
     if isinstance(x, list):
