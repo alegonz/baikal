@@ -372,17 +372,19 @@ The API also lends itself for more interesting configurations, such as that of [
 
 ```python
 x = Input()
-ys_t, ys_p = [], []
-for j in range(n_targets):
+y_t = Input()
+
+ys_t = Split(n_targets, axis=1)(y_t)
+ys_p = []
+for j, k in enumerate(order):
     x_stacked = ColumnStack()(inputs=[x, *ys_p[:j]])
-    yj_t = Input()
-    yj_p = LogisticRegression(solver='lbfgs')(inputs=x_stacked, targets=yj_t)
-    ys_t.append(yj_t)
-    ys_p.append(yj_p)
+    ys_t[k] = Lambda(np.squeeze, axis=1)(ys_t[k])
+    ys_p.append(LogisticRegression()(x_stacked, ys_t[k]))
 
-y_pred = ColumnStack()(ys_p)
+ys_p = [ys_p[order.index(j)] for j in range(n_targets)]
+y_p = ColumnStack()(ys_p)
 
-model = Model(inputs=x, outputs=y_pred, targets=ys_t)
+model = Model(inputs=x, outputs=y_p, targets=y_t)
 ```
 
 Click [here](examples/classifier_chain.py) for a full example.
