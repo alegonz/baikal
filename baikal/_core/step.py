@@ -262,10 +262,15 @@ class Step(_StepBase):
         self._targets = targets
         self._outputs = self._build_outputs()
 
-        if len(self._outputs) == 1:
+        if self._n_outputs == 1:
             return self._outputs[0]
         else:
-            return self._outputs
+            # Return a shallow copy to avoid modifying self._outputs when
+            # using the idiom of passing a variable holding an output to
+            # another step and re-writing the variable with the new output:
+            #     zs = SomeMultiOutputStep()(...)
+            #     zs[i] = SomeStep()(zs[i])
+            return list(self.outputs)
 
     def _build_outputs(self) -> List[DataPlaceholder]:
         outputs = []
@@ -333,7 +338,7 @@ def Input(name: Optional[str] = None) -> DataPlaceholder:
     """
     # Maybe this can be implemented in InputStep.__new__
     input = InputStep(name)
-    return input.outputs[0]  # Input produces exactly one DataPlaceholder output
+    return input._outputs[0]  # Input produces exactly one DataPlaceholder output
 
 
 # Notes on typing:
