@@ -51,18 +51,19 @@ y = SVC()(ensemble_features, y_t)
 model = Model([x1, x2], y, y_t)
 ```
 
-### The pitch
+### What can I do with it?
 
 With **baikal** you can
 
-- build non-linear pipelines effortlessly;
-- handle multiple inputs and outputs;
-- nest pipelines;
-- use prediction probabilities or any other kind of output as inputs to other steps in the pipeline;
-- query intermediate outputs, easing debugging;
-- freeze steps that do not require fitting;
-- define and add custom steps easily;
-- plot pipelines.
+- build non-linear pipelines effortlessly
+- handle multiple inputs and outputs
+- add steps that operate on targets as part of the pipeline
+- nest pipelines
+- use prediction probabilities (or any other kind of output) as inputs to other steps in the pipeline
+- query intermediate outputs, easing debugging
+- freeze steps that do not require fitting
+- define and add custom steps easily
+- plot pipelines
 
 All with boilerplate-free, readable code.
 
@@ -120,12 +121,14 @@ SVC = make_step(sklearn.svm.SVC)
 # 2. Build the model
 x = Input()
 y_t = Input()
-y = SVC(C=1.0, kernel='rbf', gamma=0.5)(x, y_t)
+y = SVC(C=1.0, kernel="rbf", gamma=0.5)(x, y_t)
 model = Model(x, y, y_t)
 
 # 3. Train the model
 dataset = load_breast_cancer()
-X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(
+    dataset.data, dataset.target, random_state=0
+)
 
 model.fit(X_train, y_train)
 
@@ -171,8 +174,13 @@ from baikal import Step
 # The order of inheritance is important!
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
     def __init__(self, name=None, function=None, n_outputs=1, trainable=True, **kwargs):
-        super().__init__(name=name, function=function,
-                         n_outputs=n_outputs, trainable=trainable, **kwargs)
+        super().__init__(
+            name=name,
+            function=function,
+            n_outputs=n_outputs,
+            trainable=trainable,
+            **kwargs
+        )
 ```
 
 Other steps are defined similarly (omitted here for brevity).
@@ -247,13 +255,15 @@ y_test_pred = model.predict({x1: X1_test, x2: X2_test})
 **Models are query-able**. That is, you can request other outputs other than those specified at model instantiation. This allows querying intermediate outputs and ease debugging. For example, to get both the output from PCA and the ExtraTreesClassifier:
 
 ```python
-outs = model.predict([X1_test, X2_test], output_names=['ExtraTreesClassifier_0/0', 'PCA_0/0'])
+outs = model.predict(
+    [X1_test, X2_test], output_names=["ExtraTreesClassifier_0/0", "PCA_0/0"]
+)
 ```
 
 You don't need to pass inputs that are not required to compute the queried output. For example, if we just want the output of `PowerTransformer`: 
 
 ```python
-outs = model.predict({x2: X2_data}, output_names='PowerTransformer_0/0')
+outs = model.predict({x2: X2_data}, output_names="PowerTransformer_0/0")
 ```
 
 **Models are also nestable**. In fact, Models are steps, too. This allows composing smaller models into bigger ones, like so:
@@ -281,8 +291,8 @@ Like sklearn objects, models can be serialized with pickle or joblib without any
 
 ```python
 import joblib
-joblib.dump(model, 'model.pkl')
-model_reloaded = joblib.load('model.pkl')
+joblib.dump(model, "model.pkl")
+model_reloaded = joblib.load("model.pkl")
 ```
 
 Keep in mind, however, the [security and maintainability limitations](https://scikit-learn.org/stable/modules/model_persistence.html#security-maintainability-limitations) of these formats.
@@ -302,8 +312,8 @@ A future release of **baikal** plans to include a custom `GridSearchCV` API, bas
 def build_fn():
     x = Input()
     y_t = Input()
-    h = PCA(random_state=random_state, name='pca')(x)
-    y = LogisticRegression(random_state=random_state, name='classifier')(h, y_t)
+    h = PCA(random_state=random_state, name="pca")(x)
+    y = LogisticRegression(random_state=random_state, name="classifier")(h, y_t)
     model = Model(x, y, y_t)
     return model
 
@@ -311,11 +321,15 @@ def build_fn():
 # - keys have the [step-name]__[parameter-name] format, similar to sklearn Pipelines
 # - You can also search over the steps themselves using [step-name] keys
 param_grid = [
-    {'classifier': [LogisticRegression()],
-     'classifier__C': [0.01, 0.1, 1],
-     'pca__n_components': [1, 2, 3, 4]},
-    {'classifier': [RandomForestClassifier()],
-     'classifier__n_estimators': [10, 50, 100]}
+    {
+        "classifier": [LogisticRegression()],
+        "classifier__C": [0.01, 0.1, 1],
+        "pca__n_components": [1, 2, 3, 4],
+    },
+    {
+        "classifier": [RandomForestClassifier()],
+        "classifier__n_estimators": [10, 50, 100],
+    },
 ]
 
 # 3. Instantiate the wrapper
@@ -338,7 +352,7 @@ The baikal package includes a plot utility:
 
 ```python
 from baikal.plot import plot_model
-plot_model(model, filename='model.png')
+plot_model(model, filename="model.png")
 ```
 
 For the example above, it produces this:
@@ -356,8 +370,8 @@ Similar to the the example in the quick-start above, stacks of classifiers (or r
 ```python
 x = Input()
 y_t = Input()
-y1 = LogisticRegression(function='predict_proba')(x, y_t)
-y2 = RandomForestClassifier(function='predict_proba')(x, y_t)
+y1 = LogisticRegression(function="predict_proba")(x, y_t)
+y2 = RandomForestClassifier(function="predict_proba")(x, y_t)
 ensemble_features = Stack()([y1, y2])
 y = ExtraTreesClassifier()(ensemble_features, y_t)
 
@@ -373,18 +387,20 @@ The API also lends itself for more interesting configurations, such as that of [
 ```python
 x = Input()
 y_t = Input()
+order = list(range(n_targets))
+random.shuffle(order)
 
 ys_t = Split(n_targets, axis=1)(y_t)
 ys_p = []
 for j, k in enumerate(order):
-    x_stacked = ColumnStack()(inputs=[x, *ys_p[:j]])
+    x_stacked = ColumnStack()([x, *ys_p[:j]])
     ys_t[k] = Lambda(np.squeeze, axis=1)(ys_t[k])
     ys_p.append(LogisticRegression()(x_stacked, ys_t[k]))
 
 ys_p = [ys_p[order.index(j)] for j in range(n_targets)]
 y_p = ColumnStack()(ys_p)
 
-model = Model(inputs=x, outputs=y_p, targets=y_t)
+model = Model(x, y_p, y_t)
 ```
 
 Click [here](examples/classifier_chain.py) for a full example.
@@ -412,6 +428,7 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 1. Clone the project.
 2. From the project root folder run: `make setup_dev`.
     - This will create a virtualenv and install the package in development mode.
+    - It will also install a pre-commit hook for the black code formatter.
     - You need Python 3.5 or above.
 3. To run the tests use: `make test`, or `make test-cov` to include coverage.
     - The tests include a test for the plot utility, so you need to install graphviz.
