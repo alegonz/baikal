@@ -28,17 +28,18 @@ with code that looks like this:
 
     x1 = Input()
     x2 = Input()
+    y_t = Input()
     
-    y1 = ExtraTreesClassifier()(x1)
-    y2 = RandomForestClassifier()(x2)
+    y1 = ExtraTreesClassifier()(x1, y_t)
+    y2 = RandomForestClassifier()(x2, y_t)
     z = PowerTransformer()(x2)
     z = PCA()(z)
-    y3 = LogisticRegression()(z)
+    y3 = LogisticRegression()(z, y_t)
     
     ensemble_features = Stack()([y1, y2, y3])
-    y = SVC()(ensemble_features)
+    y = SVC()(ensemble_features, y_t)
     
-    model = Model([x1, x2], y)
+    model = Model([x1, x2], y, y_t)
 
 **baikal** is compatible with Python >=3.5 and is distributed under the 
 BSD 3-clause license.
