@@ -35,7 +35,7 @@ wheel: clean venv
 	pip install --upgrade setuptools wheel; \
 	python setup.py sdist bdist_wheel
 
-upload: dist
+upload: dist venv
 	. venv/bin/activate; \
 	pip install --upgrade twine; \
 	twine check dist/*; \
