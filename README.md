@@ -95,9 +95,17 @@ The baikal API introduces three basic elements:
 
 ## Installation
 
+To install the latest released version from PyPI:
+
 ```bash
 pip install baikal
-``` 
+```
+
+If you wish to install the latest development version, you can do so with:
+
+```bash
+pip install git+https://github.com/alegonz/baikal.git@master#egg=baikal
+```
 
 ### Requirements
 
