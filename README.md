@@ -418,10 +418,11 @@ Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.or
 ## Next development steps
 - [x] Make a step class factory function.
 - [x] Treat targets as first-class citizens in the Model. Currently, targets are not treated like formal inputs of the graph, and the only way a Model handles them is via the `Model.fit` interface, which makes difficult applying steps to them (e.g. log transformation on regression targets).
-- [ ] (**in progress**) Add parallelization to `Model.fit` and `Model.predict` (using joblib `Parallel` API).
+- [ ] Make steps shareable.
+- [ ] Add API support for `fit_transform` and `fit_predict`.
+- [ ] Add parallelization to `Model.fit` and `Model.predict` (using joblib `Parallel` API).
 - [ ] Add caching of intermediate results to `Model.fit` and `Model.predict` (using joblib `Memory` API).
 - [ ] Make a custom `GridSearchCV` API, based on the original scikit-learn implementation, that can handle baikal models with multiple inputs and outputs natively.
-- [ ] Make steps shareable.
 - [ ] Add support for steps that can take extra options in their predict method.
 - [ ] Grow the merge steps module and add support for data structures other than numpy arrays (e.g. pandas dataframes). Some steps that could be added are: 
     - Single array aggregation (sum, average, maximum, minimum, etc).
