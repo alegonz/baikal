@@ -37,7 +37,9 @@ def test_grid_search_cv():
         x = Input()
         y_t = Input()
         h = PCA(random_state=random_state, name="pca")(x)
-        y = LogisticRegression(random_state=random_state, name="logreg")(h, y_t)
+        y = LogisticRegression(
+            random_state=random_state, solver="liblinear", name="logreg"
+        )(h, y_t)
         model = Model(x, y, y_t)
         return model
 
@@ -54,7 +56,9 @@ def test_grid_search_cv():
 
     # traditional way
     pca = sklearn.decomposition.PCA(random_state=random_state)
-    logreg = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    logreg = sklearn.linear_model.LogisticRegression(
+        random_state=random_state, solver="liblinear"
+    )
     pipe = Pipeline([("pca", pca), ("logreg", logreg)])
 
     gscv_traditional = GridSearchCV(

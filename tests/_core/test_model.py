@@ -602,17 +602,19 @@ def test_fit_predict_ensemble(teardown):
     # baikal way
     x = Input()
     y_t = Input()
-    y1 = LogisticRegression(random_state=random_state)(x, y_t)
+    y1 = LogisticRegression(random_state=random_state, solver="liblinear")(x, y_t)
     y2 = RandomForestClassifier(random_state=random_state)(x, y_t)
     features = Stack(axis=1)([y1, y2])
-    y = LogisticRegression(random_state=random_state)(features, y_t)
+    y = LogisticRegression(random_state=random_state, solver="liblinear")(features, y_t)
 
     model = Model(x, y, y_t)
     model.fit(x_data, y_t_data)
     y_pred_baikal = model.predict(x_data)
 
     # traditional way
-    logreg = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    logreg = sklearn.linear_model.LogisticRegression(
+        random_state=random_state, solver="liblinear"
+    )
     logreg.fit(x_data, y_t_data)
     logreg_pred = logreg.predict(x_data)
 
@@ -621,7 +623,9 @@ def test_fit_predict_ensemble(teardown):
     random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
-    ensemble = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    ensemble = sklearn.linear_model.LogisticRegression(
+        random_state=random_state, solver="liblinear"
+    )
     ensemble.fit(features, y_t_data)
     y_pred_traditional = ensemble.predict(features)
 
