@@ -37,9 +37,6 @@ from tests.helpers.dummy_steps import (
     DummyEstimator,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore::DeprecationWarning:sklearn", "ignore::FutureWarning:sklearn"
-)
 
 iris = datasets.load_iris()
 
