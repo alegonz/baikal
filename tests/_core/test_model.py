@@ -275,15 +275,15 @@ class TestFit:
     def test_with_unnecessary_target(self, teardown):
         x = Input()
         y_t = Input()
-        logreg = LogisticRegression()
-        y_p = logreg(x, y_t)
+        classifier = RandomForestClassifier()
+        y_p = classifier(x, y_t)
         model = Model(x, y_p, y_t)
 
         model.fit(iris.data, iris.target)
 
         # won't require the target is trainable was set to False,
         # but won't complain if it was passed to fit
-        logreg.trainable = False
+        classifier.trainable = False
         model.fit(iris.data, iris.target)
 
     def test_with_non_trainable_step(self, teardown):
