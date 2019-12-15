@@ -1,3 +1,8 @@
+SHELL:=/bin/bash
+ifndef SKLEARN_VERSION
+override SKLEARN_VERSION=unspecified
+endif
+
 venv: venv/bin/activate
 
 venv/bin/activate:
@@ -11,6 +16,11 @@ setup_dev: venv
 	. venv/bin/activate; \
 	pip install -U pip; \
 	pip install -e .[dev,viz]; \
+	if [[ ${SKLEARN_VERSION} =~ [0-9\.] ]]; then \
+        pip install scikit-learn==${SKLEARN_VERSION}; \
+    elif [[ ${SKLEARN_VERSION} = "nightly" ]]; then\
+        pip install --ignore-installed --pre -f https://sklearn-nightly.scdn8.secure.raxcdn.com scikit-learn; \
+	fi; \
 	pip install pre-commit; \
 	pre-commit install
 
