@@ -51,7 +51,7 @@ AUTHOR_EMAIL = "alejandrojgt@gmail.com"
 PYTHON_REQUIRES = ">=3.5"
 INSTALL_REQUIRES = ["numpy"]
 EXTRAS_REQUIRE = {
-    "dev": ["codecov", "joblib", "mypy", "pytest", "pytest-cov", "sklearn"],
+    "dev": ["codecov", "joblib", "mypy", "pytest", "pytest-cov", "scikit-learn"],
     "viz": ["pydot"],
 }
 CLASSIFIERS = [
