@@ -48,6 +48,14 @@ def does_not_raise():
     yield
 
 
+skip_sklearn_0_22 = pytest.mark.skipif(
+    sklearn.__version__ == "0.22",
+    reason="sklearn.utils.validation.check_is_fitted in 0.22 yields false positives "
+    "when the class has private attributes."
+    "see: https://github.com/scikit-learn/scikit-learn/issues/15845",
+)
+
+
 class TestInit:
     def test_simple(self, teardown):
         x1 = Input()
@@ -287,6 +295,7 @@ class TestFit:
         # this should not raise an error because PCA has no successor steps
         model.fit(iris.data)
 
+    @skip_sklearn_0_22
     def test_with_non_fitted_non_trainable_step(self, teardown):
         x = Input()
         y_t = Input()
@@ -405,6 +414,7 @@ class TestPredict:
         with pytest.raises(RuntimeError):
             model.predict(iris.data)
 
+    @skip_sklearn_0_22
     def test_predict_with_not_fitted_steps(self, teardown):
         x_data = iris.data
 
@@ -660,6 +670,7 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
+@skip_sklearn_0_22
 def test_nested_model(teardown):
     x_data = iris.data
     y_t_data = iris.target
