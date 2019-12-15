@@ -48,9 +48,6 @@ def does_not_raise():
     yield
 
 
-# TODO: Use only ValueError for erros in __init__, fit and predict
-
-
 class TestInit:
     def test_simple(self, teardown):
         x1 = Input()
