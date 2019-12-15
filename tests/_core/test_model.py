@@ -34,6 +34,7 @@ from tests.helpers.dummy_steps import (
     DummySIMO,
     DummyMISO,
     DummyImproperlyDefined,
+    DummyEstimator,
 )
 
 pytestmark = pytest.mark.filterwarnings(
@@ -813,42 +814,24 @@ def test_fit_params(teardown):
 
 
 def test_get_params(teardown):
-    pca = PCA(name="pca")
-    logreg = LogisticRegression(name="logreg")
+    dummy1 = DummyEstimator(name="dummy1")
+    dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
     x = Input()
-    h = pca(x)
+    h = dummy1(x)
     c = concat([x, h])
-    y = logreg(c)
+    y = dummy2(c)
     model = Model(x, y)
 
     expected = {
-        "pca": pca,
-        "logreg": logreg,
+        "dummy1": dummy1,
+        "dummy2": dummy2,
         "concat": concat,
-        "pca__n_components": None,
-        "pca__whiten": False,
-        "pca__tol": 0.0,
-        "pca__svd_solver": "auto",
-        "pca__copy": True,
-        "pca__random_state": None,
-        "pca__iterated_power": "auto",
-        "logreg__C": 1.0,
-        "logreg__class_weight": None,
-        "logreg__dual": False,
-        "logreg__fit_intercept": True,
-        "logreg__intercept_scaling": 1,
-        "logreg__max_iter": 100,
-        "logreg__multi_class": "warn",
-        "logreg__n_jobs": None,
-        "logreg__penalty": "l2",
-        "logreg__random_state": None,
-        "logreg__solver": "warn",
-        "logreg__tol": 0.0001,
-        "logreg__verbose": 0,
-        "logreg__warm_start": False,
-        "logreg__l1_ratio": None,
+        "dummy1__x": 123,
+        "dummy1__y": "abc",
+        "dummy2__x": 456,
+        "dummy2__y": "def",
     }
 
     params = model.get_params()
@@ -856,14 +839,14 @@ def test_get_params(teardown):
 
 
 def test_set_params(teardown):
-    pca = PCA(name="pca")
-    classifier = RandomForestClassifier(name="classifier")
+    dummy1 = DummyEstimator(name="dummy1")
+    dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
     x = Input()
-    h = pca(x)
+    h = dummy1(x)
     c = concat([x, h])
-    y = classifier(c)
+    y = dummy2(c)
     model = Model(x, y)
 
     # Fails when setting params on step that does not implement set_params
@@ -877,49 +860,30 @@ def test_set_params(teardown):
         model.set_params(**new_params_wrong)
 
     # Fails when setting a non-existent param in a step
-    new_params_wrong = {"pca__non_existent_param": 42}
+    new_params_wrong = {"dummy1__non_existent_param": 42}
     with pytest.raises(ValueError):
         model.set_params(**new_params_wrong)
 
-    new_classifier = LogisticRegression()
+    new_dummy = DummyEstimator()
     new_params = {
-        "classifier": new_classifier,
-        "pca__n_components": 4,
-        "pca__whiten": True,
-        "classifier__C": 100.0,
-        "classifier__fit_intercept": False,
-        "classifier__penalty": "l1",
+        "dummy2": new_dummy,
+        "dummy1__x": 100,
+        "dummy1__y": "pqr",
+        "dummy2__x": 789,
+        "dummy2__y": "ijk",
     }
 
     model.set_params(**new_params)
     params = model.get_params()
 
     expected = {
-        "pca": pca,
-        "classifier": new_classifier,
+        "dummy1": dummy1,
+        "dummy2": new_dummy,
         "concat": concat,
-        "pca__n_components": 4,
-        "pca__whiten": True,
-        "pca__tol": 0.0,
-        "pca__svd_solver": "auto",
-        "pca__copy": True,
-        "pca__random_state": None,
-        "pca__iterated_power": "auto",
-        "classifier__C": 100.0,
-        "classifier__class_weight": None,
-        "classifier__dual": False,
-        "classifier__fit_intercept": False,
-        "classifier__intercept_scaling": 1,
-        "classifier__max_iter": 100,
-        "classifier__multi_class": "warn",
-        "classifier__n_jobs": None,
-        "classifier__penalty": "l1",
-        "classifier__random_state": None,
-        "classifier__solver": "warn",
-        "classifier__tol": 0.0001,
-        "classifier__verbose": 0,
-        "classifier__warm_start": False,
-        "classifier__l1_ratio": None,
+        "dummy1__x": 100,
+        "dummy1__y": "pqr",
+        "dummy2__x": 789,
+        "dummy2__y": "ijk",
     }
 
     assert expected == params
