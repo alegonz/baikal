@@ -8,7 +8,7 @@ from baikal import Input, Step
 from baikal._core.data_placeholder import DataPlaceholder
 
 from tests.helpers.fixtures import teardown
-from tests.helpers.dummy_steps import DummyMIMO, DummySISO
+from tests.helpers.dummy_steps import DummyMIMO, DummySISO, DummyEstimator
 from tests.helpers.sklearn_steps import LogisticRegression, PCA
 
 
@@ -131,59 +131,21 @@ class TestStep:
 
         # TODO: Add test for sklearn step
 
-    # TODO: Use custom defined class instead of sklearn class to avoid errors due to third-party API changes
     def test_get_params(self, teardown):
-        step = LogisticRegression()
+        step = DummyEstimator()
         params = step.get_params()
-
-        expected = {
-            "C": 1.0,
-            "class_weight": None,
-            "dual": False,
-            "fit_intercept": True,
-            "intercept_scaling": 1,
-            "max_iter": 100,
-            "multi_class": "warn",
-            "n_jobs": None,
-            "penalty": "l2",
-            "random_state": None,
-            "solver": "warn",
-            "tol": 0.0001,
-            "verbose": 0,
-            "warm_start": False,
-            "l1_ratio": None,
-        }
-
+        expected = {"x": 123, "y": "abc"}
         assert expected == params
 
     def test_set_params(self, teardown):
-        step = LogisticRegression()
+        step = DummyEstimator()
 
         new_params_wrong = {"non_existent_param": 42}
         with pytest.raises(ValueError):
             step.set_params(**new_params_wrong)
 
-        new_params = {"C": 100.0, "fit_intercept": False, "penalty": "l1"}
-
+        new_params = {"x": 456}
         step.set_params(**new_params)
         params = step.get_params()
-
-        expected = {
-            "C": 100.0,
-            "class_weight": None,
-            "dual": False,
-            "fit_intercept": False,
-            "intercept_scaling": 1,
-            "max_iter": 100,
-            "multi_class": "warn",
-            "n_jobs": None,
-            "penalty": "l1",
-            "random_state": None,
-            "solver": "warn",
-            "tol": 0.0001,
-            "verbose": 0,
-            "warm_start": False,
-            "l1_ratio": None,
-        }
-
+        expected = {"x": 456, "y": "abc"}
         assert expected == params

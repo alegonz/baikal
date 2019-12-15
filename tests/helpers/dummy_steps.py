@@ -1,4 +1,6 @@
-from baikal import Step
+from sklearn.base import BaseEstimator
+
+from baikal import Step, make_step
 
 
 class DummySISO(Step):
@@ -54,3 +56,15 @@ class DummyImproperlyDefined(Step):
 
     def transform(self, x):
         return x + 1.0, x - 1.0
+
+
+class _DummyEstimator(BaseEstimator):
+    def __init__(self, x=123, y="abc"):
+        self.x = x
+        self.y = y
+
+    def predict(self, X):
+        pass
+
+
+DummyEstimator = make_step(_DummyEstimator)
