@@ -16,11 +16,6 @@ build-defaults: &build-defaults
     - image: circleci/python:3.7.3-stretch
 
 jobs:
-  test-py35:
-    <<: *test-defaults
-    docker:
-      - image: circleci/python:3.5.7-stretch
-
   test-py36:
     <<: *test-defaults
     docker:
@@ -32,6 +27,11 @@ jobs:
       - image: circleci/python:3.7.3-stretch
     environment:
       RUN_TEST_WITH_COVERAGE: 1
+
+  test-py38:
+    <<: *test-defaults
+    docker:
+      - image: circleci/python:3.8.0-buster
 
   build-wheel:
     <<: *build-defaults
@@ -59,11 +59,6 @@ workflows:
   version: 2.1
   build-deploy:
     jobs:
-      - test-py35:
-          sklearn_version: "0.21.3"
-      - test-py35:
-          sklearn_version: "0.22"
-
       - test-py36:
           sklearn_version: "0.21.3"
       - test-py36:
@@ -73,6 +68,11 @@ workflows:
           sklearn_version: "0.21.3"
       - test-py37:
           name: test-main
+          sklearn_version: "0.22"
+
+      - test-py38:
+          sklearn_version: "0.21.3"
+      - test-py38:
           sklearn_version: "0.22"
 
       - build-wheel:
@@ -98,9 +98,9 @@ workflows:
               only:
                 - master
     jobs:
-      - test-py35:
-          sklearn_version: "nightly"
       - test-py36:
           sklearn_version: "nightly"
       - test-py37:
+          sklearn_version: "nightly"
+      - test-py38:
           sklearn_version: "nightly"
