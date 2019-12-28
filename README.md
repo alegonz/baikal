@@ -378,12 +378,15 @@ Similar to the the example in the quick-start above, stacks of classifiers (or r
 ```python
 x = Input()
 y_t = Input()
-y1 = LogisticRegression(function="predict_proba")(x, y_t)
-y2 = RandomForestClassifier(function="predict_proba")(x, y_t)
-ensemble_features = Stack()([y1, y2])
-y = ExtraTreesClassifier()(ensemble_features, y_t)
+y_p1 = LogisticRegression(function="predict_proba")(x, y_t)
+y_p2 = RandomForestClassifier(function="predict_proba")(x, y_t)
+# predict_proba returns arrays whose columns sum to one, so we drop one column
+y_p1 = Lambda(function=lambda array: array[:, :-1])(y_p1)
+y_p2 = Lambda(function=lambda array: array[:, :-1])(y_p2)
+ensemble_features = ColumnStack()([y_p1, y_p2])
+y_p = ExtraTreesClassifier()(ensemble_features, y_t)
 
-model = Model(x, y, y_t)
+model = Model(x, y_p, y_t)
 ```
 
 Click [here](examples/stacked_classifiers.py) for a full example.

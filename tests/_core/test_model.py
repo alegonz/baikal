@@ -642,14 +642,18 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     # baikal way
     x = Input()
     y_t = Input()
-    y1 = LogisticRegression(random_state=random_state, function="predict_proba")(x, y_t)
-    y2 = RandomForestClassifier(
+    y_p1 = LogisticRegression(random_state=random_state, function="predict_proba")(
+        x, y_t
+    )
+    y_p2 = RandomForestClassifier(
         n_estimators=n_estimators, random_state=random_state, function="apply"
     )(x, y_t)
-    features = Concatenate(axis=1)([y1, y2])
-    y = LogisticRegression(random_state=random_state)(features, y_t)
+    y_p1 = Lambda(function=lambda array: array[:, :-1])(y_p1)
+    y_p2 = Lambda(function=lambda array: array[:, :-1])(y_p2)
+    features = Concatenate(axis=1)([y_p1, y_p2])
+    y_p = LogisticRegression(random_state=random_state)(features, y_t)
 
-    model = Model(x, y, y_t)
+    model = Model(x, y_p, y_t)
     model.fit(x_data, y_t_data)
     y_pred_baikal = model.predict(x_data)
 
@@ -664,7 +668,9 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     random_forest.fit(x_data, y_t_data)
     random_forest_leafidx = random_forest.apply(x_data)
 
-    features = np.concatenate([logreg_proba, random_forest_leafidx], axis=1)
+    features = np.concatenate(
+        [logreg_proba[:, :-1], random_forest_leafidx[:, :-1]], axis=1
+    )
     ensemble = sklearn.linear_model.LogisticRegression(random_state=random_state)
     ensemble.fit(features, y_t_data)
     y_pred_traditional = ensemble.predict(features)
