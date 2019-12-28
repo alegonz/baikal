@@ -5,16 +5,20 @@ from baikal import Model
 
 class SKLearnWrapper:
     """Wrapper utility class that allows models to used in scikit-learn's
-    `GridSearchCV` API. It follows the style of Keras' own wrapper.
+    ``GridSearchCV`` API. It follows the style of Keras' own wrapper.
 
     A future release of **baikal** plans to remove this class and instead
-    include a custom `GridSearchCV` API, based on the original scikit-learn
+    include a custom ``GridSearchCV`` API, based on the original scikit-learn
     implementation, that can handle baikal models natively.
 
     Parameters
     ----------
     build_fn
         A function that takes no arguments and builds and returns a baikal Model.
+
+        Note that, in order to specify which parameters of which steps to tune
+        using a dictionary keyed by ``<step>__<parameter>``, you *must* pass a
+        name to the appropriate steps when building the model in this function.
 
     params
         Dictionary mapping parameter names to their values. Valid parameter
