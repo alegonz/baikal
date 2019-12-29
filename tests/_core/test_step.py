@@ -22,20 +22,20 @@ class TestInput:
         x0 = Input()
 
         assert isinstance(x0, DataPlaceholder)
-        assert "InputStep_0" == x0.name
+        assert x0.name == "InputStep_0"
 
     def test_instantiate_two_without_name(self, teardown):
         x0 = Input()
         x1 = Input()
 
-        assert "InputStep_0" == x0.name
-        assert "InputStep_1" == x1.name
+        assert x0.name == "InputStep_0"
+        assert x1.name == "InputStep_1"
 
 
 class TestInputStep:
     def test_repr(self):
         step = InputStep(name="x1")
-        assert "InputStep(name='x1')" == repr(step)
+        assert repr(step) == "InputStep(name='x1')"
 
 
 class TestStep:
@@ -43,8 +43,8 @@ class TestStep:
         lr0 = LogisticRegression()
         lr1 = LogisticRegression()
 
-        assert "LogisticRegression_0" == lr0.name
-        assert "LogisticRegression_1" == lr1.name
+        assert lr0.name == "LogisticRegression_0"
+        assert lr1.name == "LogisticRegression_1"
 
     def test_instantiate_with_invalid_function_argument(self):
         class DummyStep(Step):
@@ -115,8 +115,8 @@ class TestStep:
 
         assert isinstance(y0, DataPlaceholder)
         assert isinstance(y1, DataPlaceholder)
-        assert "DummyMIMO_0/0" == y0.name
-        assert "DummyMIMO_0/1" == y1.name
+        assert y0.name == "DummyMIMO_0/0"
+        assert y1.name == "DummyMIMO_0/1"
 
     def test_repr(self):
         class DummyStep(Step):
@@ -125,8 +125,8 @@ class TestStep:
 
         step = DummyStep(name="some-step", function="somefunc")
         assert (
-            "DummyStep(name='some-step', function='somefunc', "
-            "n_outputs=1, trainable=True)" == repr(step)
+            repr(step)
+            == "DummyStep(name='some-step', function='somefunc', n_outputs=1, trainable=True)"
         )
 
         # TODO: Add test for sklearn step
@@ -135,7 +135,7 @@ class TestStep:
         step = DummyEstimator()
         params = step.get_params()
         expected = {"x": 123, "y": "abc"}
-        assert expected == params
+        assert params == expected
 
     def test_set_params(self, teardown):
         step = DummyEstimator()
@@ -148,4 +148,4 @@ class TestStep:
         step.set_params(**new_params)
         params = step.get_params()
         expected = {"x": 456, "y": "abc"}
-        assert expected == params
+        assert params == expected

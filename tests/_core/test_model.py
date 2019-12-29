@@ -441,17 +441,17 @@ def test_steps_cache(teardown):
     # 1) instantiation always misses
     misses += 1
     model = Model([x1, x2], [y1, y2], y1_t)
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 2) calling fit for the first time, hence a miss
     misses += 1
     model.fit([x1_data, x2_data], y1_t_data)
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 3) same as above, just different format, hence a hit
     hits += 1
     model.fit({x1: x1_data, x2: x2_data}, {y1_t: y1_t_data})
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 4) trainable flags are considered in cache keys, hence a miss
     misses += 1
@@ -459,48 +459,48 @@ def test_steps_cache(teardown):
     model.fit(
         [x1_data, x2_data], y1_t_data
     )  # NOTE: target is superfluous, but it affects caching
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 5) same as above, just different format, hence a hit
     hits += 1
     model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 6) we drop the (superflous) target, hence a miss
     misses += 1
     model.fit({x1: x1_data, x2: x2_data})
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 7) same as above, hence a hit
     hits += 1
     model.fit({x1: x1_data, x2: x2_data})
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 8) we restore the flag, becoming the same as 2) and 3), hence a hit
     hits += 1
     model.get_step("LogReg").trainable = True
     model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 9) new inputs/targets/outputs signature, hence a miss
     misses += 1
     model.predict([x1_data, x2_data])
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 10) same inputs/outputs signature as 9), hence a hit
     hits += 1
     model.predict({"x1": x1_data, "x2": x2_data}, ["PCA/0", "LogReg/0"])
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 11) new inputs/outputs signature, hence a miss
     misses += 1
     model.predict({x1: x1_data}, "LogReg/0")
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
     # 12) same as above, hence a hit
     hits += 1
     model.predict({x1: x1_data}, "LogReg/0")
-    assert hits == model._steps_cache.hits and misses == model._steps_cache.misses
+    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
 
 
 def test_multiedge(teardown):
@@ -842,7 +842,7 @@ def test_get_params(teardown):
     }
 
     params = model.get_params()
-    assert expected == params
+    assert params == expected
 
 
 def test_set_params(teardown):
@@ -893,7 +893,7 @@ def test_set_params(teardown):
         "dummy2__y": "ijk",
     }
 
-    assert expected == params
+    assert params == expected
 
 
 def test_get_set_params_invariance(teardown):
@@ -908,7 +908,7 @@ def test_get_set_params_invariance(teardown):
     params1 = model.get_params()
     model.set_params(**params1)
     params2 = model.get_params()
-    assert params1 == params2
+    assert params2 == params1
 
 
 def test_trainable_flag(teardown):

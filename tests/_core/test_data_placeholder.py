@@ -14,4 +14,4 @@ def test_repr():
         "function='somefunc', n_outputs=1, trainable=True), "
         "name='some-step/0')"
     )
-    assert expected_repr == repr(data_placeholder)
+    assert repr(data_placeholder) == expected_repr

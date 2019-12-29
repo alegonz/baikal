@@ -71,7 +71,7 @@ def test_grid_search_cv():
     )
     gscv_traditional.fit(x_data, y_t_data)
 
-    assert gscv_traditional.best_params_ == gscv_baikal.best_params_
+    assert gscv_baikal.best_params_ == gscv_traditional.best_params_
     assert_array_equal(
         gscv_traditional.cv_results_["mean_train_score"],
         gscv_baikal.cv_results_["mean_train_score"],
@@ -126,7 +126,7 @@ def test_grid_search_cv_with_tunable_step():
     )
     gscv_traditional.fit(x_data, y_t_data)
 
-    assert gscv_traditional.best_params_ == gscv_baikal.best_params_
+    assert gscv_baikal.best_params_ == gscv_traditional.best_params_
     assert_array_equal(
         gscv_traditional.cv_results_["mean_train_score"],
         gscv_baikal.cv_results_["mean_train_score"],

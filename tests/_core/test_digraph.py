@@ -51,13 +51,13 @@ def test_get_edge_data():
     graph.add_node("B")
 
     graph.add_edge("A", "B")
-    assert set() == graph.get_edge_data("A", "B")
+    assert graph.get_edge_data("A", "B") == set()
 
     graph.add_edge("A", "B", 123)
-    assert {123} == graph.get_edge_data("A", "B")
+    assert graph.get_edge_data("A", "B") == {123}
 
     graph.add_edge("A", "B", 456, 789)
-    assert {123, 456, 789} == graph.get_edge_data("A", "B")
+    assert graph.get_edge_data("A", "B") == {123, 456, 789}
 
 
 def test_edges():
@@ -93,7 +93,7 @@ def test_in_degree():
     graph.add_edge(1, 3)
     graph.add_edge(2, 3)
 
-    assert [0, 1, 0, 2] == [graph.in_degree(node) for node in nodes]
+    assert [graph.in_degree(node) for node in nodes] == [0, 1, 0, 2]
 
 
 def test_ancestors():
@@ -119,9 +119,9 @@ def test_ancestors():
     graph.add_edge(2, 4)
     graph.add_edge(4, 5)
 
-    assert set() == graph.ancestors(0)
-    assert {0, 2} == graph.ancestors(4)
-    assert {0, 1, 2, 3, 4} == graph.ancestors(5)
+    assert graph.ancestors(0) == set()
+    assert graph.ancestors(4) == {0, 2}
+    assert graph.ancestors(5) == {0, 1, 2, 3, 4}
 
     # Case 2:
     #  [0] --> [1] --> [4]
@@ -141,10 +141,10 @@ def test_ancestors():
     graph.add_edge(2, 3)
     graph.add_edge(3, 4)
 
-    assert set() == graph.ancestors(0)
-    assert {0, 2} == graph.ancestors(1)
-    assert {2} == graph.ancestors(3)
-    assert {0, 1, 2, 3} == graph.ancestors(4)
+    assert graph.ancestors(0) == set()
+    assert graph.ancestors(1) == {0, 2}
+    assert graph.ancestors(3) == {2}
+    assert graph.ancestors(4) == {0, 1, 2, 3}
 
 
 def test_topological_sort():
@@ -164,18 +164,18 @@ def test_topological_sort():
     graph.add_edge(1, 5)
     graph.add_edge(3, 7)
 
-    assert [1, 0, 3, 5, 2, 6, 4, 7] == graph.topological_sort()
+    assert graph.topological_sort() == [1, 0, 3, 5, 2, 6, 4, 7]
 
 
 def test_topological_sort_empty_graph():
     graph = DiGraph()
-    assert [] == graph.topological_sort()
+    assert graph.topological_sort() == []
 
 
 def test_topological_sort_single_node():
     graph = DiGraph()
     graph.add_node(0)
-    assert [0] == graph.topological_sort()
+    assert graph.topological_sort() == [0]
 
 
 def test_topological_sort_cyclic_graph():
