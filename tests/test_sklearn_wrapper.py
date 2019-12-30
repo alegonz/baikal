@@ -12,11 +12,6 @@ from baikal.sklearn import SKLearnWrapper
 from tests.helpers.sklearn_steps import PCA, LogisticRegression, RandomForestClassifier
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore::DeprecationWarning:sklearn", "ignore::FutureWarning:sklearn"
-)
-
-
 iris = datasets.load_iris()
 x_data = iris.data
 y_t_data = iris.target
