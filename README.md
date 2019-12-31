@@ -10,6 +10,8 @@ A graph-based functional API for building complex scikit-learn pipelines.
 
 **baikal** is written in pure Python. It supports Python 3.5 and above.
 
+Note: **baikal** is still a young project and there might be backward incompatible changes. The next development steps and backwards-incompatible changes are announced and discussed in [this issue](https://github.com/alegonz/baikal/issues/16). Please subscribe to it if you use **baikal**. 
+
 ---
 *Contents:*
 1. **[Introduction](#introduction)**
@@ -417,19 +419,6 @@ model = Model(x, y_p, y_t)
 Click [here](examples/classifier_chain.py) for a full example.
 
 Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.ClassifierChain.html#sklearn.multioutput.ClassifierChain) and [`RegressorChain`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.RegressorChain.html#sklearn.multioutput.RegressorChain) classes for this. But with **baikal** you could, for example, mix classifiers and regressors to predict multilabels that include both categorical and continuous labels.
-
-## Next development steps
-- [x] Make a step class factory function.
-- [x] Treat targets as first-class citizens in the Model. Currently, targets are not treated like formal inputs of the graph, and the only way a Model handles them is via the `Model.fit` interface, which makes difficult applying steps to them (e.g. log transformation on regression targets).
-- [ ] Make steps shareable.
-- [ ] Add API support for `fit_transform` and `fit_predict`.
-- [ ] Add parallelization to `Model.fit` and `Model.predict` (using joblib `Parallel` API).
-- [ ] Add caching of intermediate results to `Model.fit` and `Model.predict` (using joblib `Memory` API).
-- [ ] Make a custom `GridSearchCV` API, based on the original scikit-learn implementation, that can handle baikal models with multiple inputs and outputs natively.
-- [ ] Add support for steps that can take extra options in their predict method.
-- [ ] Grow the merge steps module and add support for data structures other than numpy arrays (e.g. pandas dataframes). Some steps that could be added are: 
-    - Single array aggregation (sum, average, maximum, minimum, etc).
-    - Element-wise aggregation of multiple arrays.
 
 ## Contributing
 
