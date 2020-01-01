@@ -1,3 +1,4 @@
+import inspect
 from collections import defaultdict
 from typing import Union, List, Dict, Set, Iterable, Optional
 
@@ -538,6 +539,11 @@ class Model(Step):
             of the form ``<step-name>__<parameter-name>``). Entire steps can
             be replaced with ``<step-name>`` keys.
 
+            When replacing a step, the new step will adopt the input/output/targets
+            connectivity of the replaced step, including its name, trainable
+            flag and compute function. Note that if the compute function is a method
+            the new step must implement it too.
+
             Valid parameter keys can be listed with get_params().
 
         Returns
@@ -571,6 +577,19 @@ class Model(Step):
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
+
+        # Special process to transfer the function
+        assert hasattr(old_step, "function")
+        # Step._check_function guarantees step.function is a callable
+        # i.e: assert callable(old_step.function) passes
+        if inspect.ismethod(old_step.function):
+            # get the corresponding method bound to the new step
+            assert old_step.function.__self__ is old_step
+            new_step.function = getattr(new_step, old_step.function.__name__)
+        else:
+            # if it is not a bound method (i.e. any other kind of callable)
+            # transfer it as is
+            new_step.function = old_step.function
 
         # Update outputs of old step to point to the new step
         # TODO: The output dataplaceholders should be replaced too
