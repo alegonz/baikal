@@ -847,7 +847,7 @@ def test_get_params(teardown):
 
 def test_set_params(teardown):
     dummy1 = DummyEstimator(name="dummy1")
-    dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
+    dummy2 = DummyEstimator(x=456, y="def", name="dummy2", function=lambda X: X)
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
     x = Input()
@@ -894,6 +894,13 @@ def test_set_params(teardown):
     }
 
     assert params == expected
+    # Connectivity should be the same
+    assert new_dummy.name is dummy2.name
+    assert new_dummy.inputs is dummy2.inputs
+    assert new_dummy.outputs is dummy2.outputs
+    assert new_dummy.targets is dummy2.targets
+    assert new_dummy.trainable is dummy2.trainable
+    assert new_dummy.function is dummy2.function
 
 
 def test_get_set_params_invariance(teardown):
