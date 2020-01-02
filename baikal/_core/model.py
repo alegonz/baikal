@@ -76,9 +76,8 @@ class Model(Step):
         outputs: DataPlaceHolders,
         targets: Optional[DataPlaceHolders] = None,
         name: Optional[str] = None,
-        trainable: bool = True,
     ):
-        super().__init__(name=name, trainable=trainable)
+        super().__init__(name=name)
 
         def check(this: DataPlaceHolders, what: str) -> List:
             this = listify(this)
@@ -573,23 +572,24 @@ class Model(Step):
         # Transfer connectivity configuration from old step
         # to new step and replace old with new
         # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
+        # TODO: Raise error for shared step when implementing those, since we won't support that yet
         transfer_attrs = ["_name", "trainable", "_inputs", "_outputs", "_targets"]
         old_step = self._steps[step_key]
         for attr in transfer_attrs:
             setattr(new_step, attr, getattr(old_step, attr))
 
-        # Special process to transfer the function
-        assert hasattr(old_step, "function")
-        # Step._check_function guarantees step.function is a callable
-        # i.e: assert callable(old_step.function) passes
-        if inspect.ismethod(old_step.function):
+        # Special process to transfer the compute_func
+        assert hasattr(old_step, "compute_func")
+        # Step._check_compute_func guarantees step.compute_func is a callable
+        # i.e: assert callable(old_step.compute_func) passes
+        if inspect.ismethod(old_step.compute_func):
             # get the corresponding method bound to the new step
-            assert old_step.function.__self__ is old_step
-            new_step.function = getattr(new_step, old_step.function.__name__)
+            assert old_step.compute_func.__self__ is old_step
+            new_step.compute_func = getattr(new_step, old_step.compute_func.__name__)
         else:
             # if it is not a bound method (i.e. any other kind of callable)
             # transfer it as is
-            new_step.function = old_step.function
+            new_step.compute_func = old_step.compute_func
 
         # Update outputs of old step to point to the new step
         # TODO: The output dataplaceholders should be replaced too

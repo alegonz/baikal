@@ -7,11 +7,7 @@ def test_repr():
         def somefunc(self, X):
             pass
 
-    step = DummyStep(name="some-step", function="somefunc")
+    step = DummyStep(name="some-step")
     data_placeholder = DataPlaceholder(step=step, name="some-step/0")
-    expected_repr = (
-        "DataPlaceholder(step=DummyStep(name='some-step', "
-        "function='somefunc', n_outputs=1, trainable=True), "
-        "name='some-step/0')"
-    )
+    expected_repr = "DataPlaceholder(step=DummyStep(name='some-step', n_outputs=1), name='some-step/0')"
     assert repr(data_placeholder) == expected_repr

@@ -66,7 +66,6 @@ class _StepBase:
         return self._targets
 
 
-# TODO: Update docstrings
 class Step(_StepBase):
     """Mixin class to endow scikit-learn classes with Step capabilities.
 
@@ -89,30 +88,9 @@ class Step(_StepBase):
         Name of the step (optional). If no name is passed, a name will be
         automatically generated.
 
-    function
-        Specifies which function must be used when computing the step during
-        the model graph execution. If None (default), it will use the predict
-        or the transform method (in that order). If a name string is passed,
-        it will use the method that matches the given name. If a callable is
-        passed, it will use that callable when computing the step.
-
-        The number of inputs and outputs of the function must match those of the
-        step (this is not checked, but will raise an error during graph
-        execution if there is a mismatch).
-
-        scikit-learn classes typically implement a predict method (Estimators)
-        or a transform method (Transformers), but with this argument you can,
-        for example, specify `predict_proba` as the compute function.
-
     n_outputs
         The number of outputs of the step's function (predict, transform, or
         any other callable passed in the `function` argument).
-
-    trainable
-        Whether the step is trainable (True) or not (False). This flag is only
-        meaningful only for steps with a fit method. Setting `trainable=False`
-        allows to skip the step when fitting a Model. This is useful if you
-        want to freeze some pre-trained steps.
 
     Attributes
     ----------
@@ -136,56 +114,49 @@ class Step(_StepBase):
     >>>     def __init__(self, name=None, **kwargs):
     >>>         super().__init__(name=name, **kwargs)
     >>>
-    >>> logreg = LogisticRegression(C=2.0, function='predict_proba')
+    >>> logreg = LogisticRegression(C=2.0)
     """
 
-    def __init__(
-        self,
-        *args,
-        name: str = None,
-        function: Optional[Union[str, Callable[..., Any]]] = None,
-        n_outputs: int = 1,
-        trainable: bool = True,
-        **kwargs
-    ):
+    def __init__(self, *args, name: str = None, n_outputs: int = 1, **kwargs):
         # Necessary to use this class as a mixin
         super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)  # type: ignore
 
-        self.trainable = trainable
-        self.function = self._check_function(function)
         self._inputs = []  # type: List[DataPlaceholder]
         self._outputs = []  # type: List[DataPlaceholder]
         self._targets = []  # type: List[DataPlaceholder]
 
-    def _check_function(self, function):
-        if function is None:
+    def _check_compute_func(self, compute_func):
+        if compute_func is None:
             if hasattr(self, "predict"):
-                function = self.predict
+                compute_func = self.predict
             elif hasattr(self, "transform"):
-                function = self.transform
+                compute_func = self.transform
             else:
                 raise ValueError(
-                    "If `function` is not specified, the class "
+                    "If `compute_func` is not specified, the class "
                     "must implement a predict or transform method."
                 )
         else:
-            if isinstance(function, str):
-                function = getattr(self, function)
-            elif callable(function):
+            if isinstance(compute_func, str):
+                compute_func = getattr(self, compute_func)
+            elif callable(compute_func):
                 pass
             else:
                 raise ValueError(
                     "If specified, `function` must be either a " "string or a callable."
                 )
-        return function
+        return compute_func
 
     def compute(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+        return self.compute_func(*args, **kwargs)
 
     def __call__(
         self,
         inputs: Union[DataPlaceholder, List[DataPlaceholder]],
         targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None,
+        *,
+        compute_func: Optional[Union[str, Callable[..., Any]]] = None,
+        trainable: bool = True,
     ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the
         output(s) to be used in further steps.
@@ -197,6 +168,27 @@ class Step(_StepBase):
 
         targets
             Target(s) to the step.
+
+        compute_func
+            Specifies which function must be used when computing the step during
+            the model graph execution. If None (default), it will use the predict
+            or the transform method (in that order). If a name string is passed,
+            it will use the method that matches the given name. If a callable is
+            passed, it will use that callable when computing the step.
+
+            The number of inputs and outputs of the function must match those of the
+            step (this is not checked, but will raise an error during graph
+            execution if there is a mismatch).
+
+            scikit-learn classes typically implement a predict method (Estimators)
+            or a transform method (Transformers), but with this argument you can,
+            for example, specify `predict_proba` as the compute function.
+
+        trainable
+            Whether the step is trainable (True) or not (False). This flag is only
+            meaningful only for steps with a fit method. Setting `trainable=False`
+            allows to skip the step when fitting a Model. This is useful if you
+            want to freeze some pre-trained steps.
 
         Returns
         -------
@@ -211,6 +203,9 @@ class Step(_StepBase):
         override the connectivity from the first call. Support for shareable
         steps might be added in future releases.
         """
+        self.trainable = trainable
+        self.compute_func = self._check_compute_func(compute_func)  # type: Callable
+
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):
             raise ValueError("inputs must be of type DataPlaceholder.")
@@ -282,7 +277,7 @@ class Step(_StepBase):
     def __repr__(self):
         cls_name = self.__class__.__name__
         parent_repr = super().__repr__()
-        step_attrs = ["name", "function", "n_outputs", "trainable"]
+        step_attrs = ["name", "n_outputs"]
 
         # Insert Step attributes into the parent repr
         # if the repr has the sklearn pattern
