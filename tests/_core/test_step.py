@@ -135,8 +135,20 @@ class TestStep:
 
         assert isinstance(y0, DataPlaceholder)
         assert isinstance(y1, DataPlaceholder)
-        assert y0.name == "DummyMIMO_0/0"
-        assert y1.name == "DummyMIMO_0/1"
+        assert y0.name == "DummyMIMO_0/0/0"
+        assert y1.name == "DummyMIMO_0/0/1"
+
+    def test_call_twice(self, teardown):
+        x0 = Input()
+        x1 = Input()
+        step = DummySISO()
+        y0 = step(x0)
+        y1 = step(x1)
+
+        assert isinstance(y0, DataPlaceholder)
+        assert isinstance(y1, DataPlaceholder)
+        assert y0.name == "DummySISO_0/0/0"
+        assert y1.name == "DummySISO_0/1/0"
 
     def test_repr(self):
         class DummyStep(Step):
@@ -166,3 +178,92 @@ class TestStep:
         params = step.get_params()
         expected = {"x": 456, "y": "abc"}
         assert params == expected
+
+    # Below are tests for properties
+    @pytest.fixture
+    def simple_step(self):
+        return LogisticRegression()
+
+    @pytest.fixture
+    def shared_step(self):
+        return LogisticRegression()
+
+    @pytest.fixture
+    def dataplaceholders(self, simple_step, shared_step):
+        x1 = Input(name="x1")
+        x2 = Input(name="x2")
+        y_t = Input(name="y_t")
+        y_simple = simple_step(x1, y_t)
+        y_shared_1 = shared_step(x1, y_t)
+        y_shared_2 = shared_step(x2, compute_func="predict_proba", trainable=False)
+        return x1, x2, y_t, y_simple, y_shared_1, y_shared_2
+
+    def test_inputs(self, simple_step, shared_step, dataplaceholders, teardown):
+        x1 = dataplaceholders[0]
+        assert simple_step.inputs == [x1]
+        with pytest.raises(AttributeError):
+            shared_step.inputs
+
+    def test_outputs(self, simple_step, shared_step, dataplaceholders, teardown):
+        *_, y_simple, y_shared_1, y_shared_2 = dataplaceholders
+        assert simple_step.outputs == [y_simple]
+        with pytest.raises(AttributeError):
+            shared_step.outputs
+
+    def test_targets(self, simple_step, shared_step, dataplaceholders, teardown):
+        y_t = dataplaceholders[2]
+        assert simple_step.targets == [y_t]
+        with pytest.raises(AttributeError):
+            shared_step.targets
+
+    def test_compute_func(self, simple_step, shared_step, dataplaceholders, teardown):
+        assert simple_step.compute_func == simple_step.predict
+
+        with pytest.raises(AttributeError):
+            shared_step.compute_func
+
+    def test_trainable(self, simple_step, shared_step, dataplaceholders, teardown):
+        assert simple_step.trainable
+
+        with pytest.raises(AttributeError):
+            shared_step.trainable
+
+    def test_get_inputs_at(self, simple_step, shared_step, dataplaceholders, teardown):
+        x1, x2, *_ = dataplaceholders
+        assert simple_step.get_inputs_at(0) == [x1]
+        assert shared_step.get_inputs_at(0) == [x1]
+        assert shared_step.get_inputs_at(1) == [x2]
+
+    def test_get_outputs_at(self, simple_step, shared_step, dataplaceholders, teardown):
+        *_, y_simple, y_shared_1, y_shared_2 = dataplaceholders
+        assert simple_step.get_outputs_at(0) == [y_simple]
+        assert shared_step.get_outputs_at(0) == [y_shared_1]
+        assert shared_step.get_outputs_at(1) == [y_shared_2]
+
+    def test_get_targets_at(self, simple_step, shared_step, dataplaceholders, teardown):
+        y_t = dataplaceholders[2]
+        assert simple_step.get_targets_at(0) == [y_t]
+        assert shared_step.get_targets_at(0) == [y_t]
+        assert shared_step.get_targets_at(1) == []
+
+    def test_get_compute_func_at(
+        self, simple_step, shared_step, dataplaceholders, teardown
+    ):
+        assert simple_step.get_compute_func_at(0) == simple_step.predict
+        assert shared_step.get_compute_func_at(0) == shared_step.predict
+        assert shared_step.get_compute_func_at(1) == shared_step.predict_proba
+
+    def test_set_compute_func_at(self, shared_step, dataplaceholders, teardown):
+        shared_step.set_compute_func_at(1, shared_step.predict)
+        assert shared_step.get_compute_func_at(1) == shared_step.predict
+
+    def test_get_trainable_at(
+        self, simple_step, shared_step, dataplaceholders, teardown
+    ):
+        assert simple_step.get_trainable_at(0)
+        assert shared_step.get_trainable_at(0)
+        assert not shared_step.get_trainable_at(1)
+
+    def test_set_trainable_at(self, shared_step, dataplaceholders, teardown):
+        shared_step.set_trainable_at(1, True)
+        assert shared_step.get_trainable_at(1)
