@@ -55,7 +55,7 @@ class Lambda(Step):
         name: Optional[str] = None,
         **kwargs
     ):
-        self.compute_func = partial(compute_func, **kwargs)
+        self._compute_func = partial(compute_func, **kwargs)
         super().__init__(name=name, n_outputs=n_outputs)
 
     def __call__(
@@ -93,7 +93,7 @@ class Lambda(Step):
         """
         # compute_func and trainable are ignored and kept for signature compatibility purposes
         return super().__call__(
-            inputs, targets, compute_func=self.compute_func, trainable=False
+            inputs, targets, compute_func=self._compute_func, trainable=False
         )
 
     # TODO: Consider adding get_params/set_params to tune function
