@@ -2,10 +2,10 @@ from contextlib import contextmanager
 from functools import partial
 
 import pytest
-from baikal._core.step import InputStep
 
 from baikal import Input, Step
 from baikal._core.data_placeholder import DataPlaceholder
+from baikal._core.step import InputStep
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.dummy_steps import DummyMIMO, DummySISO, DummyEstimator
@@ -46,7 +46,7 @@ class TestStep:
         assert lr0.name == "LogisticRegression_0"
         assert lr1.name == "LogisticRegression_1"
 
-    def test_instantiate_with_invalid_function_argument(self):
+    def test_instantiate_with_invalid_compute_func(self):
         class DummyStep(Step):
             def somefunc(self, X):
                 pass
@@ -59,23 +59,30 @@ class TestStep:
             def transform(self, X):
                 pass
 
-        with pytest.raises(ValueError):
-            DummyStep(function=None)
+        x = Input()
 
-        step = DummyStep(function="somefunc")
-        assert step.function == step.somefunc
+        with pytest.raises(ValueError):
+            step = DummyStep()
+            step(x, compute_func=None)
+
+        step = DummyStep()
+        step(x, compute_func="somefunc")
+        assert step.compute_func == step.somefunc
 
         def anotherfunc():
             pass
 
-        step = DummyStep(function=anotherfunc)
-        assert step.function == anotherfunc
+        step = DummyStep()
+        step(x, compute_func=anotherfunc)
+        assert step.compute_func == anotherfunc
 
         step = DummyStepWithPredict()
-        assert step.function == step.predict
+        step(x)
+        assert step.compute_func == step.predict
 
         step = DummyStepWithTransform()
-        assert step.function == step.transform
+        step(x)
+        assert step.compute_func == step.transform
 
     # Below tests are parametrized to take two kind of fittable steps:
     # - step that requires y (e.g. Logistic Regression)
@@ -85,7 +92,7 @@ class TestStep:
     @pytest.mark.parametrize("trainable", [True, False])
     def test_call_without_targets(self, step_class, trainable, teardown):
         x = Input()
-        step_class(trainable=trainable)(x)
+        step_class()(x, trainable=trainable)
 
     @pytest.mark.parametrize("step_class", [LogisticRegression, PCA])
     @pytest.mark.parametrize(
@@ -96,7 +103,7 @@ class TestStep:
         x = Input()
         y_t = Input()
         with expectation():
-            step_class(trainable=trainable)(x, y_t)
+            step_class()(x, y_t, trainable=trainable)
 
     def test_call_without_targets_without_fit_method(self, teardown):
         x = Input()
@@ -123,11 +130,8 @@ class TestStep:
             def somefunc(self, X):
                 pass
 
-        step = DummyStep(name="some-step", function="somefunc")
-        assert (
-            repr(step)
-            == "DummyStep(name='some-step', function='somefunc', n_outputs=1, trainable=True)"
-        )
+        step = DummyStep(name="some-step")
+        assert repr(step) == "DummyStep(name='some-step', n_outputs=1)"
 
         # TODO: Add test for sklearn step
 
