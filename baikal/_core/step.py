@@ -19,6 +19,7 @@ class _StepBase:
         self._name = name if name is not None else self._generate_unique_name()
         # TODO: Add self.n_inputs? Could be used to check inputs in __call__
         self._n_outputs = n_outputs
+        self._nodes = []  # type: List[Node]
 
     def _generate_unique_name(self):
         name = self.__class__.__name__
@@ -55,15 +56,54 @@ class _StepBase:
 
     @property
     def inputs(self):
-        return self._inputs
+        if len(self._nodes) == 1:
+            return self._nodes[0].inputs
+        raise AttributeError("TODO")
 
     @property
     def outputs(self):
-        return self._outputs
+        if len(self._nodes) == 1:
+            return self._nodes[0].outputs
+        raise AttributeError("TODO")
 
     @property
     def targets(self):
-        return self._targets
+        if len(self._nodes) == 1:
+            return self._nodes[0].targets
+        raise AttributeError("TODO")
+
+    @property
+    def compute_func(self):
+        if len(self._nodes) == 1:
+            return self._nodes[0].compute_func
+        raise AttributeError("TODO")
+
+    @property
+    def trainable(self):
+        if len(self._nodes) == 1:
+            return self._nodes[0].trainable
+        raise AttributeError("TODO")
+
+    def get_inputs_at(self, node_index):
+        return self._nodes[node_index].inputs
+
+    def get_outputs_at(self, node_index):
+        return self._nodes[node_index].outputs
+
+    def get_targets_at(self, node_index):
+        return self._nodes[node_index].targets
+
+    def get_compute_func_at(self, node_index):
+        return self._nodes[node_index].compute_func
+
+    def set_compute_func_at(self, node_index, value):
+        self._nodes[node_index].compute_func = value
+
+    def get_trainable_at(self, node_index):
+        return self._nodes[node_index].trainable
+
+    def set_trainable_at(self, node_index, value):
+        self._nodes[node_index].trainable = value
 
 
 class Step(_StepBase):
@@ -121,9 +161,7 @@ class Step(_StepBase):
         # Necessary to use this class as a mixin
         super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)  # type: ignore
 
-        self._inputs = []  # type: List[DataPlaceholder]
-        self._outputs = []  # type: List[DataPlaceholder]
-        self._targets = []  # type: List[DataPlaceholder]
+        self._nodes = []  # type: List[Node]
 
     def _check_compute_func(self, compute_func):
         if compute_func is None:
@@ -203,8 +241,6 @@ class Step(_StepBase):
         override the connectivity from the first call. Support for shareable
         steps might be added in future releases.
         """
-        self.trainable = trainable
-        self.compute_func = self._check_compute_func(compute_func)  # type: Callable
 
         inputs = listify(inputs)
         if not is_data_placeholder_list(inputs):
@@ -239,7 +275,7 @@ class Step(_StepBase):
             # |       no        |        -      |      yes      |    error   |
             # |       no        |        -      |      no       |     ok     |
 
-            if not self.trainable:
+            if not trainable:
                 warnings.warn(
                     UserWarning("You are passing targets to a non-trainable step.")
                 )
@@ -253,25 +289,29 @@ class Step(_StepBase):
         else:
             targets = []
 
-        self._inputs = inputs
-        self._targets = targets
-        self._outputs = self._build_outputs()
+        outputs = self._build_outputs()
+        compute_func = self._check_compute_func(compute_func)
+
+        self._nodes.append(
+            Node(self, inputs, outputs, targets, compute_func, trainable)
+        )
 
         if self._n_outputs == 1:
-            return self._outputs[0]
+            return outputs[0]
         else:
             # Return a shallow copy to avoid modifying self._outputs when
             # using the idiom of passing a variable holding an output to
             # another step and re-writing the variable with the new output:
             #     zs = SomeMultiOutputStep()(...)
             #     zs[i] = SomeStep()(zs[i])
-            return list(self.outputs)
+            return list(outputs)
 
     def _build_outputs(self) -> List[DataPlaceholder]:
+        node_index = len(self._nodes)
         outputs = []
         for i in range(self._n_outputs):
-            name = make_name(self._name, i)
-            outputs.append(DataPlaceholder(self, name))
+            name = make_name(self._name, node_index, i)
+            outputs.append(DataPlaceholder(self, node_index, name))
         return outputs
 
     def __repr__(self):
@@ -304,10 +344,9 @@ class InputStep(_StepBase):
 
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=1)
-        self._inputs = []
-        self._outputs = [DataPlaceholder(self, self._name)]
-        self._targets = []
-        self.trainable = False
+        self._nodes = [
+            Node(self, [], [DataPlaceholder(self, 0, self._name)], [], None, False)
+        ]
 
     def __repr__(self):
         step_attrs = ["name"]
@@ -333,7 +372,25 @@ def Input(name: Optional[str] = None) -> DataPlaceholder:
     """
     # Maybe this can be implemented in InputStep.__new__
     input = InputStep(name)
-    return input._outputs[0]  # Input produces exactly one DataPlaceholder output
+    return input.outputs[0]  # Input produces exactly one DataPlaceholder output
+
+
+class Node:
+    def __init__(
+        self,
+        step: _StepBase,
+        inputs: List[DataPlaceholder],
+        outputs: List[DataPlaceholder],
+        targets: List[DataPlaceholder],
+        compute_func: Optional[Callable],
+        trainable: bool,
+    ):
+        self.step = step
+        self.inputs = inputs
+        self.outputs = outputs
+        self.targets = targets
+        self.compute_func = compute_func
+        self.trainable = trainable
 
 
 # Notes on typing:
