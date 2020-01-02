@@ -1,8 +1,8 @@
 # Unfortunately we cannot name this module lambda.py so
 # we are stuck with this unintuitive module name.
-from functools import partial
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Union, List
 
+from baikal._core.data_placeholder import DataPlaceholder
 from baikal._core.step import Step
 
 
@@ -11,11 +11,13 @@ class Lambda(Step):
 
     Parameters
     ----------
-    function
-        The function to make the step from.
+    compute_func
+        The function to make the step from. This function takes one or several input
+        data object as its first arguments. You may pass a functools.partial object if
+        you need to specify some arguments beforehand.
 
     n_outputs
-        Number of outputs of function.
+        Number of outputs of the function.
 
     name
         Name of the step (optional). If no name is passed, a name will be
@@ -44,16 +46,49 @@ class Lambda(Step):
 
     def __init__(
         self,
-        function: Callable[..., Any],
+        compute_func: Callable[..., Any],
         n_outputs: int = 1,
         name: Optional[str] = None,
-        **kwargs
     ):
-        super().__init__(
-            name=name,
-            function=partial(function, **kwargs),
-            n_outputs=n_outputs,
-            trainable=False,
+        self.compute_func = compute_func
+        super().__init__(name=name, n_outputs=n_outputs)
+
+    def __call__(
+        self,
+        inputs: Union[DataPlaceholder, List[DataPlaceholder]],
+        targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None,
+        *,
+        compute_func: Optional[Union[str, Callable[..., Any]]] = None,
+        trainable: bool = True,
+    ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
+        """Call the step on input(s) (from previous steps) and generates the
+        output(s) to be used in further steps.
+
+        Parameters
+        ----------
+        inputs
+            Input(s) to the step.
+
+        targets
+            Target(s) to the step.
+
+        compute_func
+            Ignored. This step will use the compute function passed at instantation.
+            Kept for signature compatibility purposes.
+
+        trainable
+            Ignored. This step is always non-trainable.
+            Kept for signature compatibility purposes.
+
+
+        Returns
+        -------
+        DataPlaceholder
+            Output(s) of the step.
+        """
+        # compute_func and trainable are ignored and kept for signature compatibility purposes
+        return super().__call__(
+            inputs, targets, compute_func=self.compute_func, trainable=False
         )
 
     # TODO: Consider adding get_params/set_params to tune function
