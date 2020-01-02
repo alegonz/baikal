@@ -64,7 +64,7 @@ class TestInit:
         y_t_encoded = LabelEncoder()(y_t)
         z = Concatenate()([x1_transformed, x2])
         y = LogisticRegression()(z, y_t_encoded)
-        # TODO: support shareable steps to reuse LabelEncoder(function="inverse_transform")
+        # TODO: support shareable steps to reuse LabelEncoder with compute_func="inverse_transform"
 
         # full model
         Model([x1, x2], y, y_t)
@@ -104,7 +104,7 @@ class TestInit:
     def test_with_missing_targets(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
-        y = step_class(trainable=trainable)(x, y_t)
+        y = step_class()(x, y_t, trainable=trainable)
         with pytest.raises(ValueError):
             Model(x, y)
 
@@ -127,7 +127,7 @@ class TestInit:
     def test_with_unnecessary_targets(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
-        y = step_class(trainable=trainable)(x)
+        y = step_class()(x, trainable=trainable)
         with pytest.raises(ValueError):
             Model(x, y, y_t)  # y_t was not used anywhere
 
@@ -254,7 +254,7 @@ class TestFit:
 
     def test_with_undefined_target(self, teardown):
         x = Input()
-        y = LogisticRegression(trainable=True)(x)
+        y = LogisticRegression()(x, trainable=True)
         model = Model(inputs=x, outputs=y)
         with pytest.raises(TypeError):
             # LogisticRegression.fit will be called with not enough arguments
@@ -264,9 +264,9 @@ class TestFit:
     def test_with_unnecessarily_defined_but_missing_target(self, teardown):
         x = Input()
         y_t = Input()
-        pca = PCA(trainable=True)
+        pca = PCA()
         # The target passed to PCA is unnecessary (see notes in Step.__call__)
-        y = pca(x, y_t)
+        y = pca(x, y_t, trainable=True)
         model = Model(inputs=x, outputs=y, targets=y_t)
         with pytest.raises(ValueError):
             # fails because of the model target specification and trainable=True
@@ -288,7 +288,7 @@ class TestFit:
 
     def test_with_non_trainable_step(self, teardown):
         x = Input()
-        y = PCA(trainable=False)(x)
+        y = PCA()(x, trainable=False)
         model = Model(x, y)
         # this should not raise an error because PCA has no successor steps
         model.fit(iris.data)
@@ -297,7 +297,7 @@ class TestFit:
     def test_with_non_fitted_non_trainable_step(self, teardown):
         x = Input()
         y_t = Input()
-        z = PCA(trainable=False)(x)
+        z = PCA()(x, trainable=False)
         y = LogisticRegression()(z, y_t)
         model = Model(x, y, y_t)
         with pytest.raises(NotFittedError):
@@ -316,7 +316,7 @@ class TestFit:
     def test_with_superfluous_target(self, step_class, trainable, teardown):
         x = Input()
         y_t = Input()
-        z = step_class(trainable=trainable)(x, y_t)
+        z = step_class()(x, y_t, trainable=trainable)
         model = Model(x, z, y_t)
         model.fit(iris.data, iris.target)  # should not raise any errors
 
@@ -642,14 +642,14 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     # baikal way
     x = Input()
     y_t = Input()
-    y_p1 = LogisticRegression(random_state=random_state, function="predict_proba")(
-        x, y_t
+    y_p1 = LogisticRegression(random_state=random_state)(
+        x, y_t, compute_func="predict_proba"
     )
-    y_p2 = RandomForestClassifier(
-        n_estimators=n_estimators, random_state=random_state, function="apply"
-    )(x, y_t)
-    y_p1 = Lambda(function=lambda array: array[:, :-1])(y_p1)
-    y_p2 = Lambda(function=lambda array: array[:, :-1])(y_p2)
+    y_p2 = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)(
+        x, y_t, compute_func="apply"
+    )
+    y_p1 = Lambda(compute_func=lambda array: array[:, :-1])(y_p1)
+    y_p2 = Lambda(compute_func=lambda array: array[:, :-1])(y_p2)
     features = Concatenate(axis=1)([y_p1, y_p2])
     y_p = LogisticRegression(random_state=random_state)(features, y_t)
 
@@ -847,13 +847,13 @@ def test_get_params(teardown):
 
 def test_set_params(teardown):
     dummy1 = DummyEstimator(name="dummy1")
-    dummy2 = DummyEstimator(x=456, y="def", name="dummy2", function=lambda X: X)
+    dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
     x = Input()
     h = dummy1(x)
     c = concat([x, h])
-    y = dummy2(c)
+    y = dummy2(c, compute_func=lambda X: X)
     model = Model(x, y)
 
     # Fails when setting params on step that does not implement set_params
@@ -900,7 +900,7 @@ def test_set_params(teardown):
     assert new_dummy.outputs is dummy2.outputs
     assert new_dummy.targets is dummy2.targets
     assert new_dummy.trainable is dummy2.trainable
-    assert new_dummy.function is dummy2.function
+    assert new_dummy.compute_func is dummy2.compute_func
 
 
 def test_get_set_params_invariance(teardown):
