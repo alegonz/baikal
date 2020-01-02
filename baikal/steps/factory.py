@@ -31,13 +31,9 @@ def make_step(base_class):
 
     """
 
-    def __init__(self, name=None, function=None, n_outputs=1, trainable=True, **kwargs):
+    def __init__(self, name=None, n_outputs=1, **kwargs):
         super(self.__class__, self).__init__(
-            name=name,
-            function=function,
-            n_outputs=n_outputs,
-            trainable=trainable,
-            **kwargs,
+            name=name, n_outputs=n_outputs, **kwargs,
         )
 
     metaclass = type(base_class)
