@@ -65,6 +65,10 @@ class TestStep:
             step = DummyStep()
             step(x, compute_func=None)
 
+        with pytest.raises(ValueError):
+            step = DummyStep()
+            step(x, compute_func=123)
+
         step = DummyStep()
         step(x, compute_func="somefunc")
         assert step.compute_func == step.somefunc
@@ -83,6 +87,15 @@ class TestStep:
         step = DummyStepWithTransform()
         step(x)
         assert step.compute_func == step.transform
+
+    def test_call_with_invalid_input_type(self, teardown):
+        with pytest.raises(ValueError):
+            LogisticRegression()([[1, 2], [3, 4]])
+
+    def test_call_with_invalid_target_type(self, teardown):
+        x = Input()
+        with pytest.raises(ValueError):
+            LogisticRegression()(x, [0, 1])
 
     # Below tests are parametrized to take two kind of fittable steps:
     # - step that requires y (e.g. Logistic Regression)
