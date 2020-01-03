@@ -78,11 +78,25 @@ class _StepBase:
             return self._nodes[0].compute_func
         raise AttributeError("TODO")
 
+    @compute_func.setter
+    def compute_func(self, value):
+        if len(self._nodes) == 1:
+            self._nodes[0].compute_func = value
+        else:
+            raise AttributeError("TODO")
+
     @property
     def trainable(self):
         if len(self._nodes) == 1:
             return self._nodes[0].trainable
         raise AttributeError("TODO")
+
+    @trainable.setter
+    def trainable(self, value):
+        if len(self._nodes) == 1:
+            self._nodes[0].trainable = value
+        else:
+            raise AttributeError("TODO")
 
     def get_inputs_at(self, node_index):
         return self._nodes[node_index].inputs

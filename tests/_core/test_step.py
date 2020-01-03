@@ -218,15 +218,25 @@ class TestStep:
 
     def test_compute_func(self, simple_step, shared_step, dataplaceholders, teardown):
         assert simple_step.compute_func == simple_step.predict
+        simple_step.compute_func = simple_step.predict_proba
+        assert simple_step.compute_func == simple_step.predict_proba
 
         with pytest.raises(AttributeError):
             shared_step.compute_func
 
+        with pytest.raises(AttributeError):
+            shared_step.compute_func = shared_step.predict_proba
+
     def test_trainable(self, simple_step, shared_step, dataplaceholders, teardown):
         assert simple_step.trainable
+        simple_step.trainable = False
+        assert not simple_step.trainable
 
         with pytest.raises(AttributeError):
             shared_step.trainable
+
+        with pytest.raises(AttributeError):
+            shared_step.trainable = True
 
     def test_get_inputs_at(self, simple_step, shared_step, dataplaceholders, teardown):
         x1, x2, *_ = dataplaceholders
