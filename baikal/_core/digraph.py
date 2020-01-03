@@ -1,4 +1,4 @@
-from collections import deque, defaultdict
+from collections import deque, defaultdict, OrderedDict
 
 
 class NodeNotFoundError(Exception):
@@ -16,8 +16,9 @@ class DiGraph:
     def __init__(self, name=None):
         # We represent the adjacency matrix as a dict of dicts:
         # key: source node -> value: (key: destination node -> value: edge data (set))
-        self._successors = dict()
-        self._predecessors = dict()
+        # Also, the graph nodes are stored in the order they were added.
+        self._successors = OrderedDict()
+        self._predecessors = OrderedDict()
         self.name = name
 
     def add_node(self, node):
