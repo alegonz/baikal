@@ -199,9 +199,6 @@ class Step(_StepBase):
                 )
         return compute_func
 
-    def compute(self, *args, **kwargs):
-        return self.compute_func(*args, **kwargs)
-
     def __call__(
         self,
         inputs: Union[DataPlaceholder, List[DataPlaceholder]],
