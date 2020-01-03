@@ -320,6 +320,15 @@ class TestFit:
         model = Model(x, z, y_t)
         model.fit(iris.data, iris.target)  # should not raise any errors
 
+    def test_fit_with_shared_step(self, teardown):
+        x = Input()
+        scaler = StandardScaler()
+        z = scaler(x, compute_func="transform", trainable=True)
+        y = scaler(z, compute_func="inverse_transform", trainable=False)
+        model = Model(x, y)
+        model.fit(np.array([1, 3, 1, 3]).reshape(-1, 1))
+        assert (scaler.mean_, scaler.var_) == (2.0, 1.0)
+
 
 class TestPredict:
     x1_data = iris.data[:, :2]
@@ -425,6 +434,15 @@ class TestPredict:
         model = Model(x, y)
         with pytest.raises(NotFittedError):
             model.predict(x_data)
+
+    def test_predict_with_shared_step(self, teardown):
+        x1 = Input()
+        x2 = Input()
+        doubler = Lambda(lambda x: x * 2)
+        y1 = doubler(x1)
+        y2 = doubler(x2)
+        model = Model([x1, x2], [y1, y2])
+        assert model.predict([2, 3]) == [4, 6]
 
 
 def test_steps_cache(teardown):
@@ -541,6 +559,18 @@ def test_transformed_target(teardown):
     model.fit(x_data, y_t_data)
 
     assert_array_equal(model.get_step("LinearRegression_0").coef_, np.array([2.0]))
+
+
+def test_fit_predict_with_shared_step(teardown):
+    x = Input()
+    scaler = StandardScaler()
+    z = scaler(x, compute_func="transform", trainable=True)
+    y = scaler(z, compute_func="inverse_transform", trainable=False)
+    model = Model(x, y)
+
+    X_data = np.array([1, 3, 1, 3]).reshape(-1, 1)
+    model.fit(X_data)
+    assert_array_equal(model.predict(X_data), X_data)
 
 
 def test_fit_and_predict_model_with_no_fittable_steps(teardown):
@@ -918,6 +948,9 @@ def test_get_set_params_invariance(teardown):
     model.set_params(**params1)
     params2 = model.get_params()
     assert params2 == params1
+
+
+# TODO: test get/set_params with shared steps
 
 
 def test_trainable_flag(teardown):
