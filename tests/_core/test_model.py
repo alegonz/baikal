@@ -857,11 +857,14 @@ def test_get_params(teardown):
     dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
-    x = Input()
-    h = dummy1(x)
-    c = concat([x, h])
-    y = dummy2(c)
-    model = Model(x, y)
+    # a meaningless pipeline that contains shared steps
+    x1 = Input()
+    x2 = Input()
+    h = dummy1(x1)
+    c = concat([x1, h])
+    y1 = dummy2(c)
+    y2 = dummy2(x2, compute_func=lambda X: X * 2, trainable=False)
+    model = Model([x1, x2], [y1, y2])
 
     expected = {
         "dummy1": dummy1,
@@ -882,11 +885,14 @@ def test_set_params(teardown):
     dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
-    x = Input()
-    h = dummy1(x)
-    c = concat([x, h])
-    y = dummy2(c, compute_func=lambda X: X)
-    model = Model(x, y)
+    # a meaningless pipeline that contains shared steps
+    x1 = Input()
+    x2 = Input()
+    h = dummy1(x1)
+    c = concat([x1, h])
+    y1 = dummy2(c)
+    y2 = dummy2(x2, compute_func=lambda X: X * 2, trainable=False)
+    model = Model([x1, x2], [y1, y2])
 
     # Fails when setting params on step that does not implement set_params
     new_params_wrong = {"concat__axis": 2}
@@ -926,31 +932,36 @@ def test_set_params(teardown):
     }
 
     assert params == expected
-    # Connectivity should be the same
+
+    # Connectivity of the new step should be the same as the old step
     assert new_dummy.name is dummy2.name
-    assert new_dummy.inputs is dummy2.inputs
-    assert new_dummy.outputs is dummy2.outputs
-    assert new_dummy.targets is dummy2.targets
-    assert new_dummy.trainable is dummy2.trainable
-    assert new_dummy.compute_func is dummy2.compute_func
+    for node_index in range(2):
+        assert new_dummy.get_inputs_at(node_index) is dummy2.get_inputs_at(node_index)
+        assert new_dummy.get_outputs_at(node_index) is dummy2.get_outputs_at(node_index)
+        assert new_dummy.get_targets_at(node_index) is dummy2.get_targets_at(node_index)
+        assert new_dummy.get_trainable_at(node_index) is dummy2.get_trainable_at(
+            node_index
+        )
+        assert new_dummy.get_compute_func_at(node_index) is dummy2.get_compute_func_at(
+            node_index
+        )
 
 
 def test_get_set_params_invariance(teardown):
-    pca = PCA(name="pca")
-    classifier = RandomForestClassifier(name="classifier")
+    scaler = StandardScaler(name="scaler")
+    regressor = LinearRegression(name="regressor")
 
     x = Input()
-    h = pca(x)
-    y = classifier(h)
-    model = Model(x, y)
+    y_t = Input()
+    y_t_scaled = scaler(y_t)
+    y_p_scaled = regressor(x, y_t_scaled)
+    y_p = scaler(y_p_scaled, compute_func="inverse_transform", trainable=False)
+    model = Model(x, y_p, y_t)
 
     params1 = model.get_params()
     model.set_params(**params1)
     params2 = model.get_params()
     assert params2 == params1
-
-
-# TODO: test get/set_params with shared steps
 
 
 def test_trainable_flag(teardown):

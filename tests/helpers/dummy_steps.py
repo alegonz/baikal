@@ -64,7 +64,7 @@ class _DummyEstimator(BaseEstimator):
         self.y = y
 
     def predict(self, X):
-        pass
+        return X
 
 
 DummyEstimator = make_step(_DummyEstimator)
