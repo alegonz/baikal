@@ -33,15 +33,20 @@ def plot_model(
     ----------
     model
         The model to plot.
+
     filename
         Filename (optional).
+
     show
         Whether to display the plot in the screen or not. Requires matplotlib.
+
     expand_nested
         Whether to expand any nested models or not (display the nested model as
         a single step).
+
     prog
         Program to use to process the dot file into a graph.
+
     dot_kwargs
         Keyword arguments to pydot.Dot.
     """
@@ -62,6 +67,23 @@ def plot_model(
             fontsize=0.0,
         )
 
+    def build_step(step, is_input_step, container):
+        if is_input_step:
+            container.add_node(
+                pydot.Node(name=step.name, shape="invhouse", color="green")
+            )
+        else:
+            container.add_node(pydot.Node(name=step.name, shape="rect"))
+        # Build incoming edges
+        for input in step.inputs:
+            if isinstance(input.step, Model) and expand_nested:
+                nested_model = input.step
+                index = nested_model.outputs.index(input)
+                internal_output = nested_model._internal_outputs[index]
+                build_edge(internal_output.step, step, input.name, container)
+            else:
+                build_edge(input.step, step, input.name, container)
+
     def build_edge(from_step, to_step, label, container):
         edge_key = (from_step, to_step, label)
         if edge_key not in edges_built:
@@ -69,6 +91,18 @@ def plot_model(
                 pydot.Edge(src=from_step.name, dst=to_step.name, label=label)
             )
             edges_built.add(edge_key)
+
+    def build_nested_model(model_, container):
+        cluster = pydot.Cluster(name=model_.name, label=model_.name, style="dashed")
+
+        for output_ in model_._internal_outputs:
+            build_dot_from(model_, output_, cluster)
+
+        container.add_subgraph(cluster)
+
+        # Connect with outer model
+        for input, internal_input in safezip2(model_.inputs, model_._internal_inputs):
+            build_edge(input.step, internal_input.step, input.name, container)
 
     def build_dot_from(model_, output_, container=None):
         if container is None:
@@ -80,40 +114,12 @@ def plot_model(
             return
 
         if isinstance(parent_step, Model) and expand_nested:
-            # Build nested model
-            nested_model = parent_step
-            cluster = pydot.Cluster(
-                name=nested_model.name, label=nested_model.name, style="dashed"
-            )
-
-            for output_ in nested_model._internal_outputs:
-                build_dot_from(nested_model, output_, cluster)
-            container.add_subgraph(cluster)
-
-            # Connect with outer model
-            for input, internal_input in safezip2(
-                nested_model.inputs, nested_model._internal_inputs
-            ):
-                build_edge(input.step, internal_input.step, input.name, container)
-
+            build_nested_model(parent_step, container)
         else:
-            # Build step
-            if parent_step in [input.step for input in model_._internal_inputs]:
-                container.add_node(
-                    pydot.Node(name=parent_step.name, shape="invhouse", color="green")
-                )
-            else:
-                container.add_node(pydot.Node(name=parent_step.name, shape="rect"))
-
-            # Build incoming edges
-            for input in parent_step.inputs:
-                if isinstance(input.step, Model) and expand_nested:
-                    nested_model = input.step
-                    index = nested_model.outputs.index(input)
-                    internal_output = nested_model._internal_outputs[index]
-                    build_edge(internal_output.step, parent_step, input.name, container)
-                else:
-                    build_edge(input.step, parent_step, input.name, container)
+            is_input_step = parent_step in [
+                input.step for input in model_._internal_inputs
+            ]
+            build_step(parent_step, is_input_step, container)
 
         nodes_built.add(parent_step)
 
