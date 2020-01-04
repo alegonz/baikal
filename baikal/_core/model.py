@@ -645,7 +645,7 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
             graph.add_edge(target.node, node, target)
 
     # Check that there are no steps with the same name
-    steps_seen = {}
+    steps_seen = {}  # type: Dict[str, Step]
     duplicated_names = []
     for node in graph:
         step_name = node.step.name

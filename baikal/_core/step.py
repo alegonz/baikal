@@ -397,7 +397,7 @@ def Input(name: Optional[str] = None) -> DataPlaceholder:
 class Node:
     def __init__(
         self,
-        step: _StepBase,
+        step: Step,
         inputs: List[DataPlaceholder],
         outputs: List[DataPlaceholder],
         targets: List[DataPlaceholder],
