@@ -79,52 +79,227 @@ class _StepBase:
         return self._n_outputs
 
     @property
-    def inputs(self):
+    def inputs(self) -> List[DataPlaceholder]:
+        """Get the inputs of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Returns
+        -------
+        List of inputs.
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         return self._get_step_attr("inputs")
 
     @property
-    def outputs(self):
+    def outputs(self) -> List[DataPlaceholder]:
+        """Get the outputs of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Returns
+        -------
+        List of outputs.
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         return self._get_step_attr("outputs")
 
     @property
-    def targets(self):
+    def targets(self) -> List[DataPlaceholder]:
+        """Get the targets of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Returns
+        -------
+        List of targets.
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         return self._get_step_attr("targets")
 
     @property
-    def compute_func(self):
+    def compute_func(self) -> Callable:
+        """Get the compute function of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Returns
+        -------
+        Callable
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         return self._get_step_attr("compute_func")
 
     @compute_func.setter
-    def compute_func(self, value):
+    def compute_func(self, value: Callable):
+        """Set the compute function of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Parameters
+        ----------
+        value
+            Compute function of the step.
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         self._set_step_attr("compute_func", value)
 
     @property
-    def trainable(self):
+    def trainable(self) -> bool:
+        """Get trainable flag of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Returns
+        -------
+        bool
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         return self._get_step_attr("trainable")
 
     @trainable.setter
-    def trainable(self, value):
+    def trainable(self, value: bool):
+        """Set trainable flag of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Parameters
+        ----------
+        value
+            Trainable flag.
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
         self._set_step_attr("trainable", value)
 
-    def get_inputs_at(self, port):
+    def get_inputs_at(self, port: int) -> List[DataPlaceholder]:
+        """Get inputs at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port from which to get the inputs.
+
+        Returns
+        -------
+        List of inputs.
+        """
         return self._nodes[port].inputs
 
-    def get_outputs_at(self, port):
+    def get_outputs_at(self, port: int) -> List[DataPlaceholder]:
+        """Get outputs at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port from which to get the outputs.
+
+        Returns
+        -------
+        List of outputs.
+        """
         return self._nodes[port].outputs
 
-    def get_targets_at(self, port):
+    def get_targets_at(self, port: int) -> List[DataPlaceholder]:
+        """Get targets at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port from which to get the targets.
+
+        Returns
+        -------
+        List of targets.
+        """
         return self._nodes[port].targets
 
-    def get_compute_func_at(self, port):
+    def get_compute_func_at(self, port: int) -> Callable:
+        """Get compute function at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port from which to get the compute function.
+
+        Returns
+        -------
+        Callable
+        """
         return self._nodes[port].compute_func
 
-    def set_compute_func_at(self, port, value):
+    def set_compute_func_at(self, port: int, value: Callable):
+        """Set compute function at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port on which to set the compute function.
+
+        value
+            Compute function of the step.
+        """
         self._nodes[port].compute_func = value
 
-    def get_trainable_at(self, port):
+    def get_trainable_at(self, port: int) -> bool:
+        """Get trainable flag at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port from which to get the trainable flag.
+
+        Returns
+        -------
+        bool
+        """
         return self._nodes[port].trainable
 
-    def set_trainable_at(self, port, value):
+    def set_trainable_at(self, port: int, value: bool):
+        """Set trainable flag at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port on which to set the trainable flag.
+
+        value
+            Trainable flag.
+        """
         self._nodes[port].trainable = value
 
 
@@ -156,6 +331,12 @@ class Step(_StepBase):
 
     Attributes
     ----------
+    name
+        Name of the step.
+
+    n_outputs
+        Number of outputs the step produces.
+
     inputs
         Inputs of the step.
 
@@ -165,8 +346,11 @@ class Step(_StepBase):
     targets
         Targets of the step.
 
-    n_outputs
-        Number of outputs the step must be produce.
+    compute_func
+        Function used when computing the step during the model graph execution.
+
+    trainable
+        Whether the step is trainable (True) or not (False).
 
     Examples
     --------
@@ -218,6 +402,13 @@ class Step(_StepBase):
         """Call the step on input(s) (from previous steps) and generates the
         output(s) to be used in further steps.
 
+        You can call the same step on different inputs and targets to reuse the step
+        (similar to the concept of shared layers and nodes in Keras), and specify a
+        different `compute_func`/`trainable` configuration on each call. This is
+        achieved via "ports": each call creates a new port and associates the given
+        configuration to it. You may access the configuration at each port using the
+        `get_*_at(port)` methods.
+
         Parameters
         ----------
         inputs
@@ -251,14 +442,6 @@ class Step(_StepBase):
         -------
         DataPlaceholder
             Output(s) of the step.
-
-        Notes
-        -----
-        Currently, calling the same step on different inputs and targets to
-        reuse the step (similar to the concept of shared layers and nodes in
-        Keras) is not supported. Calling a step twice on different inputs will
-        override the connectivity from the first call. Support for shareable
-        steps might be added in future releases.
         """
 
         inputs = listify(inputs)
@@ -401,7 +584,7 @@ class Node:
         inputs: List[DataPlaceholder],
         outputs: List[DataPlaceholder],
         targets: List[DataPlaceholder],
-        compute_func: Optional[Callable],
+        compute_func: Callable,
         trainable: bool,
     ):
         self.step = step

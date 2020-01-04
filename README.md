@@ -218,9 +218,9 @@ y = SVC()(ensemble_features, y_t)
 model = Model([x1, x2], y, y_t)
 ```
 
-(*) Steps are called on and output DataPlaceHolders. DataPlaceholders are produced and consumed exclusively by Steps, so you do not need to instantiate these yourself.
+You can call the same step on different inputs and targets to reuse the step (similar to the concept of shared layers and nodes in Keras), and specify a different `compute_func`/`trainable` configuration on each call. This is achieved via "ports": each call creates a new port and associates the given configuration to it. You may access the configuration at each port using the `get_*_at(port)` methods.
 
-Note: Currently, calling the same step on different inputs and targets to reuse the step (similar to the concept of shared layers and nodes in Keras) is not supported. Calling a step twice on different inputs will override the connectivity from the first call. Support for shareable steps might be added in future releases.
+(*) Steps are called on and output DataPlaceholders. DataPlaceholders are produced and consumed exclusively by Steps, so you do not need to instantiate these yourself.
 
 ### 3. Train the model
 
@@ -413,6 +413,27 @@ model = Model(x, y_p, y_t)
 Click [here](examples/classifier_chain.py) for a full example.
 
 Sure, scikit-learn already does have [`ClassifierChain`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.ClassifierChain.html#sklearn.multioutput.ClassifierChain) and [`RegressorChain`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.RegressorChain.html#sklearn.multioutput.RegressorChain) classes for this. But with **baikal** you could, for example, mix classifiers and regressors to predict multilabels that include both categorical and continuous labels.
+
+### Transformed target
+
+You can also call steps on the targets to apply transformations on them. Note that by making the transformed a shared step, you can re-use learned parameters to apply the inverse transform later in the pipeline.
+
+```python
+transformer = QuantileTransformer(n_quantiles=300, output_distribution="normal")
+
+x = Input()
+y_t = Input()
+# QuantileTransformer requires an explicit feature dimension, hence the Lambda step
+y_t_trans = Lambda(np.reshape, newshape=(-1, 1))(y_t)
+y_t_trans = transformer(y_t_trans)
+y_p_trans = RidgeCV()(x, y_t_trans)
+y_p = transformer(y_p_trans, compute_func="inverse_transform", trainable=False)
+# Note that transformer is a shared step since it was called twice
+
+model = Model(x, y_p, y_t)
+```
+
+Click [here](examples/transformed_target.py) for a full example.
 
 ## Contributing
 
