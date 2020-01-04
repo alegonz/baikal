@@ -4,9 +4,9 @@ from typing import Union, List, Dict, Set, Iterable, Optional
 
 from baikal._core.data_placeholder import is_data_placeholder_list, DataPlaceholder
 from baikal._core.digraph import DiGraph
-from baikal._core.step import Step, InputStep
+from baikal._core.step import Step, InputStep, Node
 from baikal._core.typing import ArrayLike
-from baikal._core.utils import find_duplicated_items, listify, safezip2, SimpleCache
+from baikal._core.utils import listify, safezip2, SimpleCache
 
 # Just to avoid function signatures painful to the eye
 DataPlaceHolders = Union[DataPlaceholder, List[DataPlaceholder]]
@@ -106,22 +106,22 @@ class Model(Step):
 
         # Collect data placeholders
         self._data_placeholders = {}
-        for step in self._graph:
-            for output in step.outputs:
+        for node in self._graph:
+            for output in node.outputs:
                 self._data_placeholders[output.name] = output
 
         # Collect steps
-        self._steps = {step.name: step for step in self._graph}
+        self._steps = {node.step.name: node.step for node in self._graph}
 
-        self._all_steps_sorted = (
+        self._all_nodes_sorted = (
             self._graph.topological_sort()
         )  # Fail early if graph is acyclic
-        self._steps_cache = SimpleCache()
-        self._get_required_steps(
+        self._nodes_cache = SimpleCache()
+        self._get_required_nodes(
             self._internal_inputs, self._internal_targets, self._internal_outputs
         )
 
-    def _get_required_steps(
+    def _get_required_nodes(
         self,
         given_inputs: Iterable[DataPlaceholder],
         given_targets: Iterable[DataPlaceholder],
@@ -131,7 +131,7 @@ class Model(Step):
         allow_unused_targets=False,
         follow_targets=True,
         ignore_trainable_false=True
-    ) -> List[Step]:
+    ) -> List[Node]:
         """Backtrack from the desired outputs until the given inputs and targets
         to get the required steps. That is, find the ancestors of the nodes that
         provide the desired outputs. Raise an error if there is an ancestor whose
@@ -145,10 +145,7 @@ class Model(Step):
         Unused inputs might be allowed. This is the case in predict.
         Unused targets might be allowed. This is the case in fit.
         """
-        trainable_flags = tuple(
-            (step_name, self.get_step(step_name).trainable)
-            for step_name in sorted(self._steps)
-        )
+        trainable_flags = tuple(node.trainable for node in self._graph)
 
         # We use as keys all the information that affects the
         # computation of the required steps
@@ -163,15 +160,15 @@ class Model(Step):
             trainable_flags,
         )
 
-        if cache_key in self._steps_cache:
-            return self._steps_cache[cache_key]
+        if cache_key in self._nodes_cache:
+            return self._nodes_cache[cache_key]
 
         given_inputs = set(given_inputs)
         given_targets = set(given_targets)
         desired_outputs = set(desired_outputs)
         given_inputs_found = set()  # type: Set[DataPlaceholder]
         given_targets_found = set()  # type: Set[DataPlaceholder]
-        required_steps = set()  # type: Set[Step]
+        required_nodes = set()  # type: Set[Node]
 
         # Depth-first search
         # backtracking stops if any of the following happen:
@@ -179,32 +176,32 @@ class Model(Step):
         #   - found a known required step
         #   - hit an InputStep
         def backtrack(output):
-            steps_required_by_output = set()
+            nodes_required_by_output = set()
 
             if output in given_inputs:
                 given_inputs_found.add(output)
-                return steps_required_by_output
+                return nodes_required_by_output
 
             if output in given_targets:
                 given_targets_found.add(output)
-                return steps_required_by_output
+                return nodes_required_by_output
 
-            parent_step = output.step
-            if parent_step in required_steps:
-                return steps_required_by_output
+            parent_node = output.node
+            if parent_node in required_nodes:
+                return nodes_required_by_output
 
-            steps_required_by_output = {parent_step}
-            for input in parent_step.inputs:
-                steps_required_by_output |= backtrack(input)
+            nodes_required_by_output = {parent_node}
+            for input in parent_node.inputs:
+                nodes_required_by_output |= backtrack(input)
 
-            if follow_targets and (parent_step.trainable or ignore_trainable_false):
-                for target in parent_step.targets:
-                    steps_required_by_output |= backtrack(target)
+            if follow_targets and (parent_node.trainable or ignore_trainable_false):
+                for target in parent_node.targets:
+                    nodes_required_by_output |= backtrack(target)
 
-            return steps_required_by_output
+            return nodes_required_by_output
 
         for output in desired_outputs:
-            required_steps |= backtrack(output)
+            required_nodes |= backtrack(output)
 
         # Check for missing inputs/targets
         # InputSteps that were reached by backtracking are missing inputs/targets.
@@ -212,9 +209,9 @@ class Model(Step):
         # self._internal_inputs/self._internal_targets because we allow giving
         # intermediate inputs directly.
         missing_inputs_or_targets = set()  # type: Set[DataPlaceholder]
-        for step in required_steps:
-            if isinstance(step, InputStep):
-                missing_inputs_or_targets |= set(step.outputs)
+        for node in required_nodes:
+            if isinstance(node.step, InputStep):
+                missing_inputs_or_targets |= set(node.outputs)
 
         if missing_inputs_or_targets:
             raise ValueError(
@@ -239,12 +236,12 @@ class Model(Step):
                 "{}".format(",".join([target.name for target in unused_targets]))
             )
 
-        required_steps_sorted = [
-            step for step in self._all_steps_sorted if step in required_steps
+        required_nodes_sorted = [
+            node for node in self._all_nodes_sorted if node in required_nodes
         ]
-        self._steps_cache[cache_key] = required_steps_sorted
+        self._nodes_cache[cache_key] = required_nodes_sorted
 
-        return required_steps_sorted
+        return required_nodes_sorted
 
     def _normalize_data(
         self,
@@ -384,7 +381,7 @@ class Model(Step):
         # Get steps and their fit_params
         # We allow unused targets to allow modifying the trainable flags
         # without having to change the targets accordingly.
-        steps = self._get_required_steps(
+        nodes = self._get_required_nodes(
             X_norm,
             y_norm,
             self._internal_outputs,
@@ -404,23 +401,22 @@ class Model(Step):
         results_cache.update(X_norm)
         results_cache.update(y_norm)
 
-        for step in steps:
-            Xs = [results_cache[i] for i in step.inputs]
+        for node in nodes:
+            Xs = [results_cache[i] for i in node.inputs]
 
             # TODO: Use fit_transform if step has it
             # 1) Fit phase
-            if hasattr(step, "fit") and step.trainable:
-                ys = [results_cache[t] for t in step.targets]
+            if hasattr(node.step, "fit") and node.trainable:
+                ys = [results_cache[t] for t in node.targets]
 
-                fit_params = fit_params_steps.get(step, {})
+                fit_params = fit_params_steps.get(node.step, {})
 
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
+                node.step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
 
             # 2) predict/transform phase
-            successors = [s for s in self.graph.successors(step)]
-            if successors:
-                self._compute_step(step, Xs, results_cache)
+            if list(self.graph.successors(node)):
+                self._compute_step(node, Xs, results_cache)
 
         return self
 
@@ -467,16 +463,16 @@ class Model(Step):
 
         # We allow unused inputs to allow debugging different outputs
         # without having to change the inputs accordingly.
-        steps = self._get_required_steps(
+        nodes = self._get_required_nodes(
             X_norm, [], outputs, allow_unused_inputs=True, follow_targets=False
         )
 
         # Compute
         results_cache.update(X_norm)
 
-        for step in steps:
-            Xs = [results_cache[i] for i in step.inputs]
-            self._compute_step(step, Xs, results_cache)
+        for node in nodes:
+            Xs = [results_cache[i] for i in node.inputs]
+            self._compute_step(node, Xs, results_cache)
 
         output_data = [results_cache[o] for o in outputs]
         if len(output_data) == 1:
@@ -485,21 +481,21 @@ class Model(Step):
             return output_data
 
     @staticmethod
-    def _compute_step(step, Xs, cache):
+    def _compute_step(node, Xs, cache):
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
         # https://scikit-learn.org/stable/glossary.html#term-predict
-        output_data = step.compute(*Xs)
+        output_data = node.compute_func(*Xs)
         output_data = listify(output_data)
 
         try:
-            cache.update(safezip2(step.outputs, output_data))
+            cache.update(safezip2(node.outputs, output_data))
         except ValueError as e:
             message = (
                 "The number of output data elements ({}) does not match "
                 "the number of {} outputs ({}).".format(
-                    len(output_data), step.name, len(step.outputs)
+                    len(output_data), node.step.name, len(node.outputs)
                 )
             )
             raise RuntimeError(message) from e
@@ -570,31 +566,30 @@ class Model(Step):
 
     def _replace_step(self, step_key, new_step):
         # Transfer connectivity configuration from old step
-        # to new step and replace old with new
+        # to new step and rebuild the model graph
         # TODO: Add check for isinstance(new_step, Step) to fail early before messing things up
-        # TODO: Raise error for shared step when implementing those, since we won't support that yet
-        transfer_attrs = ["_name", "trainable", "_inputs", "_outputs", "_targets"]
         old_step = self._steps[step_key]
-        for attr in transfer_attrs:
-            setattr(new_step, attr, getattr(old_step, attr))
 
-        # Special process to transfer the compute_func
-        assert hasattr(old_step, "compute_func")
-        # Step._check_compute_func guarantees step.compute_func is a callable
-        # i.e: assert callable(old_step.compute_func) passes
-        if inspect.ismethod(old_step.compute_func):
-            # get the corresponding method bound to the new step
-            assert old_step.compute_func.__self__ is old_step
-            new_step.compute_func = getattr(new_step, old_step.compute_func.__name__)
-        else:
-            # if it is not a bound method (i.e. any other kind of callable)
-            # transfer it as is
-            new_step.compute_func = old_step.compute_func
+        new_step._name = old_step._name
+        new_step._nodes = old_step._nodes
 
-        # Update outputs of old step to point to the new step
-        # TODO: The output dataplaceholders should be replaced too
-        for output in old_step.outputs:
-            output._step = new_step
+        for node in new_step._nodes:
+            node.step = new_step
+
+            # Update outputs of old step to point to the new step
+            # Note that the dataplaceholders keep the name from the old step
+            # TODO: Maybe the output dataplaceholders should be replaced too
+            for output in node.outputs:
+                output._step = new_step
+
+            # Special process to transfer the compute_func:
+            # if it is a bound method get the corresponding method bound to the
+            # new step otherwise leave it as is.
+            # Note that Step._check_compute_func guarantees step.compute_func is
+            # a callable (i.e: assert callable(old_step.compute_func) passes)
+            if inspect.ismethod(node.compute_func):
+                assert node.compute_func.__self__ is old_step
+                node.compute_func = getattr(new_step, node.compute_func.__name__)
 
         # Rebuild model
         self._build()
@@ -628,29 +623,36 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
 
     # Add nodes (steps)
     def collect_steps_from(output):
-        parent_step = output.step
+        parent_node = output.node
 
-        if parent_step in graph:
+        if parent_node in graph:
             return
 
-        graph.add_node(parent_step)
-        for input in parent_step.inputs:
+        graph.add_node(parent_node)
+        for input in parent_node.inputs:
             collect_steps_from(input)
-        for target in parent_step.targets:
+        for target in parent_node.targets:
             collect_steps_from(target)
 
     for output in outputs:
         collect_steps_from(output)
 
     # Add edges (data)
-    for step in graph:
-        for input in step.inputs:
-            graph.add_edge(input.step, step, input)
-        for target in step.targets:
-            graph.add_edge(target.step, step, target)
+    for node in graph:
+        for input in node.inputs:
+            graph.add_edge(input.node, node, input)
+        for target in node.targets:
+            graph.add_edge(target.node, node, target)
 
-    # Check for any nodes (steps) with duplicated names
-    duplicated_names = find_duplicated_items([step.name for step in graph])
+    # Check that there are no steps with the same name
+    steps_seen = {}  # type: Dict[str, Step]
+    duplicated_names = []
+    for node in graph:
+        step_name = node.step.name
+        if step_name not in steps_seen:
+            steps_seen[step_name] = node.step
+        elif node.step is not steps_seen[step_name]:
+            duplicated_names.append(step_name)
 
     if duplicated_names:
         raise RuntimeError(

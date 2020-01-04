@@ -189,3 +189,12 @@ def test_topological_sort_cyclic_graph():
 
     with pytest.raises(CyclicDiGraphError):
         graph.topological_sort()
+
+
+def test_node_ordering():
+    graph = DiGraph()
+    nodes = [10, 0, 20, 40, 30]
+    for node in nodes:
+        graph.add_node(node)
+
+    assert list(graph) == nodes

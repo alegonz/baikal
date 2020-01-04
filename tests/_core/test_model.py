@@ -320,6 +320,15 @@ class TestFit:
         model = Model(x, z, y_t)
         model.fit(iris.data, iris.target)  # should not raise any errors
 
+    def test_fit_with_shared_step(self, teardown):
+        x = Input()
+        scaler = StandardScaler()
+        z = scaler(x, compute_func="transform", trainable=True)
+        y = scaler(z, compute_func="inverse_transform", trainable=False)
+        model = Model(x, y)
+        model.fit(np.array([1, 3, 1, 3]).reshape(-1, 1))
+        assert (scaler.mean_, scaler.var_) == (2.0, 1.0)
+
 
 class TestPredict:
     x1_data = iris.data[:, :2]
@@ -386,21 +395,23 @@ class TestPredict:
         with pytest.raises(ValueError):
             model.predict(
                 {"x1": self.x1_data, "x2": self.x2_data},
-                ["non-existing-output", "PCA_0/0"],
+                ["non-existing-output", "PCA_0/0/0"],
             )
 
     def test_with_unnecessary_input(self, model, teardown):
         # x2 is not needed to compute PCA_0/0
-        model.predict({"x1": self.x1_data, "x2": self.x2_data}, "PCA_0/0")
+        model.predict({"x1": self.x1_data, "x2": self.x2_data}, "PCA_0/0/0")
 
     def test_with_duplicated_output(self, model, teardown):
         with pytest.raises(ValueError):
             model.predict(
                 [self.x1_data, self.x2_data],
-                ["LogisticRegression_0/0", "LogisticRegression_0/0", "PCA_0/0"],
+                ["LogisticRegression_0/0/0", "LogisticRegression_0/0/0", "PCA_0/0/0"],
             )
 
-    @pytest.mark.parametrize("output", ["LogisticRegression_0/0", "StandardScaler_0/0"])
+    @pytest.mark.parametrize(
+        "output", ["LogisticRegression_0/0/0", "StandardScaler_0/0/0"]
+    )
     def test_with_specified_output(self, model, output, teardown):
         model.predict({"x1": self.x1_data}, output)
 
@@ -424,6 +435,15 @@ class TestPredict:
         with pytest.raises(NotFittedError):
             model.predict(x_data)
 
+    def test_predict_with_shared_step(self, teardown):
+        x1 = Input()
+        x2 = Input()
+        doubler = Lambda(lambda x: x * 2)
+        y1 = doubler(x1)
+        y2 = doubler(x2)
+        model = Model([x1, x2], [y1, y2])
+        assert model.predict([2, 3]) == [4, 6]
+
 
 def test_steps_cache(teardown):
     x1_data = iris.data[:, :2]
@@ -441,17 +461,17 @@ def test_steps_cache(teardown):
     # 1) instantiation always misses
     misses += 1
     model = Model([x1, x2], [y1, y2], y1_t)
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 2) calling fit for the first time, hence a miss
     misses += 1
     model.fit([x1_data, x2_data], y1_t_data)
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 3) same as above, just different format, hence a hit
     hits += 1
     model.fit({x1: x1_data, x2: x2_data}, {y1_t: y1_t_data})
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 4) trainable flags are considered in cache keys, hence a miss
     misses += 1
@@ -459,48 +479,48 @@ def test_steps_cache(teardown):
     model.fit(
         [x1_data, x2_data], y1_t_data
     )  # NOTE: target is superfluous, but it affects caching
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 5) same as above, just different format, hence a hit
     hits += 1
     model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 6) we drop the (superflous) target, hence a miss
     misses += 1
     model.fit({x1: x1_data, x2: x2_data})
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 7) same as above, hence a hit
     hits += 1
     model.fit({x1: x1_data, x2: x2_data})
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 8) we restore the flag, becoming the same as 2) and 3), hence a hit
     hits += 1
     model.get_step("LogReg").trainable = True
     model.fit({x1: x1_data, x2: x2_data}, y1_t_data)
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 9) new inputs/targets/outputs signature, hence a miss
     misses += 1
     model.predict([x1_data, x2_data])
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 10) same inputs/outputs signature as 9), hence a hit
     hits += 1
-    model.predict({"x1": x1_data, "x2": x2_data}, ["PCA/0", "LogReg/0"])
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    model.predict({"x1": x1_data, "x2": x2_data}, ["PCA/0/0", "LogReg/0/0"])
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 11) new inputs/outputs signature, hence a miss
     misses += 1
-    model.predict({x1: x1_data}, "LogReg/0")
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    model.predict({x1: x1_data}, "LogReg/0/0")
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 12) same as above, hence a hit
     hits += 1
-    model.predict({x1: x1_data}, "LogReg/0")
-    assert model._steps_cache.hits == hits and model._steps_cache.misses == misses
+    model.predict({x1: x1_data}, "LogReg/0/0")
+    assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
 
 def test_multiedge(teardown):
@@ -539,6 +559,18 @@ def test_transformed_target(teardown):
     model.fit(x_data, y_t_data)
 
     assert_array_equal(model.get_step("LinearRegression_0").coef_, np.array([2.0]))
+
+
+def test_fit_predict_with_shared_step(teardown):
+    x = Input()
+    scaler = StandardScaler()
+    z = scaler(x, compute_func="transform", trainable=True)
+    y = scaler(z, compute_func="inverse_transform", trainable=False)
+    model = Model(x, y)
+
+    X_data = np.array([1, 3, 1, 3]).reshape(-1, 1)
+    model.fit(X_data)
+    assert_array_equal(model.predict(X_data), X_data)
 
 
 def test_fit_and_predict_model_with_no_fittable_steps(teardown):
@@ -825,11 +857,14 @@ def test_get_params(teardown):
     dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
-    x = Input()
-    h = dummy1(x)
-    c = concat([x, h])
-    y = dummy2(c)
-    model = Model(x, y)
+    # a meaningless pipeline that contains shared steps
+    x1 = Input()
+    x2 = Input()
+    h = dummy1(x1)
+    c = concat([x1, h])
+    y1 = dummy2(c)
+    y2 = dummy2(x2, compute_func=lambda X: X * 2, trainable=False)
+    model = Model([x1, x2], [y1, y2])
 
     expected = {
         "dummy1": dummy1,
@@ -850,11 +885,14 @@ def test_set_params(teardown):
     dummy2 = DummyEstimator(x=456, y="def", name="dummy2")
     concat = Concatenate(name="concat")  # a step without get_params/set_params
 
-    x = Input()
-    h = dummy1(x)
-    c = concat([x, h])
-    y = dummy2(c, compute_func=lambda X: X)
-    model = Model(x, y)
+    # a meaningless pipeline that contains shared steps
+    x1 = Input()
+    x2 = Input()
+    h = dummy1(x1)
+    c = concat([x1, h])
+    y1 = dummy2(c)
+    y2 = dummy2(x2, compute_func=lambda X: X * 2, trainable=False)
+    model = Model([x1, x2], [y1, y2])
 
     # Fails when setting params on step that does not implement set_params
     new_params_wrong = {"concat__axis": 2}
@@ -894,23 +932,27 @@ def test_set_params(teardown):
     }
 
     assert params == expected
-    # Connectivity should be the same
+
+    # Connectivity of the new step should be the same as the old step
     assert new_dummy.name is dummy2.name
-    assert new_dummy.inputs is dummy2.inputs
-    assert new_dummy.outputs is dummy2.outputs
-    assert new_dummy.targets is dummy2.targets
-    assert new_dummy.trainable is dummy2.trainable
-    assert new_dummy.compute_func is dummy2.compute_func
+    for port in range(2):
+        assert new_dummy.get_inputs_at(port) is dummy2.get_inputs_at(port)
+        assert new_dummy.get_outputs_at(port) is dummy2.get_outputs_at(port)
+        assert new_dummy.get_targets_at(port) is dummy2.get_targets_at(port)
+        assert new_dummy.get_trainable_at(port) is dummy2.get_trainable_at(port)
+        assert new_dummy.get_compute_func_at(port) is dummy2.get_compute_func_at(port)
 
 
 def test_get_set_params_invariance(teardown):
-    pca = PCA(name="pca")
-    classifier = RandomForestClassifier(name="classifier")
+    scaler = StandardScaler(name="scaler")
+    regressor = LinearRegression(name="regressor")
 
     x = Input()
-    h = pca(x)
-    y = classifier(h)
-    model = Model(x, y)
+    y_t = Input()
+    y_t_scaled = scaler(y_t)
+    y_p_scaled = regressor(x, y_t_scaled)
+    y_p = scaler(y_p_scaled, compute_func="inverse_transform", trainable=False)
+    model = Model(x, y_p, y_t)
 
     params1 = model.get_params()
     model.set_params(**params1)

@@ -18,8 +18,9 @@ class DataPlaceholder:
     instantiate these yourself.
     """
 
-    def __init__(self, step, name):
+    def __init__(self, step, port, name):
         self._step = step
+        self._port = port
         self._name = name
 
     @property
@@ -27,17 +28,25 @@ class DataPlaceholder:
         return self._step
 
     @property
+    def port(self):
+        return self._port
+
+    @property
     def name(self):
         return self._name
 
+    @property
+    def node(self):
+        return self.step._nodes[self.port]
+
     def __repr__(self):
-        attrs = ["step", "name"]
+        attrs = ["step", "port", "name"]
         return make_repr(self, attrs)
 
-    # Make it sortable to aid cache hits in Model._get_required_steps
+    # Make it sortable to aid cache hits in Model._get_required_nodes
     def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self._name < other.name
         return NotImplemented
 
-    # TODO: Do we need an __eq__ method?
+    # TODO: Use functools.total_ordering and follow best practices
