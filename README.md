@@ -183,14 +183,8 @@ from baikal import Step
 
 # The order of inheritance is important!
 class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    def __init__(self, name=None, function=None, n_outputs=1, trainable=True, **kwargs):
-        super().__init__(
-            name=name,
-            function=function,
-            n_outputs=n_outputs,
-            trainable=trainable,
-            **kwargs
-        )
+    def __init__(self, name=None, n_outputs=1, **kwargs):
+        super().__init__(name=name,n_outputs=n_outputs,**kwargs)
 ```
 
 Other steps are defined similarly (omitted here for brevity).
@@ -375,16 +369,16 @@ In order to use the plot utility, you need to install [pydot](https://pypi.org/p
 
 ### Stacked classifiers
 
-Similar to the the example in the quick-start above, stacks of classifiers (or regressors) can be built like shown below. Note that you can specify the function the step should use for computation, in this case `function='predict_proba'` to use the label probabilities as the features of the meta-classifier.
+Similar to the the example in the quick-start above, stacks of classifiers (or regressors) can be built like shown below. Note that you can specify the function the step should use for computation, in this case `compute_func='predict_proba'` to use the label probabilities as the features of the meta-classifier.
 
 ```python
 x = Input()
 y_t = Input()
-y_p1 = LogisticRegression(function="predict_proba")(x, y_t)
-y_p2 = RandomForestClassifier(function="predict_proba")(x, y_t)
+y_p1 = LogisticRegression()(x, y_t, compute_func="predict_proba")
+y_p2 = RandomForestClassifier()(x, y_t, compute_func="predict_proba")
 # predict_proba returns arrays whose columns sum to one, so we drop one column
-y_p1 = Lambda(function=lambda array: array[:, :-1])(y_p1)
-y_p2 = Lambda(function=lambda array: array[:, :-1])(y_p2)
+y_p1 = Lambda(lambda array: array[:, :-1])(y_p1)
+y_p2 = Lambda(lambda array: array[:, :-1])(y_p2)
 ensemble_features = ColumnStack()([y_p1, y_p2])
 y_p = ExtraTreesClassifier()(ensemble_features, y_t)
 
