@@ -55,7 +55,7 @@ class _StepBase:
         else:
             raise AttributeError(
                 "{} has been connected {} times (it is a shared step). "
-                "Use `get_{}_at(node_index)` instead.".format(self.name, n_nodes, attr)
+                "Use `get_{}_at(port)` instead.".format(self.name, n_nodes, attr)
             )
 
     def _set_step_attr(self, attr, value):
@@ -67,7 +67,7 @@ class _StepBase:
         else:
             raise AttributeError(
                 "{} has been connected {} times (it is a shared step). "
-                "Use `set_{}_at(node_index)` instead.".format(self.name, n_nodes, attr)
+                "Use `set_{}_at(port)` instead.".format(self.name, n_nodes, attr)
             )
 
     @property
@@ -106,26 +106,26 @@ class _StepBase:
     def trainable(self, value):
         self._set_step_attr("trainable", value)
 
-    def get_inputs_at(self, node_index):
-        return self._nodes[node_index].inputs
+    def get_inputs_at(self, port):
+        return self._nodes[port].inputs
 
-    def get_outputs_at(self, node_index):
-        return self._nodes[node_index].outputs
+    def get_outputs_at(self, port):
+        return self._nodes[port].outputs
 
-    def get_targets_at(self, node_index):
-        return self._nodes[node_index].targets
+    def get_targets_at(self, port):
+        return self._nodes[port].targets
 
-    def get_compute_func_at(self, node_index):
-        return self._nodes[node_index].compute_func
+    def get_compute_func_at(self, port):
+        return self._nodes[port].compute_func
 
-    def set_compute_func_at(self, node_index, value):
-        self._nodes[node_index].compute_func = value
+    def set_compute_func_at(self, port, value):
+        self._nodes[port].compute_func = value
 
-    def get_trainable_at(self, node_index):
-        return self._nodes[node_index].trainable
+    def get_trainable_at(self, port):
+        return self._nodes[port].trainable
 
-    def set_trainable_at(self, node_index, value):
-        self._nodes[node_index].trainable = value
+    def set_trainable_at(self, port, value):
+        self._nodes[port].trainable = value
 
 
 class Step(_StepBase):
@@ -326,11 +326,11 @@ class Step(_StepBase):
             return list(outputs)
 
     def _build_outputs(self) -> List[DataPlaceholder]:
-        node_index = len(self._nodes)
+        port = len(self._nodes)
         outputs = []
         for i in range(self._n_outputs):
-            name = make_name(self._name, node_index, i)
-            outputs.append(DataPlaceholder(self, node_index, name))
+            name = make_name(self._name, port, i)
+            outputs.append(DataPlaceholder(self, port, name))
         return outputs
 
     def __repr__(self):

@@ -18,9 +18,9 @@ class DataPlaceholder:
     instantiate these yourself.
     """
 
-    def __init__(self, step, node_index, name):
+    def __init__(self, step, port, name):
         self._step = step
-        self._node_index = node_index
+        self._port = port
         self._name = name
 
     @property
@@ -28,8 +28,8 @@ class DataPlaceholder:
         return self._step
 
     @property
-    def node_index(self):
-        return self._node_index
+    def port(self):
+        return self._port
 
     @property
     def name(self):
@@ -37,10 +37,10 @@ class DataPlaceholder:
 
     @property
     def node(self):
-        return self.step._nodes[self.node_index]
+        return self.step._nodes[self.port]
 
     def __repr__(self):
-        attrs = ["step", "node_index", "name"]
+        attrs = ["step", "port", "name"]
         return make_repr(self, attrs)
 
     # Make it sortable to aid cache hits in Model._get_required_nodes

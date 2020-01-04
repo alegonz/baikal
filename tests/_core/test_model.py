@@ -935,16 +935,12 @@ def test_set_params(teardown):
 
     # Connectivity of the new step should be the same as the old step
     assert new_dummy.name is dummy2.name
-    for node_index in range(2):
-        assert new_dummy.get_inputs_at(node_index) is dummy2.get_inputs_at(node_index)
-        assert new_dummy.get_outputs_at(node_index) is dummy2.get_outputs_at(node_index)
-        assert new_dummy.get_targets_at(node_index) is dummy2.get_targets_at(node_index)
-        assert new_dummy.get_trainable_at(node_index) is dummy2.get_trainable_at(
-            node_index
-        )
-        assert new_dummy.get_compute_func_at(node_index) is dummy2.get_compute_func_at(
-            node_index
-        )
+    for port in range(2):
+        assert new_dummy.get_inputs_at(port) is dummy2.get_inputs_at(port)
+        assert new_dummy.get_outputs_at(port) is dummy2.get_outputs_at(port)
+        assert new_dummy.get_targets_at(port) is dummy2.get_targets_at(port)
+        assert new_dummy.get_trainable_at(port) is dummy2.get_trainable_at(port)
+        assert new_dummy.get_compute_func_at(port) is dummy2.get_compute_func_at(port)
 
 
 def test_get_set_params_invariance(teardown):
