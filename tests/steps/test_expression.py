@@ -1,5 +1,3 @@
-from functools import partial
-
 import numpy as np
 from numpy.testing import assert_array_equal
 
@@ -14,7 +12,7 @@ def test_lambda(teardown):
         return p1 * x1, x2 / p2
 
     x = Input()
-    y1, y2 = Lambda(partial(compute_func, p1=2, p2=2), n_outputs=2)([x, x])
+    y1, y2 = Lambda(compute_func, p1=2, p2=2, n_outputs=2)([x, x])
     model = Model(x, [y1, y2])
 
     x_data = np.array([[1.0, 2.0], [3.0, 4.0]])

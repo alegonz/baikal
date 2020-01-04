@@ -1,5 +1,6 @@
 # Unfortunately we cannot name this module lambda.py so
 # we are stuck with this unintuitive module name.
+from functools import partial
 from typing import Optional, Any, Callable, Union, List
 
 from baikal._core.data_placeholder import DataPlaceholder
@@ -13,8 +14,8 @@ class Lambda(Step):
     ----------
     compute_func
         The function to make the step from. This function takes one or several input
-        data object as its first arguments. You may pass a functools.partial object if
-        you need to specify some arguments beforehand.
+        data object as its first arguments. If compute_func takes additional arguments
+        you may either pass them as keyword arguments or use a functools.partial object.
 
     n_outputs
         Number of outputs of the function.
@@ -22,6 +23,9 @@ class Lambda(Step):
     name
         Name of the step (optional). If no name is passed, a name will be
         automatically generated.
+
+    **kwargs
+        Additional arguments to compute_func.
 
     Examples
     --------
@@ -49,8 +53,9 @@ class Lambda(Step):
         compute_func: Callable[..., Any],
         n_outputs: int = 1,
         name: Optional[str] = None,
+        **kwargs
     ):
-        self.compute_func = compute_func
+        self.compute_func = partial(compute_func, **kwargs)
         super().__init__(name=name, n_outputs=n_outputs)
 
     def __call__(
