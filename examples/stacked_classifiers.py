@@ -24,11 +24,11 @@ X_train, X_test, y_train, y_test = train_test_split(
 # ------- Build model
 x = Input()
 y_t = Input()
-y_p1 = LogisticRegression(solver="liblinear", function="predict_proba")(x, y_t)
-y_p2 = RandomForestClassifier(function="predict_proba")(x, y_t)
+y_p1 = LogisticRegression(solver="liblinear")(x, y_t, compute_func="predict_proba")
+y_p2 = RandomForestClassifier()(x, y_t, compute_func="predict_proba")
 # predict_proba returns arrays whose columns sum to one, so we drop one column
-y_p1 = Lambda(function=lambda array: array[:, :-1])(y_p1)
-y_p2 = Lambda(function=lambda array: array[:, :-1])(y_p2)
+y_p1 = Lambda(lambda array: array[:, :-1])(y_p1)
+y_p2 = Lambda(lambda array: array[:, :-1])(y_p2)
 ensemble_features = ColumnStack()([y_p1, y_p2])
 y_p = ExtraTreesClassifier()(ensemble_features, y_t)
 
