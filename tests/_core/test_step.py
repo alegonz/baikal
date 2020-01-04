@@ -201,20 +201,35 @@ class TestStep:
     def test_inputs(self, simple_step, shared_step, dataplaceholders, teardown):
         x1 = dataplaceholders[0]
         assert simple_step.inputs == [x1]
+
         with pytest.raises(AttributeError):
             shared_step.inputs
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().inputs
 
     def test_outputs(self, simple_step, shared_step, dataplaceholders, teardown):
         *_, y_simple, y_shared_1, y_shared_2 = dataplaceholders
         assert simple_step.outputs == [y_simple]
+
         with pytest.raises(AttributeError):
             shared_step.outputs
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().outputs
 
     def test_targets(self, simple_step, shared_step, dataplaceholders, teardown):
         y_t = dataplaceholders[2]
         assert simple_step.targets == [y_t]
+
         with pytest.raises(AttributeError):
             shared_step.targets
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().targets
 
     def test_compute_func(self, simple_step, shared_step, dataplaceholders, teardown):
         assert simple_step.compute_func == simple_step.predict
@@ -227,6 +242,14 @@ class TestStep:
         with pytest.raises(AttributeError):
             shared_step.compute_func = shared_step.predict_proba
 
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().compute_func
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().compute_func = lambda x: x
+
     def test_trainable(self, simple_step, shared_step, dataplaceholders, teardown):
         assert simple_step.trainable
         simple_step.trainable = False
@@ -237,6 +260,14 @@ class TestStep:
 
         with pytest.raises(AttributeError):
             shared_step.trainable = True
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().trainable
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            LogisticRegression().trainable = False
 
     def test_get_inputs_at(self, simple_step, shared_step, dataplaceholders, teardown):
         x1, x2, *_ = dataplaceholders

@@ -46,6 +46,30 @@ class _StepBase:
         """
         return super()._get_param_names.__func__(super())
 
+    def _get_step_attr(self, attr):
+        n_nodes = len(self._nodes)
+        if n_nodes == 0:
+            raise AttributeError("{} has not been connected yet.".format(self.name))
+        elif n_nodes == 1:
+            return getattr(self._nodes[0], attr)
+        else:
+            raise AttributeError(
+                "{} has been connected {} times (it is a shared step). "
+                "Use `get_{}_at(node_index)` instead.".format(self.name, n_nodes, attr)
+            )
+
+    def _set_step_attr(self, attr, value):
+        n_nodes = len(self._nodes)
+        if n_nodes == 0:
+            raise AttributeError("{} has not been connected yet.".format(self.name))
+        elif n_nodes == 1:
+            setattr(self._nodes[0], attr, value)
+        else:
+            raise AttributeError(
+                "{} has been connected {} times (it is a shared step). "
+                "Use `set_{}_at(node_index)` instead.".format(self.name, n_nodes, attr)
+            )
+
     @property
     def name(self):
         return self._name
@@ -56,47 +80,31 @@ class _StepBase:
 
     @property
     def inputs(self):
-        if len(self._nodes) == 1:
-            return self._nodes[0].inputs
-        raise AttributeError("TODO")
+        return self._get_step_attr("inputs")
 
     @property
     def outputs(self):
-        if len(self._nodes) == 1:
-            return self._nodes[0].outputs
-        raise AttributeError("TODO")
+        return self._get_step_attr("outputs")
 
     @property
     def targets(self):
-        if len(self._nodes) == 1:
-            return self._nodes[0].targets
-        raise AttributeError("TODO")
+        return self._get_step_attr("targets")
 
     @property
     def compute_func(self):
-        if len(self._nodes) == 1:
-            return self._nodes[0].compute_func
-        raise AttributeError("TODO")
+        return self._get_step_attr("compute_func")
 
     @compute_func.setter
     def compute_func(self, value):
-        if len(self._nodes) == 1:
-            self._nodes[0].compute_func = value
-        else:
-            raise AttributeError("TODO")
+        self._set_step_attr("compute_func", value)
 
     @property
     def trainable(self):
-        if len(self._nodes) == 1:
-            return self._nodes[0].trainable
-        raise AttributeError("TODO")
+        return self._get_step_attr("trainable")
 
     @trainable.setter
     def trainable(self, value):
-        if len(self._nodes) == 1:
-            self._nodes[0].trainable = value
-        else:
-            raise AttributeError("TODO")
+        self._set_step_attr("trainable", value)
 
     def get_inputs_at(self, node_index):
         return self._nodes[node_index].inputs
