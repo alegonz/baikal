@@ -46,6 +46,9 @@ class DummyMIMO(Step):
     def transform(self, x1, x2):
         return x1 * 10.0, x2 / 10.0
 
+    def fit(self, X):
+        return self
+
 
 class DummyImproperlyDefined(Step):
     """Dummy step that returns two outputs but defines only one.
