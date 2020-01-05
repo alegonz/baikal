@@ -1,3 +1,5 @@
+import pytest
+
 from baikal import Model, Input
 from baikal.plot import plot_model
 
@@ -5,7 +7,9 @@ from tests.helpers.fixtures import teardown
 from tests.helpers.dummy_steps import DummyMIMO, DummySIMO, DummySISO, DummyMISO
 
 
-def test_plot_model(teardown, tmp_path):
+@pytest.mark.parametrize("include_targets", [True, False])
+@pytest.mark.parametrize("expand_nested", [True, False])
+def test_plot_model(teardown, tmp_path, include_targets, expand_nested):
     # Below is a very contrived dummy model
 
     # ------- Sub-model 1
@@ -37,4 +41,10 @@ def test_plot_model(teardown, tmp_path):
     model = Model([x, u], [w, v], y_t, name="main_model")
 
     filename = str(tmp_path / "test_plot_model.png")
-    plot_model(model, filename, show=False, include_targets=True, expand_nested=True)
+    plot_model(
+        model,
+        filename,
+        show=False,
+        include_targets=include_targets,
+        expand_nested=expand_nested,
+    )
