@@ -24,7 +24,7 @@ def plot_model(
     expand_nested: bool = False,
     prog: str = "dot",
     **dot_kwargs
-):
+) -> pydot.Dot:
     """Plot a model to file and/or display it.
 
     This function requires pydot and graphviz. It also requires matplotlib
@@ -53,6 +53,23 @@ def plot_model(
 
     dot_kwargs
         Keyword arguments to pydot.Dot.
+
+    Returns
+    -------
+    dot_graph
+        Dot graph of the given model. It can be used to generate an image for plotting.
+
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> import matplotlib.image as mpimg
+    >>> from baikal.plot import plot_model
+    >>> dot_graph = plot_model(model, include_targets=True, expand_nested=False)
+    >>> png = dot_graph.create(format="png", prog=prog)
+    >>> img = mpimg.imread(io.BytesIO(png))
+    >>> plt.imshow(img, aspect="equal")
+    >>> plt.axis("off")
+    >>> plt.show()
     """
 
     dot_graph = pydot.Dot(graph_type="digraph", **dot_kwargs)
@@ -175,3 +192,5 @@ def plot_model(
         plt.imshow(img, aspect="equal")
         plt.axis("off")
         plt.show()
+
+    return dot_graph
