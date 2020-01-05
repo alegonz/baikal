@@ -1,5 +1,5 @@
 SHELL:=/bin/bash
-SKLEARN_NIGHTLY_URL:=https://sklearn-nightly.scdn8.secure.raxcdn.com scikit-learn
+SKLEARN_NIGHTLY_URL:=https://sklearn-nightly.scdn8.secure.raxcdn.com
 ifndef SKLEARN_VERSION
 override SKLEARN_VERSION=unspecified
 endif
@@ -19,7 +19,7 @@ setup_dev: venv
 	if [[ ${SKLEARN_VERSION} =~ [0-9\.] ]]; then \
         pip install scikit-learn==${SKLEARN_VERSION}; \
     elif [[ ${SKLEARN_VERSION} = "nightly" ]]; then\
-        pip install --ignore-installed --pre -f ${SKLEARN_NIGHTLY_URL}; \
+        pip install --ignore-installed --pre -f ${SKLEARN_NIGHTLY_URL} scikit-learn; \
 	fi; \
 	pip install -e .[dev,viz]; \
 	pip install pre-commit; \
