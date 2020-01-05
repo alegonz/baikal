@@ -79,35 +79,28 @@ def plot_model(
 
     def build_step(step, is_input_or_target, container):
         if is_input_or_target:
-            container.add_node(
-                pydot.Node(name=step.name, shape="invhouse", color="green")
-            )
+            node = pydot.Node(name=step.name, shape="invhouse", color="green")
         else:
-            container.add_node(pydot.Node(name=step.name, shape="rect"))
+            node = pydot.Node(name=step.name, shape="rect")
+
+        container.add_node(node)
 
         # Build incoming edges
-        color = "black"
         for input in step.inputs:
-            if isinstance(input.step, Model) and expand_nested:
-                internal_output = get_internal_output(input)
-                build_edge(internal_output.step, step, input.name, color, container)
-            else:
-                build_edge(input.step, step, input.name, color, container)
+            build_edge(input.step, step, input, "black", container)
 
         if include_targets:
-            color = "orange"
             for target in step.targets:
-                if isinstance(target.step, Model) and expand_nested:
-                    internal_output = get_internal_output(target)
-                    build_edge(
-                        internal_output.step, step, target.name, color, container
-                    )
-                else:
-                    build_edge(target.step, step, target.name, color, container)
+                build_edge(target.step, step, target, "orange", container)
 
-    def build_edge(from_step, to_step, label, color, container):
-        edge_key = (from_step, to_step, label)
+    def build_edge(from_step, to_step, dataplaceholder, color, container):
+        if isinstance(dataplaceholder.step, Model) and expand_nested:
+            from_step = get_internal_output(dataplaceholder).step
 
+        edge_key = (from_step, to_step, dataplaceholder)
+
+        src = from_step.name
+        label = dataplaceholder.name
         if to_step is None:
             container.add_node(dummy_node(label))
             dst = label
@@ -115,14 +108,12 @@ def plot_model(
             dst = to_step.name
 
         if edge_key not in edges_built:
-            edge = pydot.Edge(src=from_step.name, dst=dst, label=label, color=color)
-            container.add_edge(edge)
+            container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color=color))
             edges_built.add(edge_key)
 
     def build_nested_model(model_, container):
-        cluster = pydot.Cluster(
-            graph_name=model_.name, label=model_.name, style="dashed"
-        )
+        name = model_.name
+        cluster = pydot.Cluster(graph_name=name, label=name, style="dashed")
 
         for internal_output in model_._internal_outputs:
             build_dot_from(model_, internal_output, cluster)
@@ -130,30 +121,12 @@ def plot_model(
         container.add_subgraph(cluster)
 
         # Connect with outer model
-        color = "black"
         for input, _input in safezip2(model_.inputs, model_._internal_inputs):
-            if isinstance(input.step, Model) and expand_nested:
-                internal_output = get_internal_output(input)
-                build_edge(
-                    internal_output.step, _input.step, input.name, color, container
-                )
-            else:
-                build_edge(input.step, _input.step, input.name, color, container)
+            build_edge(input.step, _input.step, input, "black", container)
 
         if include_targets:
-            color = "orange"
             for target, _target in safezip2(model_.targets, model_._internal_targets):
-                if isinstance(target.step, Model) and expand_nested:
-                    internal_output = get_internal_output(target)
-                    build_edge(
-                        internal_output.step,
-                        _target.step,
-                        target.name,
-                        color,
-                        container,
-                    )
-                else:
-                    build_edge(target.step, _target.step, target.name, color, container)
+                build_edge(target.step, _target.step, target, "orange", container)
 
     def build_dot_from(model_, output_, container=None):
         if container is None:
@@ -184,12 +157,7 @@ def plot_model(
 
     for output in model._internal_outputs:
         build_dot_from(model, output)
-        color = "black"
-        if isinstance(output.step, Model) and expand_nested:
-            internal_output = get_internal_output(output)
-            build_edge(internal_output.step, None, output.name, color, dot_graph)
-        else:
-            build_edge(output.step, None, output.name, color, dot_graph)
+        build_edge(output.step, None, output, "black", dot_graph)
 
     # save plot
     if filename:
