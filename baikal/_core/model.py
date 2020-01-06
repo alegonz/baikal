@@ -621,8 +621,8 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
     """
     graph = DiGraph()
 
-    # Add nodes (steps)
-    def collect_steps_from(output):
+    # Add nodes (a node represents a step at a given port)
+    def collect_nodes_from(output):
         parent_node = output.node
 
         if parent_node in graph:
@@ -630,12 +630,12 @@ def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
 
         graph.add_node(parent_node)
         for input in parent_node.inputs:
-            collect_steps_from(input)
+            collect_nodes_from(input)
         for target in parent_node.targets:
-            collect_steps_from(target)
+            collect_nodes_from(target)
 
     for output in outputs:
-        collect_steps_from(output)
+        collect_nodes_from(output)
 
     # Add edges (data)
     for node in graph:
