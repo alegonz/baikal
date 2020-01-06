@@ -10,7 +10,14 @@ A graph-based functional API for building complex scikit-learn pipelines.
 
 **baikal** is written in pure Python. It supports Python 3.5 and above.
 
-Note: **baikal** is still a young project and there might be backward incompatible changes. The next development steps and backwards-incompatible changes are announced and discussed in [this issue](https://github.com/alegonz/baikal/issues/16). Please subscribe to it if you use **baikal**. 
+Note: **baikal** is still a young project and there might be backward incompatible changes. The next development steps and backwards-incompatible changes are announced and discussed in [this issue](https://github.com/alegonz/baikal/issues/16). Please subscribe to it if you use **baikal**.
+
+##### Documentation
+* [dev](https://github.com/alegonz/baikal/blob/master/README.md)
+* [0.2.x](https://github.com/alegonz/baikal/blob/release/v0.2.0/README.md)
+* [0.1.x](https://github.com/alegonz/baikal/blob/release/v0.1.0/README.md)
+
+Please refer to the [changelog](CHANGELOG.md) for the details on each release.
 
 ---
 *Contents:*
