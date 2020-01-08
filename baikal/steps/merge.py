@@ -10,7 +10,7 @@ class Concatenate(Step):
         super().__init__(name=name)
         self.axis = axis
 
-    def transform(self, *Xs):
+    def transform(self, Xs):
         return np.concatenate(Xs, axis=self.axis)
 
 
@@ -21,7 +21,7 @@ class Stack(Step):
         super().__init__(name=name)
         self.axis = axis
 
-    def transform(self, *Xs):
+    def transform(self, Xs):
         return np.stack(Xs, axis=self.axis)
 
 
@@ -31,7 +31,7 @@ class ColumnStack(Step):
     def __init__(self, name=None):
         super().__init__(name=name)
 
-    def transform(self, *Xs):
+    def transform(self, Xs):
         return np.column_stack(Xs)
 
 

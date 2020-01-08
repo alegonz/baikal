@@ -8,7 +8,8 @@ from tests.helpers.fixtures import teardown
 
 
 def test_lambda(teardown):
-    def compute_func(x1, x2, p1, p2=1):
+    def compute_func(Xs, p1, p2=1):
+        x1, x2 = Xs
         return p1 * x1, x2 / p2
 
     x = Input()

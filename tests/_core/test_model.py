@@ -329,6 +329,22 @@ class TestFit:
         model.fit(np.array([1, 3, 1, 3]).reshape(-1, 1))
         assert (scaler.mean_, scaler.var_) == (2.0, 1.0)
 
+    def test_fit_nested_model_with_multiple_inputs(self, teardown):
+        def build_model(step):
+            x1 = Input()
+            x2 = Input()
+            y_t1 = Input()
+            y_t2 = Input()
+            y_p = step([x1, x2], [y_t1, y_t2])
+            return Model([x1, x2], y_p, [y_t1, y_t2])
+
+        step = DummyMISO()
+        submodel = build_model(step)
+        model = build_model(submodel)
+
+        model.fit([iris.data, iris.data], [iris.target, iris.target])
+        assert step.fitted_
+
 
 class TestPredict:
     x1_data = iris.data[:, :2]
@@ -574,18 +590,15 @@ def test_fit_predict_with_shared_step(teardown):
 
 
 def test_fit_and_predict_model_with_no_fittable_steps(teardown):
-    X1_data = np.array([[1, 2], [3, 4]])
-    X2_data = np.array([[5, 6], [7, 8]])
-    y_expected = np.array([[12, 16], [20, 24]])
+    X_data = np.array([[1, 2], [3, 4]])
+    y_expected = np.array([[2, 4], [6, 8]])
 
-    x1 = Input()
-    x2 = Input()
-    z = DummyMISO()([x1, x2])
-    y = DummySISO()(z)
+    x = Input()
+    y = DummySISO()(x)
 
-    model = Model([x1, x2], y)
-    model.fit([X1_data, X2_data])  # nothing to fit
-    y_pred = model.predict([X1_data, X2_data])
+    model = Model(x, y)
+    model.fit(X_data)  # nothing to fit
+    y_pred = model.predict(X_data)
 
     assert_array_equal(y_pred, y_expected)
 
