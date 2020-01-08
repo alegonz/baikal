@@ -1,6 +1,6 @@
 import re
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
 from baikal._core.utils import listify, make_name, make_repr, make_args_from_attrs
@@ -363,6 +363,11 @@ class Step(_StepBase):
     >>> logreg = LogisticRegression(C=2.0)
     """
 
+    if TYPE_CHECKING:
+
+        def fit(self, X, y, **fit_params):
+            return self
+
     def __init__(self, *args, name: str = None, n_outputs: int = 1, **kwargs):
         # Necessary to use this class as a mixin
         super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)  # type: ignore
@@ -598,5 +603,4 @@ class Node:
 # Notes on typing:
 # mypy produces false positives with mixins, so we use type: ignore
 # See:
-# https://github.com/python/mypy/issues/1996
 # https://github.com/python/mypy/issues/5887

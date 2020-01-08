@@ -412,7 +412,7 @@ class Model(Step):
                 fit_params = fit_params_steps.get(node.step, {})
 
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                node.step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
+                node.step.fit(*Xs, *ys, **fit_params)
 
             # 2) predict/transform phase
             if list(self.graph.successors(node)):
