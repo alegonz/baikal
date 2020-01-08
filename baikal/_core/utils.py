@@ -1,13 +1,21 @@
-from typing import Union, Any, List, Tuple
+from typing import Union, Any, List, Tuple, Sequence
 
 
-def listify(x: Union[Any, List[Any], Tuple[Any]]) -> List[Any]:
+def listify(x: Union[Any, List[Any], Tuple[Any, ...]]) -> List[Any]:
     if isinstance(x, list):
         pass
     elif isinstance(x, tuple):
         x = list(x)
     else:
         x = [x]
+    return x
+
+
+def unlistify(x: List[Any]) -> Union[List[Any], Any]:
+    if not isinstance(x, list):
+        raise ValueError("x must be a list.")
+    if len(x) == 1:
+        return x[0]
     return x
 
 
