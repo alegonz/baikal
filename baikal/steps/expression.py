@@ -13,9 +13,10 @@ class Lambda(Step):
     Parameters
     ----------
     compute_func
-        The function to make the step from. This function takes one or several input
-        data object as its first arguments. If compute_func takes additional arguments
-        you may either pass them as keyword arguments or use a functools.partial object.
+        The function to make the step from. This function a single array-like object
+        (in the case of a single input) or a list of array-like objects (in the case of
+        multiple inputs) If compute_func takes additional arguments you may either pass
+        them as keyword arguments or use a functools.partial object.
 
     n_outputs
         Number of outputs of the function.
@@ -29,7 +30,8 @@ class Lambda(Step):
 
     Examples
     --------
-    >>> def function(x1, x2):
+    >>> def function(Xs):
+    >>>     x1, x2 = Xs
     >>>     return 2 * x1, x2 / 2
     >>>
     >>> x = Input()

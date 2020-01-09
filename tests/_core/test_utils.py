@@ -2,7 +2,13 @@ from contextlib import contextmanager
 
 import pytest
 
-from baikal._core.utils import listify, safezip2, find_duplicated_items, SimpleCache
+from baikal._core.utils import (
+    listify,
+    unlistify,
+    safezip2,
+    find_duplicated_items,
+    SimpleCache,
+)
 
 
 @contextmanager
@@ -13,6 +19,19 @@ def does_not_raise():
 @pytest.mark.parametrize("x,expected", [(1, [1]), ((1,), [1]), ([1], [1])])
 def test_listify(x, expected):
     assert listify(x) == expected
+
+
+@pytest.mark.parametrize(
+    "x,expected,raises",
+    [
+        ([1], 1, does_not_raise()),
+        ((1,), None, pytest.raises(ValueError)),
+        ([1, 2], [1, 2], does_not_raise()),
+    ],
+)
+def test_unlistify(x, expected, raises):
+    with raises:
+        assert unlistify(x) == expected
 
 
 @pytest.mark.parametrize(

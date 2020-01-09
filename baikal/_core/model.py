@@ -6,7 +6,7 @@ from baikal._core.data_placeholder import is_data_placeholder_list, DataPlacehol
 from baikal._core.digraph import DiGraph
 from baikal._core.step import Step, InputStep, Node
 from baikal._core.typing import ArrayLike
-from baikal._core.utils import listify, safezip2, SimpleCache
+from baikal._core.utils import listify, safezip2, SimpleCache, unlistify
 
 # Just to avoid function signatures painful to the eye
 DataPlaceHolders = Union[DataPlaceholder, List[DataPlaceholder]]
@@ -412,7 +412,10 @@ class Model(Step):
                 fit_params = fit_params_steps.get(node.step, {})
 
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                node.step.fit(*Xs, *ys, **fit_params)  # type: ignore # (it's a mixin)
+                if ys:
+                    node.step.fit(unlistify(Xs), unlistify(ys), **fit_params)
+                else:
+                    node.step.fit(unlistify(Xs), **fit_params)
 
             # 2) predict/transform phase
             if list(self.graph.successors(node)):
@@ -486,7 +489,7 @@ class Model(Step):
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
         # https://scikit-learn.org/stable/glossary.html#term-predict
-        output_data = node.compute_func(*Xs)
+        output_data = node.compute_func(unlistify(Xs))
         output_data = listify(output_data)
 
         try:

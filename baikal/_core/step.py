@@ -1,6 +1,6 @@
 import re
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
 from baikal._core.utils import listify, make_name, make_repr, make_args_from_attrs
@@ -319,6 +319,12 @@ class Step(_StepBase):
         2. In the class `__init__`, call `super().__init__(...)` and pass the
            appropriate step parameters.
 
+    The base class may implement a predict/transform method (the compute function)
+    that take multiple inputs and returns multiple outputs, and a fit method that
+    takes multiple inputs and targets. In this case, the input/target arguments are
+    expected to be a list of (typically) array-like objects, and the compute function
+    is expected to return a list of array-like objects.
+
     Parameters
     ----------
     name
@@ -362,6 +368,11 @@ class Step(_StepBase):
     >>>
     >>> logreg = LogisticRegression(C=2.0)
     """
+
+    if TYPE_CHECKING:
+
+        def fit(self, X, y, **fit_params):
+            return self
 
     def __init__(self, *args, name: str = None, n_outputs: int = 1, **kwargs):
         # Necessary to use this class as a mixin
@@ -598,5 +609,4 @@ class Node:
 # Notes on typing:
 # mypy produces false positives with mixins, so we use type: ignore
 # See:
-# https://github.com/python/mypy/issues/1996
 # https://github.com/python/mypy/issues/5887

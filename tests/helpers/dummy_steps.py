@@ -10,8 +10,8 @@ class DummySISO(Step):
     def __init__(self, name=None):
         super().__init__(name=name)
 
-    def transform(self, x):
-        return 2 * x
+    def transform(self, X):
+        return 2 * X
 
 
 class DummySIMO(Step):
@@ -21,8 +21,8 @@ class DummySIMO(Step):
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=2)
 
-    def transform(self, x):
-        return x + 1.0, x - 1.0
+    def transform(self, X):
+        return X + 1.0, X - 1.0
 
 
 class DummyMISO(Step):
@@ -32,8 +32,14 @@ class DummyMISO(Step):
     def __init__(self, name=None):
         super().__init__(name=name)
 
-    def transform(self, x1, x2):
+    def transform(self, Xs):
+        x1, x2 = Xs
         return x1 + x2
+
+    def fit(self, Xs, ys):
+        # Suppose that this dummy model expects two inputs and two targets
+        self.fitted_ = True
+        return self
 
 
 class DummyMIMO(Step):
@@ -43,7 +49,8 @@ class DummyMIMO(Step):
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=2)
 
-    def transform(self, x1, x2):
+    def transform(self, Xs):
+        x1, x2 = Xs
         return x1 * 10.0, x2 / 10.0
 
     def fit(self, X):
@@ -57,8 +64,8 @@ class DummyImproperlyDefined(Step):
     def __init__(self, name=None):
         super().__init__(name=name)
 
-    def transform(self, x):
-        return x + 1.0, x - 1.0
+    def transform(self, X):
+        return X + 1.0, X - 1.0
 
 
 class _DummyEstimator(BaseEstimator):

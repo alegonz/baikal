@@ -196,6 +196,22 @@ class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
 
 Other steps are defined similarly (omitted here for brevity).
 
+**baikal** can also handle steps with multiple input/outputs/targets. The base class may implement a predict/transform method (the compute function) that take multiple inputs and returns multiple outputs, and a fit method that takes multiple inputs and targets (native scikit-learn classes at present take one input, return one output, and take at most one target). In this case, the input/target arguments are expected to be a list of (typically) array-like objects, and the compute function is expected to return a list of array-like objects. For example, the base class may implement the methods like this:
+
+```python
+class SomeClass(BaseEstimator):
+    ...
+    def predict(self, Xs):
+        X1, X2 = Xs
+        # use X1, X2 to calculate y1, y2
+        return y1, y2
+
+    def fit(self, Xs, ys):
+        (X1, X2), (y1, y2) = Xs, ys
+        # use X1, X2, y1, y2 to fit the model
+        return self
+```
+
 ### 2. Build the model
 
 Once we have defined the steps, we can make a model like shown below. First, you create the initial step, that serves as the entry-point to the model, by calling the `Input` helper function. This outputs a DataPlaceholder representing one of the inputs to the model. Then, all you have to do is to instantiate the steps and call them on the outputs (DataPlaceholders from previous steps) as you deem appropriate. Finally, you instantiate the model with the inputs/outputs (also DataPlaceholders) that specify your pipeline.
