@@ -319,6 +319,12 @@ class Step(_StepBase):
         2. In the class `__init__`, call `super().__init__(...)` and pass the
            appropriate step parameters.
 
+    The base class may implement a predict/transform method (the compute function)
+    that take multiple inputs and returns multiple outputs, and a fit method that
+    takes multiple inputs and targets. In this case, the input/target arguments are
+    expected to be a list of (typically) array-like objects, and the compute function
+    is expected to return a list of array-like objects.
+
     Parameters
     ----------
     name
