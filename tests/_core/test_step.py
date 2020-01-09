@@ -63,7 +63,7 @@ class TestStep:
 
         with pytest.raises(ValueError):
             step = DummyStep()
-            step(x, compute_func=None)
+            step(x, compute_func="auto")
 
         with pytest.raises(ValueError):
             step = DummyStep()

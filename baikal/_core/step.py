@@ -381,7 +381,7 @@ class Step(_StepBase):
         self._nodes = []  # type: List[Node]
 
     def _check_compute_func(self, compute_func):
-        if compute_func is None:
+        if compute_func == "auto":
             if hasattr(self, "predict"):
                 compute_func = self.predict
             elif hasattr(self, "transform"):
@@ -407,7 +407,7 @@ class Step(_StepBase):
         inputs: Union[DataPlaceholder, List[DataPlaceholder]],
         targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None,
         *,
-        compute_func: Optional[Union[str, Callable[..., Any]]] = None,
+        compute_func: Union[str, Callable[..., Any]] = "auto",
         trainable: bool = True,
     ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the
@@ -430,7 +430,7 @@ class Step(_StepBase):
 
         compute_func
             Specifies which function must be used when computing the step during
-            the model graph execution. If None (default), it will use the predict
+            the model graph execution. If "auto" (default), it will use the predict
             or the transform method (in that order). If a name string is passed,
             it will use the method that matches the given name. If a callable is
             passed, it will use that callable when computing the step.
