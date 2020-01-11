@@ -638,7 +638,7 @@ def test_fit_predict_pipeline(teardown):
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
-def test_fit_predict_ensemble(teardown):
+def test_fit_predict_naive_stack(teardown):
     mask = iris.target != 2  # Reduce to binary problem to avoid ConvergenceWarning
     x_data = iris.data
     y_t_data = iris.target
@@ -668,16 +668,16 @@ def test_fit_predict_ensemble(teardown):
     random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
-    ensemble = sklearn.linear_model.LogisticRegression(
+    stacked = sklearn.linear_model.LogisticRegression(
         random_state=random_state, solver="liblinear"
     )
-    ensemble.fit(features, y_t_data)
-    y_pred_traditional = ensemble.predict(features)
+    stacked.fit(features, y_t_data)
+    y_pred_traditional = stacked.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
-def test_fit_predict_ensemble_with_proba_features(teardown):
+def test_fit_predict_naive_stack_with_proba_features(teardown):
     mask = iris.target != 2  # Reduce to binary problem to avoid ConvergenceWarning
     x_data = iris.data[mask]
     y_t_data = iris.target[mask]
@@ -716,9 +716,9 @@ def test_fit_predict_ensemble_with_proba_features(teardown):
     features = np.concatenate(
         [logreg_proba[:, :-1], random_forest_leafidx[:, :-1]], axis=1
     )
-    ensemble = sklearn.linear_model.LogisticRegression(random_state=random_state)
-    ensemble.fit(features, y_t_data)
-    y_pred_traditional = ensemble.predict(features)
+    stacked = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    stacked.fit(features, y_t_data)
+    y_pred_traditional = stacked.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
@@ -751,17 +751,17 @@ def test_nested_model(teardown):
     assert_array_equal(y_pred, y_pred_sub)
 
 
-def test_nested_model_ensemble(teardown):
+def test_nested_model_stack(teardown):
     x_data = iris.data
     y_t_data = iris.target
     random_state = 123
     n_components = 2
 
     # ----------- baikal way
-    ensemble_model_baikal = make_ensemble_model(
+    stacked_model_baikal = make_naive_stacked_model(
         n_components, random_state, x_data, y_t_data
     )
-    y_pred_baikal = ensemble_model_baikal.predict(x_data)
+    y_pred_baikal = stacked_model_baikal.predict(x_data)
 
     # ----------- traditional way
     # Submodel 1
@@ -776,7 +776,7 @@ def test_nested_model_ensemble(teardown):
     submodel1.fit(pca_trans, y_t_data)
     submodel1_pred = submodel1.predict(pca_trans)
 
-    # Submodel 2 (a nested ensemble model)
+    # Submodel 2 (a nested stacked model)
     random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
     random_forest.fit(x_data, y_t_data)
     random_forest_pred = random_forest.predict(x_data)
@@ -792,13 +792,13 @@ def test_nested_model_ensemble(teardown):
     submodel2.fit(features, y_t_data)
     submodel2_pred = submodel2.predict(features)
 
-    # Ensemble model
+    # Stacked model
     features = np.stack([submodel1_pred, submodel2_pred], axis=1)
-    ensemble_model_traditional = sklearn.linear_model.LogisticRegression(
+    stacked_model_traditional = sklearn.linear_model.LogisticRegression(
         multi_class="multinomial", solver="lbfgs", random_state=random_state
     )
-    ensemble_model_traditional.fit(features, y_t_data)
-    y_pred_traditional = ensemble_model_traditional.predict(features)
+    stacked_model_traditional.fit(features, y_t_data)
+    y_pred_traditional = stacked_model_traditional.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
@@ -812,17 +812,17 @@ def test_model_joblib_serialization(teardown, dump, load):
     random_state = 123
     n_components = 2
 
-    ensemble_model_baikal = make_ensemble_model(
+    stacked_model_baikal = make_naive_stacked_model(
         n_components, random_state, x_data, y_t_data
     )
-    y_pred_baikal = ensemble_model_baikal.predict(x_data)
+    y_pred_baikal = stacked_model_baikal.predict(x_data)
 
     # Persist model to a file
     f = tempfile.TemporaryFile()
-    dump(ensemble_model_baikal, f)
+    dump(stacked_model_baikal, f)
     f.seek(0)
-    ensemble_model_baikal_2 = load(f)
-    y_pred_baikal_2 = ensemble_model_baikal_2.predict(x_data)
+    stacked_model_baikal_2 = load(f)
+    y_pred_baikal_2 = stacked_model_baikal_2.predict(x_data)
 
     assert_array_equal(y_pred_baikal_2, y_pred_baikal)
 
@@ -979,7 +979,7 @@ def test_trainable_flag(teardown):
     random_state = 123
     n_components = 2
 
-    ensemble_model_baikal = make_ensemble_model(
+    stacked_model_baikal = make_naive_stacked_model(
         n_components, random_state, x_data, y_t_data
     )
 
@@ -990,27 +990,23 @@ def test_trainable_flag(teardown):
     idx = np.random.choice(np.arange(len(x_data)), size=n_samples, replace=False)
     x_data_sub, y_t_data_sub = x_data[idx], y_t_data[idx]
 
-    logreg_sub1 = ensemble_model_baikal.get_step("submodel1").get_step("logreg_sub1")
-    logreg_ensemble = ensemble_model_baikal.get_step("logreg_ensemble")
+    logreg_sub1 = stacked_model_baikal.get_step("submodel1").get_step("logreg_sub1")
+    logreg_stacked = stacked_model_baikal.get_step("logreg_stacked")
 
     logreg_sub1_coef_original = logreg_sub1.coef_.copy()  # This one should not change
-    logreg_ensemble_coef_original = (
-        logreg_ensemble.coef_.copy()
-    )  # This one should change
+    logreg_stacked_coef_original = logreg_stacked.coef_.copy()  # This one should change
     logreg_sub1.trainable = False
 
-    ensemble_model_baikal.fit(x_data_sub, y_t_data_sub)
+    stacked_model_baikal.fit(x_data_sub, y_t_data_sub)
     logreg_sub1_coef_retrained = logreg_sub1.coef_
-    logreg_ensemble_coef_retrained = logreg_ensemble.coef_
+    logreg_stacked_coef_retrained = logreg_stacked.coef_
 
     assert_array_equal(logreg_sub1_coef_original, logreg_sub1_coef_retrained)
     with pytest.raises(AssertionError):
-        assert_array_equal(
-            logreg_ensemble_coef_original, logreg_ensemble_coef_retrained
-        )
+        assert_array_equal(logreg_stacked_coef_original, logreg_stacked_coef_retrained)
 
 
-def make_ensemble_model(n_components, random_state, x_data, y_t_data):
+def make_naive_stacked_model(n_components, random_state, x_data, y_t_data):
     # An unnecessarily complex Model
 
     # Sub-model 1
@@ -1025,7 +1021,7 @@ def make_ensemble_model(n_components, random_state, x_data, y_t_data):
     )(h1, y1_t)
     submodel1 = Model(x1, y1, y1_t, name="submodel1")
 
-    # Sub-model 2 (a nested ensemble model)
+    # Sub-model 2 (a nested stacked model)
     x2 = Input(name="x2")
     y2_t = Input(name="y2_t")
     y2_1 = RandomForestClassifier(random_state=random_state, name="rforest_sub2")(
@@ -1043,7 +1039,7 @@ def make_ensemble_model(n_components, random_state, x_data, y_t_data):
     )(features, y2_t)
     submodel2 = Model(x2, y2, y2_t, name="submodel2")
 
-    # Ensemble of submodels
+    # Stack of submodels
     x = Input(name="x")
     y_t = Input(name="y_t")
     y1 = submodel1(x, y_t)
@@ -1053,10 +1049,10 @@ def make_ensemble_model(n_components, random_state, x_data, y_t_data):
         multi_class="multinomial",
         solver="lbfgs",
         random_state=random_state,
-        name="logreg_ensemble",
+        name="logreg_stacked",
     )(features, y_t)
-    ensemble_model_baikal = Model(x, y, y_t, name="ensemble")
+    stacked_model_baikal = Model(x, y, y_t, name="stacked")
 
-    ensemble_model_baikal.fit(x_data, y_t_data)
+    stacked_model_baikal.fit(x_data, y_t_data)
 
-    return ensemble_model_baikal
+    return stacked_model_baikal

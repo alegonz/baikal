@@ -30,8 +30,8 @@ z = PowerTransformer()(x2)
 z = PCA()(z)
 y3 = LogisticRegression()(z, y_t)
 
-ensemble_features = Stack()([y1, y2, y3])
-y_p = SVC()(ensemble_features, y_t)
+stacked_features = Stack()([y1, y2, y3])
+y_p = SVC()(stacked_features, y_t)
 
 model = Model([x1, x2], y_p, y_t)
 plot_model(model, filename="multiple_input_nonlinear_pipeline_example_plot.png")

@@ -29,8 +29,8 @@ y_p2 = RandomForestClassifier()(x, y_t, compute_func="predict_proba")
 # predict_proba returns arrays whose columns sum to one, so we drop one column
 y_p1 = Lambda(lambda array: array[:, :-1])(y_p1)
 y_p2 = Lambda(lambda array: array[:, :-1])(y_p2)
-ensemble_features = ColumnStack()([y_p1, y_p2])
-y_p = ExtraTreesClassifier()(ensemble_features, y_t)
+stacked_features = ColumnStack()([y_p1, y_p2])
+y_p = ExtraTreesClassifier()(stacked_features, y_t)
 
 model = Model(x, y_p, y_t)
 plot_model(model, filename="stacked_classifiers.png", dpi=96)

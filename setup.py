@@ -36,8 +36,8 @@ with code that looks like this:
     z = PCA()(z)
     y3 = LogisticRegression()(z, y_t)
     
-    ensemble_features = Stack()([y1, y2, y3])
-    y = SVC()(ensemble_features, y_t)
+    stacked_features = Stack()([y1, y2, y3])
+    y = SVC()(stacked_features, y_t)
     
     model = Model([x1, x2], y, y_t)
 
