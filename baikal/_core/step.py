@@ -398,7 +398,8 @@ class Step(_StepBase):
                 pass
             else:
                 raise ValueError(
-                    "If specified, `function` must be either a " "string or a callable."
+                    "If specified, `compute_func` must be either a "
+                    "string or a callable."
                 )
         return compute_func
 
@@ -430,8 +431,8 @@ class Step(_StepBase):
 
         compute_func
             Specifies which function must be used when computing the step during
-            the model graph execution. If "auto" (default), it will use the predict
-            or the transform method (in that order). If a name string is passed,
+            the model graph execution. If `"auto"` (default), it will use the `predict`
+            or the `transform `method (in that order). If a name string is passed,
             it will use the method that matches the given name. If a callable is
             passed, it will use that callable when computing the step.
 
