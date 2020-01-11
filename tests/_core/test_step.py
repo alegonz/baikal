@@ -88,6 +88,61 @@ class TestStep:
         step(x)
         assert step.compute_func == step.transform
 
+    def test_instantiate_with_invalid_fit_compute_func(self):
+        class DummyStepWithoutFit(Step):
+            def predict(self, X):
+                pass
+
+            def somefunc(self, X):
+                pass
+
+        class DummyStepWithFitPredict(Step):
+            def predict(self, X):
+                pass
+
+            def fit_predict(self, X, y):
+                pass
+
+        class DummyStepWithFitTransform(Step):
+            def transform(self, X):
+                pass
+
+            def fit_transform(self, X, y):
+                pass
+
+        x = Input()
+
+        step = DummyStepWithoutFit()
+        step(x, fit_compute_func="auto")
+        assert step.fit_compute_func is None
+
+        with pytest.raises(ValueError):
+            step = DummyStepWithoutFit()
+            step(x, fit_compute_func=123)
+
+        step = DummyStepWithoutFit()
+        step(x, fit_compute_func="somefunc")
+        assert step.fit_compute_func == step.somefunc
+
+        def anotherfunc():
+            pass
+
+        step = DummyStepWithoutFit()
+        step(x, fit_compute_func=anotherfunc)
+        assert step.fit_compute_func == anotherfunc
+
+        step = DummyStepWithFitPredict()
+        step(x)
+        assert step.fit_compute_func == step.fit_predict
+
+        step = DummyStepWithFitTransform()
+        step(x)
+        assert step.fit_compute_func == step.fit_transform
+
+        step = DummyStepWithFitTransform()
+        step(x, fit_compute_func=None)
+        assert step.fit_compute_func is None
+
     def test_call_with_invalid_input_type(self, teardown):
         with pytest.raises(ValueError):
             LogisticRegression()([[1, 2], [3, 4]])
@@ -182,11 +237,11 @@ class TestStep:
     # Below are tests for properties
     @pytest.fixture
     def simple_step(self):
-        return LogisticRegression()
+        return DummyEstimator()
 
     @pytest.fixture
     def shared_step(self):
-        return LogisticRegression()
+        return DummyEstimator()
 
     @pytest.fixture
     def dataplaceholders(self, simple_step, shared_step):
@@ -195,7 +250,12 @@ class TestStep:
         y_t = Input(name="y_t")
         y_simple = simple_step(x1, y_t)
         y_shared_1 = shared_step(x1, y_t)
-        y_shared_2 = shared_step(x2, compute_func="predict_proba", trainable=False)
+        y_shared_2 = shared_step(
+            x2,
+            compute_func="predict_proba",
+            fit_compute_func="fit_predict_proba",
+            trainable=False,
+        )
         return x1, x2, y_t, y_simple, y_shared_1, y_shared_2
 
     def test_inputs(self, simple_step, shared_step, dataplaceholders, teardown):
@@ -250,6 +310,27 @@ class TestStep:
             # because the step hasn't been called
             LogisticRegression().compute_func = lambda x: x
 
+    def test_fit_compute_func(
+        self, simple_step, shared_step, dataplaceholders, teardown
+    ):
+        assert simple_step.fit_compute_func == simple_step.fit_predict
+        simple_step.fit_compute_func = simple_step.fit_predict_proba
+        assert simple_step.fit_compute_func == simple_step.fit_predict_proba
+
+        with pytest.raises(AttributeError):
+            shared_step.fit_compute_func
+
+        with pytest.raises(AttributeError):
+            shared_step.fit_compute_func = shared_step.fit_predict_proba
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            DummyEstimator().fit_compute_func
+
+        with pytest.raises(AttributeError):
+            # because the step hasn't been called
+            DummyEstimator().fit_compute_func = lambda x: x
+
     def test_trainable(self, simple_step, shared_step, dataplaceholders, teardown):
         assert simple_step.trainable
         simple_step.trainable = False
@@ -297,6 +378,17 @@ class TestStep:
     def test_set_compute_func_at(self, shared_step, dataplaceholders, teardown):
         shared_step.set_compute_func_at(1, shared_step.predict)
         assert shared_step.get_compute_func_at(1) == shared_step.predict
+
+    def test_get_fit_compute_func_at(
+        self, simple_step, shared_step, dataplaceholders, teardown
+    ):
+        assert simple_step.get_fit_compute_func_at(0) == simple_step.fit_predict
+        assert shared_step.get_fit_compute_func_at(0) == shared_step.fit_predict
+        assert shared_step.get_fit_compute_func_at(1) == shared_step.fit_predict_proba
+
+    def test_set_fit_compute_func_at(self, shared_step, dataplaceholders, teardown):
+        shared_step.set_fit_compute_func_at(1, shared_step.fit_predict)
+        assert shared_step.get_fit_compute_func_at(1) == shared_step.fit_predict
 
     def test_get_trainable_at(
         self, simple_step, shared_step, dataplaceholders, teardown
