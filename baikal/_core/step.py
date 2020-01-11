@@ -618,8 +618,6 @@ class Step(_StepBase):
             targets = []
 
         outputs = self._build_outputs()
-        compute_func = self._check_compute_func(compute_func)
-        fit_compute_func = self._check_fit_compute_func(fit_compute_func)
 
         self._nodes.append(
             Node(
@@ -627,8 +625,8 @@ class Step(_StepBase):
                 inputs,
                 outputs,
                 targets,
-                compute_func,
-                fit_compute_func,
+                self._check_compute_func(compute_func),
+                self._check_fit_compute_func(fit_compute_func),
                 trainable,
             )
         )
