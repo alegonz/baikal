@@ -1,4 +1,3 @@
-import inspect
 from collections import defaultdict
 from typing import Union, List, Dict, Set, Iterable, Optional
 
@@ -489,28 +488,16 @@ class Model(Step):
         else:
             return output_data
 
-    @staticmethod
-    def _compute_step(node, Xs, cache):
+    def _compute_step(self, node, Xs, cache):
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
         # https://scikit-learn.org/stable/glossary.html#term-predict
         output_data = node.compute_func(unlistify(Xs))
         output_data = listify(output_data)
+        self._update_cache(cache, output_data, node)
 
-        try:
-            cache.update(safezip2(node.outputs, output_data))
-        except ValueError as e:
-            message = (
-                "The number of output data elements ({}) does not match "
-                "the number of {} outputs ({}).".format(
-                    len(output_data), node.step.name, len(node.outputs)
-                )
-            )
-            raise RuntimeError(message) from e
-
-    @staticmethod
-    def _fit_compute_step(node, Xs, ys, cache, **fit_params):
+    def _fit_compute_step(self, node, Xs, ys, cache, **fit_params):
         # TODO: same as _compute_step TODO?
         if ys:
             output_data = node.fit_compute_func(
@@ -519,7 +506,10 @@ class Model(Step):
         else:
             output_data = node.fit_compute_func(unlistify(Xs), **fit_params)
         output_data = listify(output_data)
+        self._update_cache(cache, output_data, node)
 
+    @staticmethod
+    def _update_cache(cache, output_data, node):
         try:
             cache.update(safezip2(node.outputs, output_data))
         except ValueError as e:
@@ -603,32 +593,8 @@ class Model(Step):
 
         new_step._name = old_step._name
         new_step._nodes = old_step._nodes
-
         for node in new_step._nodes:
             node.step = new_step
-
-            # TODO: Refactor below into a Node.step setter method
-
-            # Update outputs of old step to point to the new step
-            # Note that the dataplaceholders keep the name from the old step
-            # TODO: Maybe the output dataplaceholders should be replaced too
-            for output in node.outputs:
-                output._step = new_step
-
-            # Special process to transfer [fit_]compute_func:
-            # if it is a bound method get the corresponding method bound to the
-            # new step otherwise leave it as is.
-            # Note that Step._check_[fit_]compute_func guarantees step.[fit_]compute_func
-            # is a callable (i.e: assert callable(old_step.[fit_]compute_func) passes)
-            if inspect.ismethod(node.compute_func):
-                assert node.compute_func.__self__ is old_step
-                node.compute_func = getattr(new_step, node.compute_func.__name__)
-
-            if inspect.ismethod(node.fit_compute_func):
-                assert node.fit_compute_func.__self__ is old_step
-                node.fit_compute_func = getattr(
-                    new_step, node.fit_compute_func.__name__
-                )
 
         # Rebuild model
         self._build()

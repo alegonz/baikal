@@ -1,3 +1,4 @@
+import inspect
 import re
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
@@ -723,13 +724,51 @@ class Node:
         fit_compute_func: Optional[Callable],
         trainable: bool,
     ):
-        self.step = step
-        self.inputs = inputs
-        self.outputs = outputs
-        self.targets = targets
+        self._step = step
+        self._inputs = inputs
+        self._outputs = outputs
+        self._targets = targets
         self.compute_func = compute_func
         self.fit_compute_func = fit_compute_func
         self.trainable = trainable
+
+    @property
+    def step(self):
+        return self._step
+
+    @step.setter
+    def step(self, new_step):
+        old_step = self._step
+        self._step = new_step
+
+        # Update outputs of old step to point to the new step
+        # Note that the dataplaceholders keep the name from the old step
+        # TODO: Maybe the output dataplaceholders should be replaced too
+        for output in self._outputs:
+            output._step = new_step
+
+        # Special process to transfer [fit_]compute_func:
+        # if it is a bound method get the corresponding method bound to the
+        # new step otherwise leave it as is.
+        # Note that Step._check_[fit_]compute_func guarantees step.[fit_]compute_func
+        # is a callable (i.e: assert callable(old_step.[fit_]compute_func) passes)
+        for attr_name in ("compute_func", "fit_compute_func"):
+            old_attr = getattr(self, attr_name)
+            if inspect.ismethod(old_attr):
+                assert old_attr.__self__ is old_step
+                setattr(self, attr_name, getattr(new_step, old_attr.__name__))
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def outputs(self):
+        return self._outputs
+
+    @property
+    def targets(self):
+        return self._targets
 
 
 # Notes on typing:
