@@ -405,23 +405,22 @@ class Model(Step):
 
             if not node.trainable:
                 if list(self.graph.successors(node)):
-                    self._compute_step(node, Xs, results_cache)
+                    self._compute_node(node, Xs, results_cache)
                 continue
 
             ys = [results_cache[t] for t in node.targets]
             fit_params = fit_params_steps.get(node.step, {})
 
             if node.fit_compute_func is not None:
-                self._fit_compute_step(node, Xs, ys, results_cache, **fit_params)
+                self._fit_compute_node(node, Xs, ys, results_cache, **fit_params)
                 continue
 
             # ----- default behavior
             if node.fit_func is not None:
-                # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                self._fit_step(node, Xs, ys, **fit_params)
+                self._fit_node(node, Xs, ys, **fit_params)
 
             if list(self.graph.successors(node)):
-                self._compute_step(node, Xs, results_cache)
+                self._compute_node(node, Xs, results_cache)
 
         return self
 
@@ -477,7 +476,7 @@ class Model(Step):
 
         for node in nodes:
             Xs = [results_cache[i] for i in node.inputs]
-            self._compute_step(node, Xs, results_cache)
+            self._compute_node(node, Xs, results_cache)
 
         output_data = [results_cache[o] for o in outputs]
         if len(output_data) == 1:
@@ -486,13 +485,13 @@ class Model(Step):
             return output_data
 
     @staticmethod
-    def _fit_step(node, Xs, ys, **fit_params):
+    def _fit_node(node, Xs, ys, **fit_params):
         if ys:
             node.fit_func(unlistify(Xs), unlistify(ys), **fit_params)
         else:
             node.fit_func(unlistify(Xs), **fit_params)
 
-    def _compute_step(self, node, Xs, cache):
+    def _compute_node(self, node, Xs, cache):
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
@@ -501,8 +500,8 @@ class Model(Step):
         output_data = listify(output_data)
         self._update_cache(cache, output_data, node)
 
-    def _fit_compute_step(self, node, Xs, ys, cache, **fit_params):
-        # TODO: same as _compute_step TODO?
+    def _fit_compute_node(self, node, Xs, ys, cache, **fit_params):
+        # TODO: same as _compute_node TODO?
         if ys:
             output_data = node.fit_compute_func(
                 unlistify(Xs), unlistify(ys), **fit_params
