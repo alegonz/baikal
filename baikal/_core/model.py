@@ -416,12 +416,9 @@ class Model(Step):
                 continue
 
             # ----- default behavior
-            if hasattr(node.step, "fit"):
+            if node.fit_func is not None:
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                if ys:
-                    node.step.fit(unlistify(Xs), unlistify(ys), **fit_params)
-                else:
-                    node.step.fit(unlistify(Xs), **fit_params)
+                self._fit_step(node, Xs, ys, **fit_params)
 
             if list(self.graph.successors(node)):
                 self._compute_step(node, Xs, results_cache)
@@ -487,6 +484,13 @@ class Model(Step):
             return output_data[0]
         else:
             return output_data
+
+    @staticmethod
+    def _fit_step(node, Xs, ys, **fit_params):
+        if ys:
+            node.fit_func(unlistify(Xs), unlistify(ys), **fit_params)
+        else:
+            node.fit_func(unlistify(Xs), **fit_params)
 
     def _compute_step(self, node, Xs, cache):
         # TODO: Raise warning if computed output is already in cache.

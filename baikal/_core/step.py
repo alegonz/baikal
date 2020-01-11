@@ -626,6 +626,7 @@ class Step(_StepBase):
                 inputs,
                 outputs,
                 targets,
+                getattr(self, "fit", None),
                 self._check_compute_func(compute_func),
                 self._check_fit_compute_func(fit_compute_func),
                 trainable,
@@ -682,7 +683,14 @@ class InputStep(_StepBase):
         super().__init__(name=name, n_outputs=1)
         self._nodes = [
             Node(
-                self, [], [DataPlaceholder(self, 0, self._name)], [], None, None, False
+                self,
+                [],
+                [DataPlaceholder(self, 0, self._name)],
+                [],
+                None,
+                None,
+                None,
+                False,
             )
         ]
 
@@ -720,6 +728,7 @@ class Node:
         inputs: List[DataPlaceholder],
         outputs: List[DataPlaceholder],
         targets: List[DataPlaceholder],
+        fit_func: Optional[Callable],
         compute_func: Callable,
         fit_compute_func: Optional[Callable],
         trainable: bool,
@@ -728,6 +737,7 @@ class Node:
         self._inputs = inputs
         self._outputs = outputs
         self._targets = targets
+        self.fit_func = fit_func  # at present, fit is the same for all step calls
         self.compute_func = compute_func
         self.fit_compute_func = fit_compute_func
         self.trainable = trainable
@@ -747,12 +757,12 @@ class Node:
         for output in self._outputs:
             output._step = new_step
 
-        # Special process to transfer [fit_]compute_func:
+        # Special process to transfer functions:
         # if it is a bound method get the corresponding method bound to the
         # new step otherwise leave it as is.
         # Note that Step._check_[fit_]compute_func guarantees step.[fit_]compute_func
         # is a callable (i.e: assert callable(old_step.[fit_]compute_func) passes)
-        for attr_name in ("compute_func", "fit_compute_func"):
+        for attr_name in ("fit_func", "compute_func", "fit_compute_func"):
             old_attr = getattr(self, attr_name)
             if inspect.ismethod(old_attr):
                 assert old_attr.__self__ is old_step
