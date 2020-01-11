@@ -639,7 +639,6 @@ def test_fit_predict_pipeline(teardown):
 
 
 def test_fit_predict_naive_stack(teardown):
-    mask = iris.target != 2  # Reduce to binary problem to avoid ConvergenceWarning
     x_data = iris.data
     y_t_data = iris.target
     random_state = 123
