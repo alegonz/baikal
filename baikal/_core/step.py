@@ -369,7 +369,7 @@ class Step(_StepBase):
     >>> logreg = LogisticRegression(C=2.0)
     """
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: no cover
 
         def fit(self, X, y, **fit_params):
             return self

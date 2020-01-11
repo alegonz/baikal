@@ -47,6 +47,6 @@ class DataPlaceholder:
     def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self._name < other.name
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
     # TODO: Use functools.total_ordering and follow best practices

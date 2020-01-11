@@ -4,7 +4,7 @@ from typing import Set, Tuple, Optional
 
 try:
     import pydot
-except ImportError:
+except ImportError:  # pragma: no cover
     raise ImportError(
         "Could not import pydot package."
         "You can install with `pip install pydot` or"
