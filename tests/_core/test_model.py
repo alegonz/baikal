@@ -345,6 +345,22 @@ class TestFit:
         model.fit([iris.data, iris.data], [iris.target, iris.target])
         assert step.fitted_
 
+    def test_fit_compute(self, teardown):
+        dummy_estimator_1 = DummyEstimator()
+        dummy_estimator_2 = DummyEstimator()
+
+        x = Input()
+        y_t = Input()
+        y_p1 = dummy_estimator_1(x, y_t, fit_compute_func=None)
+        y_p2 = dummy_estimator_2(x, y_t)
+        model = Model(x, [y_p1, y_p2], y_t)
+        model.fit(iris.data, iris.target)
+
+        assert dummy_estimator_1.fit_calls == 1
+        assert dummy_estimator_1.fit_predict_calls == 0
+        assert dummy_estimator_2.fit_calls == 0
+        assert dummy_estimator_2.fit_predict_calls == 1
+
 
 class TestPredict:
     x1_data = iris.data[:, :2]
@@ -720,6 +736,9 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     y_pred_traditional = stacked.predict(features)
 
     assert_array_equal(y_pred_baikal, y_pred_traditional)
+
+
+# TODO: Add test for fit_compute using a stack of classifiers
 
 
 @skip_sklearn_0_22

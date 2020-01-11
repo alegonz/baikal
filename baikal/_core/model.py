@@ -404,20 +404,26 @@ class Model(Step):
         for node in nodes:
             Xs = [results_cache[i] for i in node.inputs]
 
-            # TODO: Use fit_transform if step has it
-            # 1) Fit phase
-            if hasattr(node.step, "fit") and node.trainable:
-                ys = [results_cache[t] for t in node.targets]
+            if not node.trainable:
+                if list(self.graph.successors(node)):
+                    self._compute_step(node, Xs, results_cache)
+                continue
 
-                fit_params = fit_params_steps.get(node.step, {})
+            ys = [results_cache[t] for t in node.targets]
+            fit_params = fit_params_steps.get(node.step, {})
 
+            if node.fit_compute_func is not None:
+                self._fit_compute_step(node, Xs, ys, results_cache, **fit_params)
+                continue
+
+            # ----- default behavior
+            if hasattr(node.step, "fit"):
                 # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
                 if ys:
                     node.step.fit(unlistify(Xs), unlistify(ys), **fit_params)
                 else:
                     node.step.fit(unlistify(Xs), **fit_params)
 
-            # 2) predict/transform phase
             if list(self.graph.successors(node)):
                 self._compute_step(node, Xs, results_cache)
 
@@ -490,6 +496,28 @@ class Model(Step):
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
         # https://scikit-learn.org/stable/glossary.html#term-predict
         output_data = node.compute_func(unlistify(Xs))
+        output_data = listify(output_data)
+
+        try:
+            cache.update(safezip2(node.outputs, output_data))
+        except ValueError as e:
+            message = (
+                "The number of output data elements ({}) does not match "
+                "the number of {} outputs ({}).".format(
+                    len(output_data), node.step.name, len(node.outputs)
+                )
+            )
+            raise RuntimeError(message) from e
+
+    @staticmethod
+    def _fit_compute_step(node, Xs, ys, cache, **fit_params):
+        # TODO: same as _compute_step TODO?
+        if ys:
+            output_data = node.fit_compute_func(
+                unlistify(Xs), unlistify(ys), **fit_params
+            )
+        else:
+            output_data = node.fit_compute_func(unlistify(Xs), **fit_params)
         output_data = listify(output_data)
 
         try:
@@ -579,20 +607,28 @@ class Model(Step):
         for node in new_step._nodes:
             node.step = new_step
 
+            # TODO: Refactor below into a Node.step setter method
+
             # Update outputs of old step to point to the new step
             # Note that the dataplaceholders keep the name from the old step
             # TODO: Maybe the output dataplaceholders should be replaced too
             for output in node.outputs:
                 output._step = new_step
 
-            # Special process to transfer the compute_func:
+            # Special process to transfer [fit_]compute_func:
             # if it is a bound method get the corresponding method bound to the
             # new step otherwise leave it as is.
-            # Note that Step._check_compute_func guarantees step.compute_func is
-            # a callable (i.e: assert callable(old_step.compute_func) passes)
+            # Note that Step._check_[fit_]compute_func guarantees step.[fit_]compute_func
+            # is a callable (i.e: assert callable(old_step.[fit_]compute_func) passes)
             if inspect.ismethod(node.compute_func):
                 assert node.compute_func.__self__ is old_step
                 node.compute_func = getattr(new_step, node.compute_func.__name__)
+
+            if inspect.ismethod(node.fit_compute_func):
+                assert node.fit_compute_func.__self__ is old_step
+                node.fit_compute_func = getattr(
+                    new_step, node.fit_compute_func.__name__
+                )
 
         # Rebuild model
         self._build()
