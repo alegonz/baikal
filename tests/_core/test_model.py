@@ -57,6 +57,11 @@ skip_sklearn_0_22 = pytest.mark.skipif(
     "see: https://github.com/scikit-learn/scikit-learn/issues/15845",
 )
 
+skip_sklearn_pre_0_22 = pytest.mark.skipif(
+    sklearn.__version__ < "0.22",
+    reason="StackingClassifier is not available prior to 0.22 ",
+)
+
 
 class TestInit:
     def test_simple(self, teardown):
@@ -696,6 +701,7 @@ def test_fit_predict_naive_stack(teardown):
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
+@skip_sklearn_pre_0_22
 def test_fit_predict_standard_stack(teardown):
     # This uses the "standard" protocol where the 2nd level features
     # are the out-of-fold predictions of the 1st. It also appends the
