@@ -402,9 +402,10 @@ class Model(Step):
 
         for node in nodes:
             Xs = [results_cache[i] for i in node.inputs]
+            successors = list(self.graph.successors(node))
 
             if not node.trainable:
-                if list(self.graph.successors(node)):
+                if successors:
                     self._compute_node(node, Xs, results_cache)
                 continue
 
@@ -419,7 +420,7 @@ class Model(Step):
             if node.fit_func is not None:
                 self._fit_node(node, Xs, ys, **fit_params)
 
-            if list(self.graph.successors(node)):
+            if successors:
                 self._compute_node(node, Xs, results_cache)
 
         return self
