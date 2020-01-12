@@ -410,6 +410,33 @@ model = Model(x, y_p, y_t)
 
 Click [here](examples/stacked_classifiers_naive.py) for a full example.
 
+### Stacked classifiers (standard protocol)
+
+In the naive stack above, each classifier in the 1st level will calculate the predictions for the 2nd level using the same data it used for fitting its parameters. This is prone to overfitting as the 2nd level classifier will tend to give more weight to an overfit classifier in the 1st level. To avoid this, the standard protocol recommends that, during fit, the 1st level classifiers are still trained on the original data, but instead they provide out-of-fold (OOF) predictions to the 2nd level classifier. To achieve this special behavior, we leverage the `fit_compute_func` API: we define a `fit_predict` method that does the fitting and the OOF predictions, and add it as a method of the 1st level classifiers (`LogisticRegression` and `RandomForestClassifier`, in the example below) when making the steps. **baikal** will then detect and use this method during fit.
+
+```python
+from sklearn.model_selection import cross_val_predict
+
+
+def fit_predict(self, X, y):
+    self.fit(X, y)
+    return cross_val_predict(self, X, y, method="predict_proba")
+
+
+attr_dict = {"fit_predict": fit_predict}
+
+# 1st level classifiers
+LogisticRegression = make_step(sklearn.linear_model.LogisticRegression, attr_dict)
+RandomForestClassifier = make_step(sklearn.ensemble.RandomForestClassifier, attr_dict)
+
+# 2nd level classifier
+ExtraTreesClassifier = make_step(sklearn.ensemble.ExtraTreesClassifier)
+
+# The rest of the stack is build exactly the same as in the naive example.
+```
+
+Click [here](examples/stacked_classifiers_standard.py) for a full example.
+
 ### Classifier chain
 
 The API also lends itself for more interesting configurations, such as that of [classifier chains](https://en.wikipedia.org/wiki/Classifier_chains). By leveraging the API and Python's own control flow, a classifier chain model can be built as follows:
