@@ -6,11 +6,10 @@ from typing import List, Dict
 import joblib
 import numpy as np
 import pytest
-import sklearn.decomposition
-import sklearn.ensemble
 import sklearn.linear_model
 from numpy.testing import assert_array_equal, assert_allclose
 from sklearn import datasets
+from sklearn.ensemble import StackingClassifier
 from sklearn.exceptions import NotFittedError
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline, Pipeline
@@ -24,6 +23,7 @@ from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (
     LinearRegression,
     LogisticRegression,
+    LinearSVC,
     LinearSVCOOF,
     RandomForestClassifier,
     RandomForestClassifierOOF,
@@ -649,10 +649,8 @@ def test_fit_predict_pipeline(teardown):
     y_pred_baikal = model.fit(x_data, y_t_data).predict(x_data)
 
     # traditional way
-    pca = sklearn.decomposition.PCA(
-        n_components=n_components, random_state=random_state
-    )
-    logreg = sklearn.linear_model.LogisticRegression(
+    pca = PCA(n_components=n_components, random_state=random_state)
+    logreg = LogisticRegression(
         multi_class="multinomial", solver="lbfgs", random_state=random_state
     )
     x_data_transformed = pca.fit_transform(x_data)
@@ -681,20 +679,16 @@ def test_fit_predict_naive_stack(teardown):
     y_pred_baikal = model.predict(x_data)
 
     # traditional way
-    logreg = sklearn.linear_model.LogisticRegression(
-        random_state=random_state, solver="liblinear"
-    )
+    logreg = LogisticRegression(random_state=random_state, solver="liblinear")
     logreg.fit(x_data, y_t_data)
     logreg_pred = logreg.predict(x_data)
 
-    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
+    random_forest = RandomForestClassifier(random_state=random_state)
     random_forest.fit(x_data, y_t_data)
     random_forest_pred = random_forest.predict(x_data)
 
     features = np.stack([logreg_pred, random_forest_pred], axis=1)
-    stacked = sklearn.linear_model.LogisticRegression(
-        random_state=random_state, solver="liblinear"
-    )
+    stacked = LogisticRegression(random_state=random_state, solver="liblinear")
     stacked.fit(features, y_t_data)
     y_pred_traditional = stacked.predict(features)
 
@@ -738,23 +732,12 @@ def test_fit_predict_standard_stack(teardown):
 
     # traditional way
     estimators = [
-        (
-            "rf",
-            sklearn.ensemble.RandomForestClassifier(
-                n_estimators=10, random_state=random_state
-            ),
-        ),
-        (
-            "svr",
-            make_pipeline(
-                sklearn.preprocessing.StandardScaler(),
-                sklearn.svm.LinearSVC(random_state=random_state),
-            ),
-        ),
+        ("rf", RandomForestClassifier(n_estimators=10, random_state=random_state)),
+        ("svr", make_pipeline(StandardScaler(), LinearSVC(random_state=random_state))),
     ]
-    clf = sklearn.ensemble.StackingClassifier(
+    clf = StackingClassifier(
         estimators=estimators,
-        final_estimator=sklearn.linear_model.LogisticRegression(
+        final_estimator=LogisticRegression(
             solver="liblinear", random_state=random_state
         ),
         passthrough=True,
@@ -790,11 +773,11 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     y_pred_baikal = model.predict(x_data)
 
     # traditional way
-    logreg = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    logreg = LogisticRegression(random_state=random_state)
     logreg.fit(x_data, y_t_data)
     logreg_proba = logreg.predict_proba(x_data)
 
-    random_forest = sklearn.ensemble.RandomForestClassifier(
+    random_forest = RandomForestClassifier(
         n_estimators=n_estimators, random_state=random_state
     )
     random_forest.fit(x_data, y_t_data)
@@ -803,7 +786,7 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     features = np.concatenate(
         [logreg_proba[:, 1:], random_forest_leafidx[:, 1:]], axis=1
     )
-    stacked = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    stacked = LogisticRegression(random_state=random_state)
     stacked.fit(features, y_t_data)
     y_pred_traditional = stacked.predict(features)
 
@@ -852,28 +835,26 @@ def test_nested_model_stack(teardown):
 
     # ----------- traditional way
     # Submodel 1
-    submodel1 = sklearn.linear_model.LogisticRegression(
+    submodel1 = LogisticRegression(
         multi_class="multinomial", solver="lbfgs", random_state=random_state
     )
-    pca = sklearn.decomposition.PCA(
-        n_components=n_components, random_state=random_state
-    )
+    pca = PCA(n_components=n_components, random_state=random_state)
     pca.fit(x_data)
     pca_trans = pca.transform(x_data)
     submodel1.fit(pca_trans, y_t_data)
     submodel1_pred = submodel1.predict(pca_trans)
 
     # Submodel 2 (a nested stacked model)
-    random_forest = sklearn.ensemble.RandomForestClassifier(random_state=random_state)
+    random_forest = RandomForestClassifier(random_state=random_state)
     random_forest.fit(x_data, y_t_data)
     random_forest_pred = random_forest.predict(x_data)
 
-    extra_trees = sklearn.ensemble.ExtraTreesClassifier(random_state=random_state)
+    extra_trees = ExtraTreesClassifier(random_state=random_state)
     extra_trees.fit(x_data, y_t_data)
     extra_trees_pred = extra_trees.predict(x_data)
 
     features = np.stack([random_forest_pred, extra_trees_pred], axis=1)
-    submodel2 = sklearn.linear_model.LogisticRegression(
+    submodel2 = LogisticRegression(
         multi_class="multinomial", solver="lbfgs", random_state=random_state
     )
     submodel2.fit(features, y_t_data)
@@ -881,7 +862,7 @@ def test_nested_model_stack(teardown):
 
     # Stacked model
     features = np.stack([submodel1_pred, submodel2_pred], axis=1)
-    stacked_model_traditional = sklearn.linear_model.LogisticRegression(
+    stacked_model_traditional = LogisticRegression(
         multi_class="multinomial", solver="lbfgs", random_state=random_state
     )
     stacked_model_traditional.fit(features, y_t_data)
@@ -938,10 +919,8 @@ def test_fit_params(teardown):
     model.fit(x_data, y_t_data, **fit_params)
 
     # traditional way
-    pca = sklearn.decomposition.PCA(
-        n_components=n_components, random_state=random_state
-    )
-    logreg = sklearn.linear_model.LogisticRegression(
+    pca = PCA(n_components=n_components, random_state=random_state)
+    logreg = LogisticRegression(
         multi_class="multinomial", solver="lbfgs", random_state=random_state
     )
     pipe = Pipeline([("pca", pca), ("logreg", logreg)])

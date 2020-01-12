@@ -52,10 +52,8 @@ def test_grid_search_cv():
     gscv_baikal.fit(x_data, y_t_data)
 
     # traditional way
-    pca = sklearn.decomposition.PCA(random_state=random_state)
-    logreg = sklearn.linear_model.LogisticRegression(
-        random_state=random_state, solver="liblinear"
-    )
+    pca = PCA(random_state=random_state)
+    logreg = LogisticRegression(random_state=random_state, solver="liblinear")
     pipe = Pipeline([("pca", pca), ("logreg", logreg)])
 
     gscv_traditional = GridSearchCV(
@@ -109,8 +107,8 @@ def test_grid_search_cv_with_tunable_step():
     gscv_baikal.fit(x_data, y_t_data)
 
     # traditional way
-    pca = sklearn.decomposition.PCA(random_state=random_state)
-    classifier = sklearn.linear_model.LogisticRegression(random_state=random_state)
+    pca = PCA(random_state=random_state)
+    classifier = LogisticRegression(random_state=random_state)
     pipe = Pipeline([("pca", pca), ("classifier", classifier)])
 
     gscv_traditional = GridSearchCV(
