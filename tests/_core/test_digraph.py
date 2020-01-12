@@ -198,3 +198,21 @@ def test_node_ordering():
         graph.add_node(node)
 
     assert list(graph) == nodes
+
+
+def test_clear():
+    graph = DiGraph()
+    graph.add_node(0)
+    graph.add_node(1)
+    graph.add_edge(0, 1, "foo")
+
+    assert 0 in graph
+    assert 1 in graph
+    assert [(0, 1, {"foo"})] == list(graph.edges)
+
+    graph.clear()
+
+    assert 0 not in graph
+    assert 1 not in graph
+    assert [] == list(graph)
+    assert [] == list(graph.edges)

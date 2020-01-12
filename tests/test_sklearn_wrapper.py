@@ -39,6 +39,8 @@ def test_grid_search_cv():
         return model
 
     sk_model = SKLearnWrapper(build_fn)
+    assert isinstance(sk_model.model, Model)
+
     gscv_baikal = GridSearchCV(
         sk_model,
         param_grid,

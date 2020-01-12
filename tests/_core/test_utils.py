@@ -64,3 +64,5 @@ def test_simple_cache():
     assert cache.hits == 0 and cache.misses == 1
     assert "a" in cache
     assert cache.hits == 1 and cache.misses == 1
+    with pytest.raises(KeyError):
+        cache["b"]
