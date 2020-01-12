@@ -12,18 +12,21 @@ import sklearn.linear_model
 from numpy.testing import assert_array_equal, assert_allclose
 from sklearn import datasets
 from sklearn.exceptions import NotFittedError
-from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline, Pipeline
 
 from baikal import Model, Input
 from baikal._core.data_placeholder import DataPlaceholder
 from baikal._core.typing import ArrayLike
-from baikal.steps import Concatenate, Stack, Lambda
+from baikal.steps import Concatenate, ColumnStack, Stack, Lambda
 
 from tests.helpers.fixtures import teardown
 from tests.helpers.sklearn_steps import (
     LinearRegression,
     LogisticRegression,
+    LinearSVCOOF,
     RandomForestClassifier,
+    RandomForestClassifierOOF,
     ExtraTreesClassifier,
     PCA,
     LabelEncoder,
@@ -39,6 +42,7 @@ from tests.helpers.dummy_steps import (
 
 
 iris = datasets.load_iris()
+breast_cancer = datasets.load_breast_cancer()
 
 
 @contextmanager
@@ -51,6 +55,11 @@ skip_sklearn_0_22 = pytest.mark.skipif(
     reason="sklearn.utils.validation.check_is_fitted in 0.22 yields false positives "
     "when the class has private attributes."
     "see: https://github.com/scikit-learn/scikit-learn/issues/15845",
+)
+
+skip_sklearn_pre_0_22 = pytest.mark.skipif(
+    sklearn.__version__ < "0.22",
+    reason="StackingClassifier is not available prior to 0.22 ",
 )
 
 
@@ -344,6 +353,22 @@ class TestFit:
 
         model.fit([iris.data, iris.data], [iris.target, iris.target])
         assert step.fitted_
+
+    def test_fit_compute(self, teardown):
+        dummy_estimator_1 = DummyEstimator()
+        dummy_estimator_2 = DummyEstimator()
+
+        x = Input()
+        y_t = Input()
+        y_p1 = dummy_estimator_1(x, y_t, fit_compute_func=None)
+        y_p2 = dummy_estimator_2(x, y_t)
+        model = Model(x, [y_p1, y_p2], y_t)
+        model.fit(iris.data, iris.target)
+
+        assert dummy_estimator_1.fit_calls == 1
+        assert dummy_estimator_1.fit_predict_calls == 0
+        assert dummy_estimator_2.fit_calls == 0
+        assert dummy_estimator_2.fit_predict_calls == 1
 
 
 class TestPredict:
@@ -676,6 +701,69 @@ def test_fit_predict_naive_stack(teardown):
     assert_array_equal(y_pred_baikal, y_pred_traditional)
 
 
+@skip_sklearn_pre_0_22
+def test_fit_predict_standard_stack(teardown):
+    # This uses the "standard" protocol where the 2nd level features
+    # are the out-of-fold predictions of the 1st. It also appends the
+    # original data to the 2nd level features.
+    # See for example: https://www.kdnuggets.com/2017/02/stacking-models-imropved-predictions.html
+    X_data, y_t_data = breast_cancer.data, breast_cancer.target
+    X_train, X_test, y_t_train, y_t_test = train_test_split(
+        X_data, y_t_data, test_size=0.2, random_state=0
+    )
+    random_state = 42
+
+    # baikal way
+    x = Input()
+    y_t = Input()
+
+    y_p1 = RandomForestClassifierOOF(n_estimators=10, random_state=random_state)(
+        x, y_t, compute_func="predict_proba"
+    )
+    y_p1 = Lambda(lambda array: array[:, 1:])(y_p1)  # remove collinear feature
+
+    x_scaled = StandardScaler()(x)
+    y_p2 = LinearSVCOOF(random_state=random_state)(
+        x_scaled, y_t, compute_func="decision_function"
+    )
+
+    stacked_features = ColumnStack()([x, y_p1, y_p2])
+    y_p = LogisticRegression(solver="liblinear", random_state=random_state)(
+        stacked_features, y_t
+    )
+
+    model = Model(x, y_p, y_t)
+    model.fit(X_train, y_t_train)
+    y_pred_baikal = model.predict(X_test)
+
+    # traditional way
+    estimators = [
+        (
+            "rf",
+            sklearn.ensemble.RandomForestClassifier(
+                n_estimators=10, random_state=random_state
+            ),
+        ),
+        (
+            "svr",
+            make_pipeline(
+                sklearn.preprocessing.StandardScaler(),
+                sklearn.svm.LinearSVC(random_state=random_state),
+            ),
+        ),
+    ]
+    clf = sklearn.ensemble.StackingClassifier(
+        estimators=estimators,
+        final_estimator=sklearn.linear_model.LogisticRegression(
+            solver="liblinear", random_state=random_state
+        ),
+        passthrough=True,
+    )
+    y_pred_traditional = clf.fit(X_train, y_t_train).predict(X_test)
+
+    assert_array_equal(y_pred_baikal, y_pred_traditional)
+
+
 def test_fit_predict_naive_stack_with_proba_features(teardown):
     mask = iris.target != 2  # Reduce to binary problem to avoid ConvergenceWarning
     x_data = iris.data[mask]
@@ -692,8 +780,8 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     y_p2 = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)(
         x, y_t, compute_func="apply"
     )
-    y_p1 = Lambda(compute_func=lambda array: array[:, :-1])(y_p1)
-    y_p2 = Lambda(compute_func=lambda array: array[:, :-1])(y_p2)
+    y_p1 = Lambda(compute_func=lambda array: array[:, 1:])(y_p1)
+    y_p2 = Lambda(compute_func=lambda array: array[:, 1:])(y_p2)
     features = Concatenate(axis=1)([y_p1, y_p2])
     y_p = LogisticRegression(random_state=random_state)(features, y_t)
 
@@ -713,7 +801,7 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     random_forest_leafidx = random_forest.apply(x_data)
 
     features = np.concatenate(
-        [logreg_proba[:, :-1], random_forest_leafidx[:, :-1]], axis=1
+        [logreg_proba[:, 1:], random_forest_leafidx[:, 1:]], axis=1
     )
     stacked = sklearn.linear_model.LogisticRegression(random_state=random_state)
     stacked.fit(features, y_t_data)

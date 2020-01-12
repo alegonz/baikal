@@ -1,3 +1,4 @@
+import inspect
 import re
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
@@ -170,6 +171,43 @@ class _StepBase:
         self._set_step_attr("compute_func", value)
 
     @property
+    def fit_compute_func(self) -> Optional[Callable]:
+        """Get the fit-compute function of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Returns
+        -------
+        Callable
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
+        return self._get_step_attr("fit_compute_func")
+
+    @fit_compute_func.setter
+    def fit_compute_func(self, value: Optional[Callable]):
+        """Set the fit-compute function of the step.
+
+        You can use this only when the step has been called exactly once.
+
+        Parameters
+        ----------
+        value
+            fit-compute function of the step. Pass `None` to disable it.
+
+        Raises
+        ------
+        AttributeError
+            If the step has not been called yet or it is a shared step
+            (called several times).
+        """
+        self._set_step_attr("fit_compute_func", value)
+
+    @property
     def trainable(self) -> bool:
         """Get trainable flag of the step.
 
@@ -274,6 +312,33 @@ class _StepBase:
             Compute function of the step.
         """
         self._nodes[port].compute_func = value
+
+    def get_fit_compute_func_at(self, port: int) -> Optional[Callable]:
+        """Get fit-compute function at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port from which to get the fit-compute function.
+
+        Returns
+        -------
+        Callable or None
+        """
+        return self._nodes[port].fit_compute_func
+
+    def set_fit_compute_func_at(self, port: int, value: Optional[Callable]):
+        """Set fit-compute function at the specified port.
+
+        Parameters
+        ----------
+        port
+            Port on which to set the fit-compute function.
+
+        value
+            fit-compute function of the step. Pass `None` to disable it.
+        """
+        self._nodes[port].fit_compute_func = value
 
     def get_trainable_at(self, port: int) -> bool:
         """Get trainable flag at the specified port.
@@ -381,7 +446,7 @@ class Step(_StepBase):
         self._nodes = []  # type: List[Node]
 
     def _check_compute_func(self, compute_func):
-        if compute_func is None:
+        if compute_func == "auto":
             if hasattr(self, "predict"):
                 compute_func = self.predict
             elif hasattr(self, "transform"):
@@ -398,16 +463,39 @@ class Step(_StepBase):
                 pass
             else:
                 raise ValueError(
-                    "If specified, `function` must be either a " "string or a callable."
+                    "If specified, `compute_func` must be either a "
+                    "string or a callable."
                 )
         return compute_func
+
+    def _check_fit_compute_func(self, fit_compute_func):
+        if fit_compute_func == "auto":
+            if hasattr(self, "fit_predict"):
+                fit_compute_func = self.fit_predict
+            elif hasattr(self, "fit_transform"):
+                fit_compute_func = self.fit_transform
+            else:
+                fit_compute_func = None
+        else:
+            if isinstance(fit_compute_func, str):
+                fit_compute_func = getattr(self, fit_compute_func)
+            elif callable(fit_compute_func):
+                pass
+            elif fit_compute_func is None:
+                pass
+            else:
+                raise ValueError(
+                    "If specified, `fit_compute_func` must be either None, a string or a callable."
+                )
+        return fit_compute_func
 
     def __call__(
         self,
         inputs: Union[DataPlaceholder, List[DataPlaceholder]],
         targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None,
         *,
-        compute_func: Optional[Union[str, Callable[..., Any]]] = None,
+        compute_func: Union[str, Callable[..., Any]] = "auto",
+        fit_compute_func: Optional[Union[str, Callable[..., Any]]] = "auto",
         trainable: bool = True,
     ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the
@@ -430,8 +518,8 @@ class Step(_StepBase):
 
         compute_func
             Specifies which function must be used when computing the step during
-            the model graph execution. If None (default), it will use the predict
-            or the transform method (in that order). If a name string is passed,
+            the model graph execution. If `"auto"` (default), it will use the `predict`
+            or the `transform `method (in that order). If a name string is passed,
             it will use the method that matches the given name. If a callable is
             passed, it will use that callable when computing the step.
 
@@ -439,9 +527,37 @@ class Step(_StepBase):
             step (this is not checked, but will raise an error during graph
             execution if there is a mismatch).
 
-            scikit-learn classes typically implement a predict method (Estimators)
-            or a transform method (Transformers), but with this argument you can,
+            scikit-learn classes typically implement a `predict` method (Estimators)
+            or a `transform` method (Transformers), but with this argument you can,
             for example, specify `predict_proba` as the compute function.
+
+        fit_compute_func
+            Specifies which function must be used when fitting AND computing the step
+            during the model graph execution.
+
+            If `"auto"` (default), it will use the `fit_predict` or the `fit_transform`
+            method (in that order) if they are implemented, otherwise it will be
+            disabled. If a name string is passed, it will use the method that matches
+            the given name. If a callable is passed, it will use that callable when
+            fitting the step. If `None` is passed it will be ignored during graph
+            execution.
+
+            The number of inputs, outputs and targets, of the function must match those
+            of the step (this is not checked, but will raise an error during graph
+            execution if there is a mismatch).
+
+            By default, when a model is fit, the graph engine will for each step
+            1) execute `fit` to fit the step, and then 2) execute `compute_func` to
+            compute the outputs required by successor steps. If a step specifies a
+            `fit_compute_func`, the graph execution will use that instead to fit and
+            compute the outputs in a single call. This can be useful for
+
+            1. leveraging implementations of `fit_transform` that are more efficient
+                than calling `fit` and `transform` separately,
+            2. using transductive estimators,
+            3. implementing training protocols such as that of stacked classifiers,
+                where the classifier in the first stage might compute out-of-fold
+                predictions.
 
         trainable
             Whether the step is trainable (True) or not (False). This flag is only
@@ -503,10 +619,18 @@ class Step(_StepBase):
             targets = []
 
         outputs = self._build_outputs()
-        compute_func = self._check_compute_func(compute_func)
 
         self._nodes.append(
-            Node(self, inputs, outputs, targets, compute_func, trainable)
+            Node(
+                self,
+                inputs,
+                outputs,
+                targets,
+                getattr(self, "fit", None),
+                self._check_compute_func(compute_func),
+                self._check_fit_compute_func(fit_compute_func),
+                trainable,
+            )
         )
 
         if self._n_outputs == 1:
@@ -558,7 +682,16 @@ class InputStep(_StepBase):
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=1)
         self._nodes = [
-            Node(self, [], [DataPlaceholder(self, 0, self._name)], [], None, False)
+            Node(
+                self,
+                [],
+                [DataPlaceholder(self, 0, self._name)],
+                [],
+                None,
+                None,
+                None,
+                False,
+            )
         ]
 
     def __repr__(self):
@@ -595,15 +728,57 @@ class Node:
         inputs: List[DataPlaceholder],
         outputs: List[DataPlaceholder],
         targets: List[DataPlaceholder],
+        fit_func: Optional[Callable],
         compute_func: Callable,
+        fit_compute_func: Optional[Callable],
         trainable: bool,
     ):
-        self.step = step
-        self.inputs = inputs
-        self.outputs = outputs
-        self.targets = targets
+        self._step = step
+        self._inputs = inputs
+        self._outputs = outputs
+        self._targets = targets
+        self.fit_func = fit_func  # at present, fit is the same for all step calls
         self.compute_func = compute_func
+        self.fit_compute_func = fit_compute_func
         self.trainable = trainable
+
+    @property
+    def step(self):
+        return self._step
+
+    @step.setter
+    def step(self, new_step):
+        old_step = self._step
+        self._step = new_step
+
+        # Update outputs of old step to point to the new step
+        # Note that the dataplaceholders keep the name from the old step
+        # TODO: Maybe the output dataplaceholders should be replaced too
+        for output in self._outputs:
+            output._step = new_step
+
+        # Special process to transfer functions:
+        # if it is a bound method get the corresponding method bound to the
+        # new step otherwise leave it as is.
+        # Note that Step._check_[fit_]compute_func guarantees step.[fit_]compute_func
+        # is a callable (i.e: assert callable(old_step.[fit_]compute_func) passes)
+        for attr_name in ("fit_func", "compute_func", "fit_compute_func"):
+            old_attr = getattr(self, attr_name)
+            if inspect.ismethod(old_attr):
+                assert old_attr.__self__ is old_step
+                setattr(self, attr_name, getattr(new_step, old_attr.__name__))
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def outputs(self):
+        return self._outputs
+
+    @property
+    def targets(self):
+        return self._targets
 
 
 # Notes on typing:

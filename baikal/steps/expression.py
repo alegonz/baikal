@@ -65,7 +65,8 @@ class Lambda(Step):
         inputs: Union[DataPlaceholder, List[DataPlaceholder]],
         targets: Optional[Union[DataPlaceholder, List[DataPlaceholder]]] = None,
         *,
-        compute_func: Optional[Union[str, Callable[..., Any]]] = None,
+        compute_func: Union[str, Callable[..., Any]] = "auto",
+        fit_compute_func: Optional[Union[str, Callable[..., Any]]] = "auto",
         trainable: bool = True,
     ) -> Union[DataPlaceholder, List[DataPlaceholder]]:
         """Call the step on input(s) (from previous steps) and generates the

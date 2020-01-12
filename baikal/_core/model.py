@@ -1,4 +1,3 @@
-import inspect
 from collections import defaultdict
 from typing import Union, List, Dict, Set, Iterable, Optional
 
@@ -402,24 +401,36 @@ class Model(Step):
         results_cache.update(y_norm)
 
         for node in nodes:
+            # TODO: Add a step.current_port attribute.
+            # This attribute would be useful for introspection
+            # during graph runtime to know which port is currently
+            # under execution. This attribute can be used to choose
+            # the appropriate compute_func in fit_compute_func.
+            # The value would be always None when the graph is not
+            # running (i.e. executing Model.fit or Model.predict)
+            # and would be set to the appropriate value by the graph
+            # runtime via a context manager.
             Xs = [results_cache[i] for i in node.inputs]
+            successors = list(self.graph.successors(node))
 
-            # TODO: Use fit_transform if step has it
-            # 1) Fit phase
-            if hasattr(node.step, "fit") and node.trainable:
-                ys = [results_cache[t] for t in node.targets]
+            if not node.trainable:
+                if successors:
+                    self._compute_node(node, Xs, results_cache)
+                continue
 
-                fit_params = fit_params_steps.get(node.step, {})
+            ys = [results_cache[t] for t in node.targets]
+            fit_params = fit_params_steps.get(node.step, {})
 
-                # TODO: Add a try/except to catch missing output data errors (e.g. when forgot ensemble outputs)
-                if ys:
-                    node.step.fit(unlistify(Xs), unlistify(ys), **fit_params)
-                else:
-                    node.step.fit(unlistify(Xs), **fit_params)
+            if node.fit_compute_func is not None:
+                self._fit_compute_node(node, Xs, ys, results_cache, **fit_params)
+                continue
 
-            # 2) predict/transform phase
-            if list(self.graph.successors(node)):
-                self._compute_step(node, Xs, results_cache)
+            # ----- default behavior
+            if node.fit_func is not None:
+                self._fit_node(node, Xs, ys, **fit_params)
+
+            if successors:
+                self._compute_node(node, Xs, results_cache)
 
         return self
 
@@ -475,7 +486,7 @@ class Model(Step):
 
         for node in nodes:
             Xs = [results_cache[i] for i in node.inputs]
-            self._compute_step(node, Xs, results_cache)
+            self._compute_node(node, Xs, results_cache)
 
         output_data = [results_cache[o] for o in outputs]
         if len(output_data) == 1:
@@ -484,14 +495,34 @@ class Model(Step):
             return output_data
 
     @staticmethod
-    def _compute_step(node, Xs, cache):
+    def _fit_node(node, Xs, ys, **fit_params):
+        if ys:
+            node.fit_func(unlistify(Xs), unlistify(ys), **fit_params)
+        else:
+            node.fit_func(unlistify(Xs), **fit_params)
+
+    def _compute_node(self, node, Xs, cache):
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
         # TODO: Some regressors have extra options in their predict method, and they return a tuple of arrays.
         # https://scikit-learn.org/stable/glossary.html#term-predict
         output_data = node.compute_func(unlistify(Xs))
         output_data = listify(output_data)
+        self._update_cache(cache, output_data, node)
 
+    def _fit_compute_node(self, node, Xs, ys, cache, **fit_params):
+        # TODO: same as _compute_node TODO?
+        if ys:
+            output_data = node.fit_compute_func(
+                unlistify(Xs), unlistify(ys), **fit_params
+            )
+        else:
+            output_data = node.fit_compute_func(unlistify(Xs), **fit_params)
+        output_data = listify(output_data)
+        self._update_cache(cache, output_data, node)
+
+    @staticmethod
+    def _update_cache(cache, output_data, node):
         try:
             cache.update(safezip2(node.outputs, output_data))
         except ValueError as e:
@@ -575,24 +606,8 @@ class Model(Step):
 
         new_step._name = old_step._name
         new_step._nodes = old_step._nodes
-
         for node in new_step._nodes:
             node.step = new_step
-
-            # Update outputs of old step to point to the new step
-            # Note that the dataplaceholders keep the name from the old step
-            # TODO: Maybe the output dataplaceholders should be replaced too
-            for output in node.outputs:
-                output._step = new_step
-
-            # Special process to transfer the compute_func:
-            # if it is a bound method get the corresponding method bound to the
-            # new step otherwise leave it as is.
-            # Note that Step._check_compute_func guarantees step.compute_func is
-            # a callable (i.e: assert callable(old_step.compute_func) passes)
-            if inspect.ismethod(node.compute_func):
-                assert node.compute_func.__self__ is old_step
-                node.compute_func = getattr(new_step, node.compute_func.__name__)
 
         # Rebuild model
         self._build()

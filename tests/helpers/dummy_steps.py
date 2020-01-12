@@ -72,8 +72,24 @@ class _DummyEstimator(BaseEstimator):
     def __init__(self, x=123, y="abc"):
         self.x = x
         self.y = y
+        self.fit_calls = 0
+        self.fit_predict_calls = 0
 
     def predict(self, X):
+        return X
+
+    def predict_proba(self, X):
+        return X
+
+    def fit(self, X, y):
+        self.fit_calls += 1
+        return self
+
+    def fit_predict(self, X, y):
+        self.fit_predict_calls += 1
+        return X
+
+    def fit_predict_proba(self, X, y):
         return X
 
 

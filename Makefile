@@ -39,7 +39,7 @@ upload-cov:
 
 type-check:
 	. venv/bin/activate; \
-	mypy --ignore-missing-imports --allow-redefinition baikal/ tests/
+	mypy --ignore-missing-imports baikal/ tests/
 
 wheel: clean venv
 	. venv/bin/activate; \
