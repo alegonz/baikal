@@ -390,9 +390,9 @@ In order to use the plot utility, you need to install [pydot](https://pypi.org/p
 
 ## Examples
 
-### Stacked classifiers
+### Stacked classifiers (naive protocol)
 
-Similar to the the example in the quick-start above, stacks of classifiers (or regressors) can be built like shown below. Note that you can specify the function the step should use for computation, in this case `compute_func='predict_proba'` to use the label probabilities as the features of the meta-classifier.
+Similar to the the example in the quick-start above, (a naive) stacks of classifiers (or regressors) can be built like shown below. Note that you can specify the function the step should use for computation, in this case `compute_func='predict_proba'` to use the label probabilities as the features of the meta-classifier.
 
 ```python
 x = Input()
@@ -408,7 +408,7 @@ y_p = ExtraTreesClassifier()(ensemble_features, y_t)
 model = Model(x, y_p, y_t)
 ```
 
-Click [here](examples/stacked_classifiers.py) for a full example.
+Click [here](examples/stacked_classifiers_naive.py) for a full example.
 
 ### Classifier chain
 

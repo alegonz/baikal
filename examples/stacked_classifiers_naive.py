@@ -35,7 +35,7 @@ stacked_features = ColumnStack()([y_p1, y_p2])
 y_p = ExtraTreesClassifier(random_state=0)(stacked_features, y_t)
 
 model = Model(x, y_p, y_t)
-plot_model(model, filename="stacked_classifiers.png", dpi=96)
+plot_model(model, filename="stacked_classifiers_naive.png", dpi=96)
 
 # ------- Train model
 model.fit(X_train, y_train)
