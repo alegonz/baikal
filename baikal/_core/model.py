@@ -401,6 +401,15 @@ class Model(Step):
         results_cache.update(y_norm)
 
         for node in nodes:
+            # TODO: Add a step.current_port attribute.
+            # This attribute would be useful for introspection
+            # during graph runtime to know which port is currently
+            # under execution. This attribute can be used to choose
+            # the appropriate compute_func in fit_compute_func.
+            # The value would be always None when the graph is not
+            # running (i.e. executing Model.fit or Model.predict)
+            # and would be set to the appropriate value by the graph
+            # runtime via a context manager.
             Xs = [results_cache[i] for i in node.inputs]
             successors = list(self.graph.successors(node))
 
