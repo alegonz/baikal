@@ -774,8 +774,8 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     y_p2 = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)(
         x, y_t, compute_func="apply"
     )
-    y_p1 = Lambda(compute_func=lambda array: array[:, :-1])(y_p1)
-    y_p2 = Lambda(compute_func=lambda array: array[:, :-1])(y_p2)
+    y_p1 = Lambda(compute_func=lambda array: array[:, 1:])(y_p1)
+    y_p2 = Lambda(compute_func=lambda array: array[:, 1:])(y_p2)
     features = Concatenate(axis=1)([y_p1, y_p2])
     y_p = LogisticRegression(random_state=random_state)(features, y_t)
 
@@ -795,7 +795,7 @@ def test_fit_predict_naive_stack_with_proba_features(teardown):
     random_forest_leafidx = random_forest.apply(x_data)
 
     features = np.concatenate(
-        [logreg_proba[:, :-1], random_forest_leafidx[:, :-1]], axis=1
+        [logreg_proba[:, 1:], random_forest_leafidx[:, 1:]], axis=1
     )
     stacked = sklearn.linear_model.LogisticRegression(random_state=random_state)
     stacked.fit(features, y_t_data)
