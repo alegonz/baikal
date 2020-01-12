@@ -1,5 +1,8 @@
 version: 2.1
 
+sklearn_version_latest: &sklearn_version_latest 0.22.*
+sklearn_version_prev: &sklearn_version_prev 0.21.*
+
 test-defaults: &test-defaults
   parameters:
     sklearn_version:
@@ -60,20 +63,20 @@ workflows:
   build-deploy:
     jobs:
       - test-py36:
-          sklearn_version: "0.21.3"
+          sklearn_version: *sklearn_version_prev
       - test-py36:
-          sklearn_version: "0.22"
+          sklearn_version: *sklearn_version_latest
 
       - test-py37:
-          sklearn_version: "0.21.3"
+          sklearn_version: *sklearn_version_prev
       - test-py37:
           name: test-main
-          sklearn_version: "0.22"
+          sklearn_version: *sklearn_version_latest
 
       - test-py38:
-          sklearn_version: "0.21.3"
+          sklearn_version: *sklearn_version_prev
       - test-py38:
-          sklearn_version: "0.22"
+          sklearn_version: *sklearn_version_latest
 
       - build-wheel:
           requires:
