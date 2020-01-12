@@ -6,10 +6,10 @@ from typing import List, Dict
 import joblib
 import numpy as np
 import pytest
+import sklearn.ensemble
 import sklearn.linear_model
 from numpy.testing import assert_array_equal, assert_allclose
 from sklearn import datasets
-from sklearn.ensemble import StackingClassifier
 from sklearn.exceptions import NotFittedError
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline, Pipeline
@@ -735,7 +735,7 @@ def test_fit_predict_standard_stack(teardown):
         ("rf", RandomForestClassifier(n_estimators=10, random_state=random_state)),
         ("svr", make_pipeline(StandardScaler(), LinearSVC(random_state=random_state))),
     ]
-    clf = StackingClassifier(
+    clf = sklearn.ensemble.StackingClassifier(
         estimators=estimators,
         final_estimator=LogisticRegression(
             solver="liblinear", random_state=random_state
