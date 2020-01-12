@@ -73,8 +73,8 @@ workflows:
           name: test-main
           sklearn_version: *sklearn_version_latest
 
-      - test-py38:
-          sklearn_version: *sklearn_version_prev
+      # For py3.8 we only test 0.22.* or above
+      # see: https://github.com/scikit-learn/scikit-learn/issues/15328
       - test-py38:
           sklearn_version: *sklearn_version_latest
 
