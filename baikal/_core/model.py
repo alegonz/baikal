@@ -58,7 +58,7 @@ class Model(Step):
 
     trainable
         Whether the model is trainable (True) or not (False). Setting
-        `trainable=False` freezes the model. This flag is only meaningful when
+        ``trainable=False`` freezes the model. This flag is only meaningful when
         using the model as a step in a bigger model.
 
     Attributes
