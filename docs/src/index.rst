@@ -3,15 +3,26 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to baikal's documentation!
-==================================
+baikal
+======
+
+A graph-based functional API for building complex scikit-learn pipelines.
+
+**baikal** is written in pure Python. It supports Python 3.5 and above.
+
+Note: **baikal** is still a young project and there might be backward incompatible
+changes. The next development steps and backwards-incompatible changes are announced
+and discussed in `this issue <https://github.com/alegonz/baikal/issues/16>`__. Please
+subscribe to it if you use **baikal**.
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   api
-   baikal
+   introduction.rst
+   user_guide.rst
+   api.rst
 
 
 Indices and tables
