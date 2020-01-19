@@ -56,11 +56,6 @@ class Model(Step):
         Name of the model (optional). If no name is passed, a name will be
         automatically generated.
 
-    trainable
-        Whether the model is trainable (True) or not (False). Setting
-        ``trainable=False`` freezes the model. This flag is only meaningful when
-        using the model as a step in a bigger model.
-
     Attributes
     ----------
     graph
@@ -351,6 +346,7 @@ class Model(Step):
         ----------
         X
             Input data (independent variables). It can be either of:
+
                 - A single array-like object (in the case of a single input)
                 - A list of array-like objects (in the case of multiple inputs)
                 - A dictionary mapping DataPlaceholders (or their names) to
@@ -358,6 +354,7 @@ class Model(Step):
                   at instantiation.
         y
             Target data (dependent variables) (optional). It can be either of:
+
                 - None (in the case all steps are either non-trainable and/or
                   unsupervised learning steps)
                 - A single array-like object (in the case of a single target)
@@ -366,8 +363,8 @@ class Model(Step):
                   array-like objects. The keys must be among the targets passed
                   at instantiation.
 
-                Targets required by steps that were set as non-trainable might
-                be omitted.
+            Targets required by steps that were set as non-trainable might
+            be omitted.
 
         fit_params
             Parameters passed to the fit method of each model step, where each
@@ -459,26 +456,23 @@ class Model(Step):
         X: Union[ArrayLikes, DataDict],
         output_names: Optional[Union[str, List[str]]] = None,
     ) -> ArrayLikes:
-        """
-
-        **Models are query-able**. That is, you can request other outputs other
-        than those specified at model instantiation. This allows querying
-        intermediate outputs and ease debugging.
+        """Predict by applying the model on the given input data.
 
         Parameters
         ----------
         X
-            Input data. It follows the same format as in the fit function.
+            Input data. It follows the same format as in the ``fit`` method.
 
         output_names
             Names of required outputs (optional). You can specify any final or
             intermediate output by passing the name of its associated data
-            placeholder. If not specified, it will return the outputs specified
-            at instantiation.
+            placeholder. This is useful for debugging. If not specified, it will
+            return the outputs specified at instantiation.
 
         Returns
         -------
-        The computed outputs.
+        array-like or list of array-like
+            The computed outputs.
         """
         # Intermediate results are stored here
         results_cache = dict()  # type: Dict[DataPlaceholder, ArrayLike]

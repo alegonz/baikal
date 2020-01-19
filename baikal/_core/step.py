@@ -418,7 +418,10 @@ class Step(_StepBase):
         Targets of the step.
 
     compute_func
-        Function used when computing the step during the model graph execution.
+        Function used when computing the step at predict time.
+
+    fit_compute_func
+        Function used when fitting and computing the step at fit time.
 
     trainable
         Whether the step is trainable (True) or not (False).
