@@ -1,12 +1,18 @@
-.toggle .header {
+.toggle {
     display: block;
     clear: both;
+    white-space: pre;
+    pointer-events: none;
 }
 
-.toggle .header:after {
-    content: " ▶ Show";
+.toggle:before {
+    content: " ▶ Show full example";
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: all;
 }
 
-.toggle .header.open:after {
-    content: " ▼ Hide";
+.toggle.open:before {
+    content: " ▼ Hide full example";
+    font-weight: bold;
 }

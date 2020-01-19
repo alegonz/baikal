@@ -25,10 +25,6 @@ use the label probabilities as the features of the meta-classifier.
 
 .. container:: toggle
 
-    .. container:: header
-
-        **Full example**
-
     .. literalinclude:: ../../examples/stacked_classifiers_naive.py
 
 Stacked classifiers (standard protocol)
@@ -67,10 +63,6 @@ making the steps. **baikal** will then detect and use this method during fit.
 The rest of the stack is build exactly the same as in the naive example.
 
 .. container:: toggle
-
-    .. container:: header
-
-        **Full example**
 
     .. literalinclude:: ../../examples/stacked_classifiers_standard.py
 
@@ -111,10 +103,6 @@ categorical and continuous labels.
 
 .. container:: toggle
 
-    .. container:: header
-
-        **Full example**
-
     .. literalinclude:: ../../examples/classifier_chain.py
 
 Transformed target
@@ -140,9 +128,5 @@ inverse transform later in the pipeline.
     model = Model(x, y_p, y_t)
 
 .. container:: toggle
-
-    .. container:: header
-
-        **Full example**
 
     .. literalinclude:: ../../examples/transformed_target.py
