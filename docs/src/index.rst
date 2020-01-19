@@ -22,6 +22,7 @@ subscribe to it if you use **baikal**.
 
    introduction.rst
    user_guide.rst
+   examples.rst
    api.rst
 
 
