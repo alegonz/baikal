@@ -1,0 +1,5 @@
+Some notes
+==========
+
+* The trick to add collapsible block codes in the readthedocs template is from this
+  stackoverflow answer: https://stackoverflow.com/a/25543713

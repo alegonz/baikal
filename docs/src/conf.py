@@ -55,3 +55,8 @@ html_static_path = ["_static"]
 # -- Options for autodoc -----------------------------------------------------
 
 autodoc_typehints = "none"
+
+
+# -- -------------------------------------------------------------------------
+def setup(app):
+    app.add_stylesheet("custom.css")
