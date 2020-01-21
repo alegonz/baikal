@@ -83,6 +83,11 @@ html_last_updated_fmt = "%b %d, %Y"
 
 autodoc_typehints = "none"
 
+autodoc_default_options = {
+    "members": True,
+    "member-order": "bysource",
+}
+
 
 # -- -------------------------------------------------------------------------
 def setup(app):
