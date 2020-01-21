@@ -8,15 +8,15 @@ from baikal.steps import Step
 def make_step(base_class, attr_dict=None):
     """Creates a step subclass from the given base class.
 
-    For example, calling
+    For example, calling::
 
-    >>> PCA = make_step(sklearn.decomposition.PCA)
+        PCA = make_step(sklearn.decomposition.PCA)
 
-    is equivalent to
+    is equivalent to::
 
-    >>> class PCA(Step, sklearn.decomposition.PCA):
-    >>>     def __init__(self, name=None, n_outputs=1, **kwargs):
-    >>>         super().__init__(name=name, n_outputs=n_outputs, **kwargs)
+        class PCA(Step, sklearn.decomposition.PCA):
+            def __init__(self, name=None, n_outputs=1, **kwargs):
+                super().__init__(name=name, n_outputs=n_outputs, **kwargs)
 
     Parameters
     ----------

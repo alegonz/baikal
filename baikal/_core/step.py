@@ -428,13 +428,16 @@ class Step(_StepBase):
 
     Examples
     --------
-    >>> import sklearn.linear_model
-    >>> # The order of inheritance is important!
-    >>> class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    >>>     def __init__(self, name=None, **kwargs):
-    >>>         super().__init__(name=name, **kwargs)
-    >>>
-    >>> logreg = LogisticRegression(C=2.0)
+    ::
+
+        import sklearn.linear_model
+        # The order of inheritance is important!
+        class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
+            def __init__(self, name=None, **kwargs):
+                super().__init__(name=name, **kwargs)
+
+        logreg = LogisticRegression(C=2.0)
+
     """
 
     if TYPE_CHECKING:  # pragma: no cover
@@ -522,7 +525,7 @@ class Step(_StepBase):
         compute_func
             Specifies which function must be used when computing the step during
             the model graph execution. If ``"auto"`` (default), it will use the ``predict``
-            or the ``transform ``method (in that order). If a name string is passed,
+            or the ``transform`` method (in that order). If a name string is passed,
             it will use the method that matches the given name. If a callable is
             passed, it will use that callable when computing the step.
 
@@ -556,11 +559,11 @@ class Step(_StepBase):
             compute the outputs in a single call. This can be useful for
 
             1. leveraging implementations of ``fit_transform`` that are more efficient
-                than calling ``fit`` and ``transform`` separately,
+               than calling ``fit`` and ``transform`` separately,
             2. using transductive estimators,
             3. implementing training protocols such as that of stacked classifiers,
-                where the classifier in the first stage might compute out-of-fold
-                predictions.
+               where the classifier in the first stage might compute out-of-fold
+               predictions.
 
         trainable
             Whether the step is trainable (True) or not (False). This flag is only
