@@ -37,6 +37,22 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# The version info for the project you're documenting, acts as replacement for
+# |version| and |release|, also used in various other places throughout the
+# built documents.
+#
+# The short X.Y version.
+import baikal
+
+version = baikal.__version__
+# The full version, including alpha/beta/rc tags.
+release = version
+
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = "default"
+
+highlight_language = "python3"
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -46,10 +62,21 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # html_theme = 'alabaster'
 html_theme = "sphinx_rtd_theme"
 
+# Add any paths that contain custom themes here, relative to this directory.
+# Add path to the RTD explicitly to robustify builds (otherwise might
+# fail in a clean Debian build env)
+import sphinx_rtd_theme
+
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
+# using the given strftime format.
+html_last_updated_fmt = "%b %d, %Y"
 
 
 # -- Options for autodoc -----------------------------------------------------
