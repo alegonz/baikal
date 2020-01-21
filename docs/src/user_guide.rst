@@ -88,10 +88,7 @@ API walkthrough
 
 As shown in the short example above, the **baikal** API consists of four basic steps:
 
-1. Define the steps
-2. Build the model
-3. Train the model
-4. Use the model
+.. contents:: :local:
 
 Let's take a look at each of them in detail. Full examples can be found in the project's
 `examples <examples>`__ folder.
