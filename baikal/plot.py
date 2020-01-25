@@ -29,10 +29,13 @@ def dummy_node(name):
     )
 
 
+# TODO: Don't make this a module global variable
+node_names = {}  # type: Dict[_Node, str]
+sub_dot_nodes = {}  # type: Dict[_Node, Tuple]
+
+
 def build_dot_model(model, container, expand_nested, level):
     root_name = model.name
-    node_names = {}  # type: Dict[_Node, str]
-    sub_dot_nodes = {}  # type: Dict[_Node, Tuple]
 
     # Add nodes
     for node in model.graph:
@@ -135,12 +138,24 @@ def build_dot_model(model, container, expand_nested, level):
 
     else:
         # Add output edges of the root model
-        for output in model._internal_outputs:
+        outputs = find_outputs(model, expand_nested)
+        for output in outputs:
             src = node_names[output.node]
             dst = _make_name(root_name, output.name)
             label = output.name
             container.add_node(dummy_node(dst))
             container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
+
+
+# TODO: Rename this function
+def find_outputs(model, expand_nested):
+    outputs = []
+    for output in model._internal_outputs:
+        if expand_nested and isinstance(output.node.step, _Model):
+            outputs.extend(find_outputs(output.node.step, expand_nested))
+        else:
+            outputs.append(output)
+    return outputs
 
 
 # TODO: Add option to not plot targets
