@@ -1,6 +1,6 @@
 import io
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 try:
     import pydot
@@ -29,11 +29,12 @@ def dummy_node(name):
     )
 
 
-def build_dot_model(model, container):
+def build_dot_model(model, container, expand_nested, level):
     root_name = model.name
     node_names = {}  # type: Dict[_Node, str]
+    sub_dot_nodes = {}  # type: Dict[_Node, Tuple]
 
-    # TODO: handle nested model
+    # Add nodes
     for node in model.graph:
         if isinstance(node.step, _InputStep):
             name = _make_name(root_name, node.step.name)
@@ -41,26 +42,105 @@ def build_dot_model(model, container):
             dot_node = pydot.Node(
                 name=name, label=label, shape="invhouse", color="green"
             )
+            container.add_node(dot_node)
+
+        elif isinstance(node.step, _Model) and expand_nested:
+            name = _make_name(root_name, node.name)
+            label = node.name
+            cluster = pydot.Cluster(graph_name=name, label=label, style="dashed")
+            container.add_subgraph(cluster)
+            sub_dot_nodes[node] = build_dot_model(
+                node.step, cluster, expand_nested, level + 1
+            )
+
         else:
             name = _make_name(root_name, node.name)
             label = node.name
             dot_node = pydot.Node(name=name, label=label, shape="rect")
-        container.add_node(dot_node)
+            container.add_node(dot_node)
+
         node_names[node] = name
 
-    for from_node, to_node, dataplaceholders in model.graph.edges:
+    # Add edges
+    for parent_node, node, dataplaceholders in model.graph.edges:
         for d in dataplaceholders:
-            color = "orange" if d in to_node.targets else "black"
-            src, dst = node_names[from_node], node_names[to_node]
-            dot_edge = pydot.Edge(src=src, dst=dst, label=d.name, color=color)
+            color = "orange" if d in node.targets else "black"
+
+            if expand_nested and (
+                isinstance(parent_node.step, _Model) or isinstance(node.step, _Model)
+            ):
+                if isinstance(parent_node.step, _Model) and not isinstance(
+                    node.step, _Model
+                ):
+                    # Case 1: submodel -> step
+                    output_srcs, _, _ = sub_dot_nodes[parent_node]
+                    src, label = output_srcs[parent_node.outputs.index(d)]
+                    dst = node_names[node]
+
+                elif not isinstance(parent_node.step, _Model) and isinstance(
+                    node.step, _Model
+                ):
+                    # Case 2: step -> submodel
+                    src = node_names[parent_node]
+
+                    if d in node.targets:
+                        _, _, target_dsts = sub_dot_nodes[node]
+                        dst = target_dsts[node.targets.index(d)]
+                    else:
+                        _, input_dsts, _ = sub_dot_nodes[node]
+                        dst = input_dsts[node.inputs.index(d)]
+                    label = d.name
+
+                else:
+                    # Case 3: submodel -> submodel
+                    output_srcs, _, _ = sub_dot_nodes[parent_node]
+                    src, label = output_srcs[parent_node.outputs.index(d)]
+
+                    if d in node.targets:
+                        _, _, target_dsts = sub_dot_nodes[node]
+                        dst = target_dsts[node.targets.index(d)]
+                    else:
+                        _, input_dsts, _ = sub_dot_nodes[node]
+                        dst = input_dsts[node.inputs.index(d)]
+
+            else:
+                # Not expanded case, or step -> step case
+                color = "orange" if d in node.targets else "black"
+                src = node_names[parent_node]
+                dst = node_names[node]
+                label = d.name
+
+            dot_edge = pydot.Edge(src=src, dst=dst, label=label, color=color)
             container.add_edge(dot_edge)
 
-    for output in model._internal_outputs:
-        src = node_names[output.node]
-        dst = _make_name(root_name, output.name)
-        label = output.name
-        container.add_node(dummy_node(dst))
-        container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
+    if expand_nested and level > 0:
+        # Return the dot nodes of the submodel where the enclosing model should
+        # connect the edges of the steps that precede and follow the submodel
+        dot_input_dst = []
+        for input in model._internal_inputs:
+            dst = node_names[input.node]
+            dot_input_dst.append(dst)
+
+        dot_target_dst = []
+        for target in model._internal_targets:
+            dst = node_names[target.node]
+            dot_target_dst.append(dst)
+
+        dot_output_src = []
+        for output in model._internal_outputs:
+            src = node_names[output.node]
+            label = output.name
+            dot_output_src.append((src, label))
+        return dot_output_src, dot_input_dst, dot_target_dst
+
+    else:
+        # Add output edges of the root model
+        for output in model._internal_outputs:
+            src = node_names[output.node]
+            dst = _make_name(root_name, output.name)
+            label = output.name
+            container.add_node(dummy_node(dst))
+            container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
 
 
 # TODO: Add option to not plot targets
@@ -118,7 +198,7 @@ def plot_model(
 
     dot_graph = pydot.Dot(graph_type="digraph", **dot_kwargs)
 
-    build_dot_model(model, dot_graph)
+    build_dot_model(model, dot_graph, expand_nested, 0)
 
     # save plot
     if filename:
