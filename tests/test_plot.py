@@ -7,9 +7,8 @@ from tests.helpers.fixtures import teardown
 from tests.helpers.dummy_steps import DummyMIMO, DummySIMO, DummySISO, DummyMISO
 
 
-@pytest.mark.parametrize("include_targets", [True, False])
 @pytest.mark.parametrize("expand_nested", [True, False])
-def test_plot_model(teardown, tmp_path, include_targets, expand_nested):
+def test_plot_model(teardown, tmp_path, expand_nested):
     # Below is a very contrived dummy model
 
     # ------- Sub-model 1
@@ -42,9 +41,5 @@ def test_plot_model(teardown, tmp_path, include_targets, expand_nested):
 
     filename = str(tmp_path / "test_plot_model.png")
     plot_model(
-        model,
-        filename,
-        show=False,
-        include_targets=include_targets,
-        expand_nested=expand_nested,
+        model, filename, show=False, expand_nested=expand_nested,
     )
