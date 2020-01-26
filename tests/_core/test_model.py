@@ -38,6 +38,9 @@ from tests.helpers.dummy_steps import (
     DummyMISO,
     DummyImproperlyDefined,
     DummyEstimator,
+    DummyStepWithFaultyFit,
+    DummyStepWithFaultyFitPredict,
+    DummyStepWithFaultyPredict,
 )
 
 
@@ -484,6 +487,32 @@ class TestPredict:
         y2 = doubler(x2)
         model = Model([x1, x2], [y1, y2])
         assert model.predict([2, 3]) == [4, 6]
+
+
+def test_try_and_reraise(teardown):
+    x = Input()
+    y = DummyStepWithFaultyPredict(name="faultystep")(x)
+    model = Model(x, y)
+    with pytest.raises(
+        ValueError, match="some failure \(compute failed at: faultystep/0\)"
+    ):
+        model.predict(123)
+
+    x = Input()
+    y = DummyStepWithFaultyFit(name="faultystep")(x)
+    model = Model(x, y)
+    with pytest.raises(
+        ValueError, match="some failure \(fit failed at: faultystep/0\)"
+    ):
+        model.fit(123)
+
+    x = Input()
+    y = DummyStepWithFaultyFitPredict(name="faultystep")(x)
+    model = Model(x, y)
+    with pytest.raises(
+        ValueError, match="some failure \(fit_compute failed at: faultystep/0\)"
+    ):
+        model.fit(123)
 
 
 def test_steps_cache(teardown):

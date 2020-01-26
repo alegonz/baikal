@@ -68,6 +68,27 @@ class DummyImproperlyDefined(Step):
         return X + 1.0, X - 1.0
 
 
+class DummyStepWithFaultyFit(Step):
+    def predict(self, X):
+        raise ValueError("some failure")
+
+    def fit(self, X):
+        raise ValueError("some failure")
+
+
+class DummyStepWithFaultyFitPredict(Step):
+    def predict(self, X):
+        raise ValueError("some failure")
+
+    def fit_predict(self, X):
+        raise ValueError("some failure")
+
+
+class DummyStepWithFaultyPredict(Step):
+    def predict(self, X):
+        raise ValueError("some failure")
+
+
 class _DummyEstimator(BaseEstimator):
     def __init__(self, x=123, y="abc"):
         self.x = x

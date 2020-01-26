@@ -13,6 +13,27 @@ ArrayLikes = Union[ArrayLike, List[ArrayLike]]
 DataDict = Dict[Union[DataPlaceholder, str], ArrayLike]
 
 
+def try_and_reraise(action):
+    """Decorator to re-raise exception with information about where in the model
+    the error happened. See https://stackoverflow.com/a/6062799 (Update 2) for details.
+    """
+
+    def decorator(func):
+        def decorated(self, *args, **kwargs):
+            node = args[0]
+            try:
+                return func(self, *args, **kwargs)
+            except Exception as e:
+                import sys
+
+                message = "{} ({} failed at: {})".format(str(e), action, node.name)
+                raise type(e)(message).with_traceback(sys.exc_info()[2])
+
+        return decorated
+
+    return decorator
+
+
 # TODO: Update docstrings
 class Model(Step):
     """A Model is a network (more precisely, a directed acyclic graph) of Steps,
@@ -494,13 +515,14 @@ class Model(Step):
         else:
             return output_data
 
-    @staticmethod
-    def _fit_node(node, Xs, ys, **fit_params):
+    @try_and_reraise(action="fit")
+    def _fit_node(self, node, Xs, ys, **fit_params):
         if ys:
             node.fit_func(unlistify(Xs), unlistify(ys), **fit_params)
         else:
             node.fit_func(unlistify(Xs), **fit_params)
 
+    @try_and_reraise(action="compute")
     def _compute_node(self, node, Xs, cache):
         # TODO: Raise warning if computed output is already in cache.
         # This happens when recomputing a step that had a subset of its outputs already passed in the inputs.
@@ -510,6 +532,7 @@ class Model(Step):
         output_data = listify(output_data)
         self._update_cache(cache, output_data, node)
 
+    @try_and_reraise(action="fit_compute")
     def _fit_compute_node(self, node, Xs, ys, cache, **fit_params):
         # TODO: same as _compute_node TODO?
         if ys:
