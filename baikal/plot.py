@@ -1,6 +1,6 @@
 import io
 import os
-from typing import Set, Tuple, Optional
+from typing import Optional
 
 try:
     import pydot
@@ -11,16 +11,174 @@ except ImportError:  # pragma: no cover
         "`pip install baikal[viz]`"
     )
 
-from baikal._core.model import Model, Step
-from baikal._core.utils import safezip2
+from baikal._core.model import Model as _Model
+from baikal._core.step import InputStep as _InputStep
+from baikal._core.utils import make_name as _make_name, safezip2 as _safezip2
 
 
-# TODO: Add option to plot targets
+def _is_model(node):
+    return isinstance(node.step, _Model)
+
+
+def _is_input(node):
+    return isinstance(node.step, _InputStep)
+
+
+class _DotTransformer:
+    def __init__(self, expand_nested, **dot_kwargs):
+        self.expand_nested = expand_nested
+        self.dot_kwargs = dot_kwargs
+        self.node_names = {}
+        self.inner_dot_nodes = {}
+
+    def transform(self, model, outer_port=0, container=None, level=None):
+        """Transform model graph to a dot graph. It will transform nested sub-models
+        recursively, in which case it returns the dot nodes of the sub-model where the
+        enclosing model should connect the edges of the steps that precede and follow
+        the sub-model.
+        """
+        container = (
+            pydot.Dot(graph_type="digraph", **self.dot_kwargs)
+            if container is None
+            else container
+        )
+        level = 0 if level is None else level
+        root_name = _make_name(model.name, outer_port)
+
+        # Add nodes
+        for node in model.graph:
+            if _is_input(node):
+                name = _make_name(root_name, node.step.name)
+                label = node.step.name
+                dot_node = pydot.Node(
+                    name=name, label=label, shape="invhouse", color="green"
+                )
+                container.add_node(dot_node)
+
+            elif _is_model(node) and self.expand_nested:
+                name = _make_name(root_name, node.name)
+                label = node.name
+                cluster = pydot.Cluster(graph_name=name, label=label, style="dashed")
+                container.add_subgraph(cluster)
+                self.inner_dot_nodes[outer_port, node] = self.transform(
+                    node.step, node.port, cluster, level + 1
+                )
+
+            else:
+                name = _make_name(root_name, node.name)
+                label = node.name
+                dot_node = pydot.Node(name=name, label=label, shape="rect")
+                container.add_node(dot_node)
+
+            self.node_names[outer_port, node] = name
+
+        # Add edges
+        for parent_node, node, dataplaceholders in model.graph.edges:
+            for d in dataplaceholders:
+                color = "orange" if d in node.targets else "black"
+
+                if (_is_model(parent_node) or _is_model(node)) and self.expand_nested:
+
+                    if _is_model(parent_node):
+                        output_srcs, *_ = self.inner_dot_nodes[outer_port, parent_node]
+                        src = output_srcs[parent_node.outputs.index(d)]
+                    else:
+                        src = self.node_names[outer_port, parent_node]
+
+                    if _is_model(node):
+                        if d in node.targets:
+                            *_, target_dsts = self.inner_dot_nodes[outer_port, node]
+                            dst = target_dsts[node.targets.index(d)]
+                        else:
+                            _, input_dsts, _ = self.inner_dot_nodes[outer_port, node]
+                            dst = input_dsts[node.inputs.index(d)]
+                    else:
+                        dst = self.node_names[outer_port, node]
+
+                else:
+                    # Not expanded case, or step -> step case
+                    color = "orange" if d in node.targets else "black"
+                    src = self.node_names[outer_port, parent_node]
+                    dst = self.node_names[outer_port, node]
+
+                label = d.name
+                dot_edge = pydot.Edge(src=src, dst=dst, label=label, color=color)
+                container.add_edge(dot_edge)
+
+        if self.expand_nested and level > 0:
+            return self.get_internal_dot_nodes(model, outer_port)
+
+        else:
+            self.build_output_edges(model, outer_port, container)
+
+        return container
+
+    def get_internal_dot_nodes(self, model, outer_port):
+        """Get the dot nodes of the submodel where the enclosing model should
+        connect the edges of the steps that precede and follow the submodel.
+        """
+        dot_input_dst = []
+        for input in model._internal_inputs:
+            dst = self.node_names[outer_port, input.node]
+            dot_input_dst.append(dst)
+        dot_target_dst = []
+        for target in model._internal_targets:
+            dst = self.node_names[outer_port, target.node]
+            dot_target_dst.append(dst)
+        dot_output_src = []
+        for output in model._internal_outputs:
+            src = self.node_names[outer_port, output.node]
+            dot_output_src.append(src)
+        return dot_output_src, dot_input_dst, dot_target_dst
+
+    def build_output_edges(self, model, outer_port, container):
+        root_name = _make_name(model.name, outer_port)
+        keys = self.get_innermost_outputs_keys(model, outer_port)
+        for (outer_port, inner_output), output in _safezip2(
+            keys, model._internal_outputs
+        ):
+            src = self.node_names[outer_port, inner_output.node]
+            dst = _make_name(root_name, output.name)
+            label = output.name
+            container.add_node(self.dummy_dot_node(dst))
+            container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
+
+    def get_innermost_outputs_keys(self, model, outer_port):
+        """Get (outer_port, node) keys of the output placeholders at the innermost level.
+
+        When the final step of a model is a sub-model and expand_nested is True, we plot
+        the sub-models internal outputs as the model outputs. It the sub-model itself
+        contains a sub-model, we continue recursively until hitting a non-Model step.
+        """
+        keys = []
+        for output in model._internal_outputs:
+            if self.expand_nested and _is_model(output.node):
+                keys.extend(
+                    self.get_innermost_outputs_keys(output.node.step, output.port)
+                )
+            else:
+                keys.append((outer_port, output))
+        return keys
+
+    @staticmethod
+    def dummy_dot_node(name):
+        return pydot.Node(
+            name=name,
+            shape="rect",
+            color="white",
+            fontcolor="white",
+            fixedsize=True,
+            width=0.0,
+            height=0.0,
+            fontsize=0.0,
+        )
+
+
+# TODO: Add option to not plot targets
 def plot_model(
-    model: Model,
+    model: _Model,
     filename: Optional[str] = None,
     show: bool = False,
-    include_targets: bool = True,
     expand_nested: bool = False,
     prog: str = "dot",
     **dot_kwargs
@@ -40,9 +198,6 @@ def plot_model(
 
     show
         Whether to display the plot in the screen or not. Requires matplotlib.
-
-    include_targets
-        Whether to include the model targets or not.
 
     expand_nested
         Whether to expand any nested models or not (display the nested model as
@@ -72,109 +227,8 @@ def plot_model(
     >>> plt.show()
     """
 
-    dot_graph = pydot.Dot(graph_type="digraph", **dot_kwargs)
-    nodes_built = set()  # type: Set[Step]
-    edges_built = set()  # type: Set[Tuple[Step, Step, str]]
-
-    def dummy_node(name):
-        return pydot.Node(
-            name=name,
-            shape="rect",
-            color="white",
-            fontcolor="white",
-            fixedsize=True,
-            width=0.0,
-            height=0.0,
-            fontsize=0.0,
-        )
-
-    def get_internal_output(model_output):
-        model = model_output.step
-        index = model.outputs.index(model_output)
-        internal_output = model._internal_outputs[index]
-        return internal_output
-
-    def build_step(step, is_input_or_target, container):
-        if is_input_or_target:
-            node = pydot.Node(name=step.name, shape="invhouse", color="green")
-        else:
-            node = pydot.Node(name=step.name, shape="rect")
-
-        container.add_node(node)
-
-        # Build incoming edges
-        for input in step.inputs:
-            build_edge(input.step, step, input, "black", container)
-
-        if include_targets:
-            for target in step.targets:
-                build_edge(target.step, step, target, "orange", container)
-
-    def build_edge(from_step, to_step, dataplaceholder, color, container):
-        if isinstance(dataplaceholder.step, Model) and expand_nested:
-            from_step = get_internal_output(dataplaceholder).step
-
-        edge_key = (from_step, to_step, dataplaceholder)
-
-        src = from_step.name
-        label = dataplaceholder.name
-        if to_step is None:
-            container.add_node(dummy_node(label))
-            dst = label
-        else:
-            dst = to_step.name
-
-        if edge_key not in edges_built:
-            container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color=color))
-            edges_built.add(edge_key)
-
-    def build_nested_model(model_, container):
-        name = model_.name
-        cluster = pydot.Cluster(graph_name=name, label=name, style="dashed")
-
-        for internal_output in model_._internal_outputs:
-            build_dot_from(model_, internal_output, cluster)
-
-        container.add_subgraph(cluster)
-
-        # Connect with outer model
-        for input, _input in safezip2(model_.inputs, model_._internal_inputs):
-            build_edge(input.step, _input.step, input, "black", container)
-
-        if include_targets:
-            for target, _target in safezip2(model_.targets, model_._internal_targets):
-                build_edge(target.step, _target.step, target, "orange", container)
-
-    def build_dot_from(model_, output_, container=None):
-        if container is None:
-            container = dot_graph
-
-        parent_step = output_.step
-
-        if parent_step in nodes_built:
-            return
-
-        if isinstance(parent_step, Model) and expand_nested:
-            build_nested_model(parent_step, container)
-        else:
-            is_input_or_target = parent_step in [
-                _dp.step for _dp in model_._internal_inputs + model_._internal_targets
-            ]
-            build_step(parent_step, is_input_or_target, container)
-
-        nodes_built.add(parent_step)
-
-        # Continue building
-        for input in parent_step.inputs:
-            build_dot_from(model_, input)
-
-        if include_targets:
-            for target in parent_step.targets:
-                build_dot_from(model_, target)
-
-    for output in model._internal_outputs:
-        build_dot_from(model, output)
-        build_edge(output.step, None, output, "black", dot_graph)
+    dot_transformer = _DotTransformer(expand_nested, **dot_kwargs)
+    dot_graph = dot_transformer.transform(model)
 
     # save plot
     if filename:
@@ -183,7 +237,7 @@ def plot_model(
             fh.write(dot_graph.create(format=ext.lstrip(".").lower(), prog=prog))
 
     # display graph via matplotlib
-    if show:
+    if show:  # pragma: no cover
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
 

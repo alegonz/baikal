@@ -780,6 +780,14 @@ class Node:
     def targets(self):
         return self._targets
 
+    @property
+    def port(self):
+        return self.step._nodes.index(self)
+
+    @property
+    def name(self):
+        return make_name(self.step.name, self.port)
+
 
 # Notes on typing:
 # mypy produces false positives with mixins, so we use type: ignore
