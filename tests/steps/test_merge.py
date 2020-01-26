@@ -67,3 +67,16 @@ def test_split(x, indices_or_sections, teardown):
 
     for actual, expected in safezip2(y_pred, y_expected):
         assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("step_class", [ColumnStack, Concatenate, Stack])
+def test_single_input(step_class, teardown):
+    x = Input()
+    y = step_class()(x)
+    model = Model(x, y)
+
+    x_data = np.array([[1, 2], [3, 4]])
+    if step_class is Stack:
+        assert_array_equal(x_data.reshape((2, 2, 1)), model.predict(x_data))
+    else:
+        assert_array_equal(x_data, model.predict(x_data))

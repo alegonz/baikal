@@ -1,6 +1,7 @@
 import numpy as np
 
 from baikal._core.step import Step
+from baikal._core.utils import listify as _listify
 
 
 class Concatenate(Step):
@@ -11,7 +12,7 @@ class Concatenate(Step):
         self.axis = axis
 
     def transform(self, Xs):
-        return np.concatenate(Xs, axis=self.axis)
+        return np.concatenate(_listify(Xs), axis=self.axis)
 
 
 class Stack(Step):
@@ -22,7 +23,7 @@ class Stack(Step):
         self.axis = axis
 
     def transform(self, Xs):
-        return np.stack(Xs, axis=self.axis)
+        return np.stack(_listify(Xs), axis=self.axis)
 
 
 class ColumnStack(Step):
@@ -32,7 +33,7 @@ class ColumnStack(Step):
         super().__init__(name=name)
 
     def transform(self, Xs):
-        return np.column_stack(Xs)
+        return np.column_stack(_listify(Xs))
 
 
 class Split(Step):
