@@ -29,9 +29,9 @@ class _DotTransformer:
         self.expand_nested = expand_nested
         self.dot_kwargs = dot_kwargs
         self.node_names = {}
-        self.sub_internal_dot_nodes = {}
+        self.inner_dot_nodes = {}
 
-    def transform(self, model, container=None, level=None):
+    def transform(self, model, outer_port=0, container=None, level=None):
         """Transform model graph to a dot graph. It will transform nested sub-models
         recursively, in which case it returns the dot nodes of the sub-model where the
         enclosing model should connect the edges of the steps that precede and follow
@@ -43,7 +43,7 @@ class _DotTransformer:
             else container
         )
         level = 0 if level is None else level
-        root_name = model.name
+        root_name = _make_name(model.name, outer_port)
 
         # Add nodes
         for node in model.graph:
@@ -60,8 +60,8 @@ class _DotTransformer:
                 label = node.name
                 cluster = pydot.Cluster(graph_name=name, label=label, style="dashed")
                 container.add_subgraph(cluster)
-                self.sub_internal_dot_nodes[node] = self.transform(
-                    node.step, cluster, level + 1
+                self.inner_dot_nodes[outer_port, node] = self.transform(
+                    node.step, node.port, cluster, level + 1
                 )
 
             else:
@@ -70,7 +70,7 @@ class _DotTransformer:
                 dot_node = pydot.Node(name=name, label=label, shape="rect")
                 container.add_node(dot_node)
 
-            self.node_names[node] = name
+            self.node_names[outer_port, node] = name
 
         # Add edges
         for parent_node, node, dataplaceholders in model.graph.edges:
@@ -81,95 +81,101 @@ class _DotTransformer:
 
                     if _is_model(parent_node) and not _is_model(node):
                         # Case 1: submodel -> step
-                        output_srcs, _, _ = self.sub_internal_dot_nodes[parent_node]
+                        output_srcs, _, _ = self.inner_dot_nodes[
+                            outer_port, parent_node
+                        ]
                         src, label = output_srcs[parent_node.outputs.index(d)]
-                        dst = self.node_names[node]
+                        dst = self.node_names[outer_port, node]
 
                     elif not _is_model(parent_node) and _is_model(node):
                         # Case 2: step -> submodel
-                        src = self.node_names[parent_node]
+                        src = self.node_names[outer_port, parent_node]
 
                         if d in node.targets:
-                            _, _, target_dsts = self.sub_internal_dot_nodes[node]
+                            _, _, target_dsts = self.inner_dot_nodes[outer_port, node]
                             dst = target_dsts[node.targets.index(d)]
                         else:
-                            _, input_dsts, _ = self.sub_internal_dot_nodes[node]
+                            _, input_dsts, _ = self.inner_dot_nodes[outer_port, node]
                             dst = input_dsts[node.inputs.index(d)]
                         label = d.name
 
                     else:
                         # Case 3: submodel -> submodel
-                        output_srcs, _, _ = self.sub_internal_dot_nodes[parent_node]
+                        output_srcs, _, _ = self.inner_dot_nodes[
+                            outer_port, parent_node
+                        ]
                         src, label = output_srcs[parent_node.outputs.index(d)]
 
                         if d in node.targets:
-                            _, _, target_dsts = self.sub_internal_dot_nodes[node]
+                            _, _, target_dsts = self.inner_dot_nodes[outer_port, node]
                             dst = target_dsts[node.targets.index(d)]
                         else:
-                            _, input_dsts, _ = self.sub_internal_dot_nodes[node]
+                            _, input_dsts, _ = self.inner_dot_nodes[outer_port, node]
                             dst = input_dsts[node.inputs.index(d)]
 
                 else:
                     # Not expanded case, or step -> step case
                     color = "orange" if d in node.targets else "black"
-                    src = self.node_names[parent_node]
-                    dst = self.node_names[node]
+                    src = self.node_names[outer_port, parent_node]
+                    dst = self.node_names[outer_port, node]
                     label = d.name
 
                 dot_edge = pydot.Edge(src=src, dst=dst, label=label, color=color)
                 container.add_edge(dot_edge)
 
         if self.expand_nested and level > 0:
-            return self.get_internal_dot_nodes(model)
+            return self.get_internal_dot_nodes(model, outer_port)
 
         else:
-            self.build_output_edges(model, container)
+            self.build_output_edges(model, outer_port, container)
 
         return container
 
-    def get_internal_dot_nodes(self, model):
+    def get_internal_dot_nodes(self, model, outer_port):
         """Get the dot nodes of the submodel where the enclosing model should
         connect the edges of the steps that precede and follow the submodel.
         """
         dot_input_dst = []
         for input in model._internal_inputs:
-            dst = self.node_names[input.node]
+            dst = self.node_names[outer_port, input.node]
             dot_input_dst.append(dst)
         dot_target_dst = []
         for target in model._internal_targets:
-            dst = self.node_names[target.node]
+            dst = self.node_names[outer_port, target.node]
             dot_target_dst.append(dst)
         dot_output_src = []
         for output in model._internal_outputs:
-            src = self.node_names[output.node]
+            src = self.node_names[outer_port, output.node]
             label = output.name
             dot_output_src.append((src, label))
         return dot_output_src, dot_input_dst, dot_target_dst
 
-    def build_output_edges(self, model, container):
-        root_name = model.name
-        outputs = self.get_innermost_outputs(model)
-        for output in outputs:
-            src = self.node_names[output.node]
-            dst = _make_name(root_name, output.name)
+    def build_output_edges(self, model, outer_port, container):
+        root_name = _make_name(model.name, outer_port)
+        keys = self.get_innermost_outputs_keys(model, outer_port)
+        for outer_port, output in keys:
+            src = self.node_names[outer_port, output.node]
+            dst = _make_name(root_name, outer_port, output.name)
             label = output.name
             container.add_node(self.dummy_dot_node(dst))
             container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
 
-    def get_innermost_outputs(self, model):
-        """Get the output placeholders at the innermost level.
+    def get_innermost_outputs_keys(self, model, outer_port):
+        """Get (outer_port, node) keys of the output placeholders at the innermost level.
 
         When the final step of a model is a sub-model and expand_nested is True, we plot
         the sub-models internal outputs as the model outputs. It the sub-model itself
         contains a sub-model, we continue recursively until hitting a non-Model step.
         """
-        outputs = []
+        keys = []
         for output in model._internal_outputs:
             if self.expand_nested and _is_model(output.node):
-                outputs.extend(self.get_innermost_outputs(output.node.step))
+                keys.extend(
+                    self.get_innermost_outputs_keys(output.node.step, output.port)
+                )
             else:
-                outputs.append(output)
-        return outputs
+                keys.append((outer_port, output))
+        return keys
 
     @staticmethod
     def dummy_dot_node(name):
