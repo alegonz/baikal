@@ -79,38 +79,21 @@ class _DotTransformer:
 
                 if (_is_model(parent_node) or _is_model(node)) and self.expand_nested:
 
-                    if _is_model(parent_node) and not _is_model(node):
-                        # Case 1: submodel -> step
-                        output_srcs, _, _ = self.inner_dot_nodes[
-                            outer_port, parent_node
-                        ]
+                    if _is_model(parent_node):
+                        output_srcs, *_ = self.inner_dot_nodes[outer_port, parent_node]
                         src = output_srcs[parent_node.outputs.index(d)]
-                        dst = self.node_names[outer_port, node]
-
-                    elif not _is_model(parent_node) and _is_model(node):
-                        # Case 2: step -> submodel
+                    else:
                         src = self.node_names[outer_port, parent_node]
 
+                    if _is_model(node):
                         if d in node.targets:
-                            _, _, target_dsts = self.inner_dot_nodes[outer_port, node]
+                            *_, target_dsts = self.inner_dot_nodes[outer_port, node]
                             dst = target_dsts[node.targets.index(d)]
                         else:
                             _, input_dsts, _ = self.inner_dot_nodes[outer_port, node]
                             dst = input_dsts[node.inputs.index(d)]
-
                     else:
-                        # Case 3: submodel -> submodel
-                        output_srcs, _, _ = self.inner_dot_nodes[
-                            outer_port, parent_node
-                        ]
-                        src = output_srcs[parent_node.outputs.index(d)]
-
-                        if d in node.targets:
-                            _, _, target_dsts = self.inner_dot_nodes[outer_port, node]
-                            dst = target_dsts[node.targets.index(d)]
-                        else:
-                            _, input_dsts, _ = self.inner_dot_nodes[outer_port, node]
-                            dst = input_dsts[node.inputs.index(d)]
+                        dst = self.node_names[outer_port, node]
 
                 else:
                     # Not expanded case, or step -> step case
