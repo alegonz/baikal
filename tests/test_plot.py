@@ -7,6 +7,15 @@ from tests.helpers.fixtures import teardown
 from tests.helpers.dummy_steps import DummyMIMO, DummySIMO, DummySISO, DummyMISO
 from tests.helpers.sklearn_steps import LogisticRegression
 
+PNG_FILENAME = "test_plot_model.png"
+
+
+def build_submodel(step, number):
+    x = Input(name="x_sub{}".format(number))
+    y_t = Input(name="y_t_sub{}".format(number))
+    y_p = step(x, y_t)
+    return Model(x, y_p, y_t)
+
 
 @pytest.mark.parametrize("expand_nested", [True, False])
 def test_plot_model(teardown, tmp_path, expand_nested):
@@ -34,33 +43,64 @@ def test_plot_model(teardown, tmp_path, expand_nested):
     z1, z2 = submodel1([h1, h2], y_t_trans)
     w = DummyMISO()([z1, z2])
 
-    # a completely independent pipeline
-    u = Input(name="u")
-    v = DummySISO()(u)
-
-    model = Model([x, u], [w, v], y_t, name="main_model")
+    model = Model(x, w, y_t, name="main_model")
 
     filename = str(tmp_path / "test_plot_model.png")
     plot_model(model, filename, show=False, expand_nested=expand_nested)
 
 
+@pytest.mark.parametrize("expand_nested", [True, False])
+def test_plot_independent_submodels(teardown, tmp_path, expand_nested):
+    xs, y_ts, y_ps, steps = [], [], [], []
+
+    for i in range(3):
+        step = (
+            LogisticRegression() if i == 0 else build_submodel(LogisticRegression(), i)
+        )
+        x = Input(name="x{}".format(i))
+        y_t = Input(name="y_t{}".format(i))
+        y_p = step(x, y_t)
+        xs.append(x)
+        y_ts.append(y_t)
+        y_ps.append(y_p)
+
+    model = Model(xs, y_ps, y_ts)
+
+    filename = str(tmp_path / "test_plot_model.png")
+    plot_model(model, filename, show=False, expand_nested=expand_nested)
+
+
+@pytest.mark.parametrize("expand_nested", [True, False])
+def test_plot_shared_submodel(teardown, tmp_path, expand_nested):
+    xs, y_ts, y_ps = [], [], []
+    submodel = build_submodel(LogisticRegression(), 0)
+
+    for i in range(2):
+        x = Input(name="x{}".format(i))
+        y_t = Input(name="y_t{}".format(i))
+        y_p = submodel(x, y_t)
+        xs.append(x)
+        y_ts.append(y_t)
+        y_ps.append(y_p)
+
+    model = Model(xs, y_ps, y_ts)
+
+    filename = str(tmp_path / PNG_FILENAME)
+    plot_model(model, filename, show=False, expand_nested=expand_nested)
+
+
 @pytest.mark.parametrize("levels", [0, 1, 2, 3])
 @pytest.mark.parametrize("expand_nested", [True, False])
-def test_plot_nested(teardown, tmp_path, levels, expand_nested):
-    def build_model(step, level):
-        x = Input(name="x_sub{}".format(level))
-        y_t = Input(name="y_t_sub{}".format(level))
-        y_p = step(x, y_t)
-        return Model(x, y_p, y_t)
+def test_plot_nested_submodels(teardown, tmp_path, levels, expand_nested):
 
-    sub_models = [LogisticRegression()]
+    submodels = [LogisticRegression()]
     for level in range(levels):
-        sub_model = build_model(sub_models[level], level + 1)
-        sub_models.append(sub_model)
+        sub_model = build_submodel(submodels[level], level + 1)
+        submodels.append(sub_model)
 
     x = Input(name="x")
     y_t = Input(name="y_t")
-    y_p = sub_models[-1](x, y_t)
+    y_p = submodels[-1](x, y_t)
     model = Model(x, y_p, y_t)
 
     filename = str(tmp_path / "test_plot_model.png")
