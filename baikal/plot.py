@@ -237,7 +237,7 @@ def plot_model(
     >>> plt.show()
     """
 
-    dot_transformer = _DotTransformer(expand_nested)
+    dot_transformer = _DotTransformer(expand_nested, **dot_kwargs)
     dot_graph = dot_transformer.transform(model)
 
     # save plot
