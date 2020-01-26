@@ -1,3 +1,5 @@
+__all__ = ["SKLearnWrapper"]
+
 from typing import Dict, Any, Callable
 
 from baikal import Model

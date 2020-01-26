@@ -1,6 +1,8 @@
+__all__ = ["make_step"]
+
 import inspect
 
-from baikal import Step
+from baikal.steps import Step
 
 
 def make_step(base_class, attr_dict=None):

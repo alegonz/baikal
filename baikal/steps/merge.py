@@ -1,6 +1,8 @@
+__all__ = ["Concatenate", "Stack", "ColumnStack", "Split"]
+
 import numpy as np
 
-from baikal._core.step import Step
+from baikal.steps import Step
 from baikal._core.utils import listify as _listify
 
 
