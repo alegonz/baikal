@@ -1,6 +1,6 @@
 import io
 import os
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional
 
 try:
     import pydot
@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover
     )
 
 from baikal._core.model import Model as _Model
-from baikal._core.step import InputStep as _InputStep, Node as _Node
+from baikal._core.step import InputStep as _InputStep
 from baikal._core.utils import make_name as _make_name
 
 
@@ -28,12 +28,10 @@ class _DotTransformer:
     def __init__(self, expand_nested, **dot_kwargs):
         self.expand_nested = expand_nested
         self.dot_kwargs = dot_kwargs
-        self.node_names = {}  # type: Dict[_Node, str]
-        self.sub_internal_dot_nodes = {}  # type: Dict[_Node, Tuple]
+        self.node_names = {}
+        self.sub_internal_dot_nodes = {}
 
-    def transform(
-        self, model: _Model, container=None, level=None
-    ) -> Union[pydot.Dot, Tuple]:
+    def transform(self, model, container=None, level=None):
         container = (
             pydot.Dot(graph_type="digraph", **self.dot_kwargs)
             if container is None
