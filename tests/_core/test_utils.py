@@ -8,6 +8,7 @@ from baikal._core.utils import (
     safezip2,
     find_duplicated_items,
     SimpleCache,
+    make_name,
 )
 
 
@@ -46,6 +47,11 @@ def test_safezip2(x, y, raises):
     with raises:
         z = list(safezip2(x, y))
         assert z == list(zip(x, y))
+
+
+@pytest.mark.parametrize("sep,expected", [("/", "x/y"), (":", "x:y"),])
+def test_make_name(sep, expected):
+    assert make_name("x", "y", sep=sep)
 
 
 @pytest.mark.parametrize(

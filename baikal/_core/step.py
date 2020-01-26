@@ -647,7 +647,7 @@ class Step(_StepBase):
         port = len(self._nodes)
         outputs = []
         for i in range(self._n_outputs):
-            name = make_name(self._name, port, i)
+            name = make_name(make_name(self._name, port, sep=":"), i)
             outputs.append(DataPlaceholder(self, port, name))
         return outputs
 
@@ -786,7 +786,7 @@ class Node:
 
     @property
     def name(self):
-        return make_name(self.step.name, self.port)
+        return make_name(self.step.name, self.port, sep=":")
 
 
 # Notes on typing:
