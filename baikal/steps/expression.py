@@ -1,10 +1,12 @@
 # Unfortunately we cannot name this module lambda.py so
 # we are stuck with this unintuitive module name.
+__all__ = ["Lambda"]
+
 from functools import partial
 from typing import Optional, Any, Callable, Union, List
 
+from baikal.steps import Step
 from baikal._core.data_placeholder import DataPlaceholder
-from baikal._core.step import Step
 
 
 class Lambda(Step):

@@ -1,3 +1,5 @@
+__all__ = ["plot_model"]
+
 import io
 import os
 from typing import Optional
@@ -11,17 +13,16 @@ except ImportError:  # pragma: no cover
         "`pip install baikal[viz]`"
     )
 
-from baikal._core.model import Model as _Model
-from baikal._core.step import InputStep as _InputStep
-from baikal._core.utils import make_name as _make_name, safezip2 as _safezip2
+from baikal import Model
+from baikal._core.utils import make_name, safezip2
 
 
 def _is_model(node):
-    return isinstance(node.step, _Model)
+    return isinstance(node.step, Model)
 
 
 def _is_input(node):
-    return isinstance(node.step, _InputStep)
+    return not node.inputs
 
 
 class _DotTransformer:
@@ -43,12 +44,12 @@ class _DotTransformer:
             else container
         )
         level = 0 if level is None else level
-        root_name = _make_name(model.name, outer_port)
+        root_name = make_name(model.name, outer_port)
 
         # Add nodes
         for node in model.graph:
             if _is_input(node):
-                name = _make_name(root_name, node.step.name)
+                name = make_name(root_name, node.step.name)
                 label = node.step.name
                 dot_node = pydot.Node(
                     name=name, label=label, shape="invhouse", color="green"
@@ -56,7 +57,7 @@ class _DotTransformer:
                 container.add_node(dot_node)
 
             elif _is_model(node) and self.expand_nested:
-                name = _make_name(root_name, node.name)
+                name = make_name(root_name, node.name)
                 label = node.name
                 cluster = pydot.Cluster(graph_name=name, label=label, style="dashed")
                 container.add_subgraph(cluster)
@@ -65,7 +66,7 @@ class _DotTransformer:
                 )
 
             else:
-                name = _make_name(root_name, node.name)
+                name = make_name(root_name, node.name)
                 label = node.name
                 dot_node = pydot.Node(name=name, label=label, shape="rect")
                 container.add_node(dot_node)
@@ -132,13 +133,13 @@ class _DotTransformer:
         return dot_output_src, dot_input_dst, dot_target_dst
 
     def build_output_edges(self, model, outer_port, container):
-        root_name = _make_name(model.name, outer_port)
+        root_name = make_name(model.name, outer_port)
         keys = self.get_innermost_outputs_keys(model, outer_port)
-        for (outer_port, inner_output), output in _safezip2(
+        for (outer_port, inner_output), output in safezip2(
             keys, model._internal_outputs
         ):
             src = self.node_names[outer_port, inner_output.node]
-            dst = _make_name(root_name, output.name)
+            dst = make_name(root_name, output.name)
             label = output.name
             container.add_node(self.dummy_dot_node(dst))
             container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
@@ -176,7 +177,7 @@ class _DotTransformer:
 
 # TODO: Add option to not plot targets
 def plot_model(
-    model: _Model,
+    model: Model,
     filename: Optional[str] = None,
     show: bool = False,
     expand_nested: bool = False,
