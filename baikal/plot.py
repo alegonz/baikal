@@ -32,6 +32,11 @@ class _DotTransformer:
         self.sub_internal_dot_nodes = {}
 
     def transform(self, model, container=None, level=None):
+        """Transform model graph to a dot graph. It will transform nested sub-models
+        recursively, in which case it returns the dot nodes of the sub-model where the
+        enclosing model should connect the edges of the steps that precede and follow
+        the sub-model.
+        """
         container = (
             pydot.Dot(graph_type="digraph", **self.dot_kwargs)
             if container is None
@@ -126,7 +131,7 @@ class _DotTransformer:
 
     def get_internal_dot_nodes(self, model):
         """Get the dot nodes of the submodel where the enclosing model should
-        connect the edges of the steps that precede and follow the submodel
+        connect the edges of the steps that precede and follow the submodel.
         """
         dot_input_dst = []
         for input in model._internal_inputs:
