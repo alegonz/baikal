@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - Add support for shared steps ([PR #19](https://github.com/alegonz/baikal/pull/19)). Now steps can be called several times on different inputs.
-    - **This is a backwards-incompatible change.** The outputs of the steps now follow the following format: `step_name/port/output_number`.
+    - **This is a backwards-incompatible change.** The outputs of the steps now follow the following format: `step_name:port/output_number`.
       (Previously it was `step_name/output_number`)
 - Add option to include targets in `plot_model` ([PR #20](https://github.com/alegonz/baikal/pull/20)).
 
