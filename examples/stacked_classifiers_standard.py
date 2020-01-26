@@ -45,8 +45,9 @@ y_p1 = LogisticRegression(solver="liblinear", random_state=0)(
 )
 y_p2 = RandomForestClassifier(random_state=0)(x, y_t, compute_func="predict_proba")
 # predict_proba returns arrays whose columns sum to one, so we drop one column
-y_p1 = Lambda(lambda array: array[:, 1:])(y_p1)
-y_p2 = Lambda(lambda array: array[:, 1:])(y_p2)
+drop_first_col = Lambda(lambda array: array[:, 1:])
+y_p1 = drop_first_col(y_p1)
+y_p2 = drop_first_col(y_p2)
 stacked_features = ColumnStack()([y_p1, y_p2])
 y_p = ExtraTreesClassifier(random_state=0)(stacked_features, y_t)
 

@@ -28,20 +28,21 @@ random.shuffle(order)
 x = Input()
 y_t = Input()
 
+squeeze = Lambda(np.squeeze, axis=1)
+
 ys_t = Split(n_targets, axis=1)(y_t)
 ys_p = []
 for j, k in enumerate(order):
     x_stacked = ColumnStack()(inputs=[x, *ys_p[:j]])
-    ys_t[k] = Lambda(np.squeeze, axis=1)(ys_t[k])
+    ys_t[k] = squeeze(ys_t[k])
     ys_p.append(LogisticRegression(solver="lbfgs")(x_stacked, ys_t[k]))
 
 ys_p = [ys_p[order.index(j)] for j in range(n_targets)]
 y_p = ColumnStack()(ys_p)
 
 model = Model(inputs=x, outputs=y_p, targets=y_t)
-plot_model(
-    model, filename="classifier_chain.png", dpi=96
-)  # This might take a few seconds
+# This might take a few seconds
+plot_model(model, filename="classifier_chain.png", dpi=96)
 
 # ------- Train model
 model.fit(X_train, Y_train)

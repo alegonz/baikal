@@ -20,9 +20,9 @@ SVC = make_step(sklearn.svm.SVC)
 PowerTransformer = make_step(sklearn.preprocessing.PowerTransformer)
 
 # 2. Build the model
-x1 = Input()
-x2 = Input()
-y_t = Input()
+x1 = Input(name="x1")
+x2 = Input(name="x2")
+y_t = Input(name="y_t")
 
 y1 = ExtraTreesClassifier()(x1, y_t)
 y2 = RandomForestClassifier()(x2, y_t)
@@ -56,5 +56,5 @@ y_test_pred = model.predict([X1_test, X2_test])
 
 # We can also query any intermediate outputs:
 outs = model.predict(
-    [X1_test, X2_test], output_names=["ExtraTreesClassifier_0/0", "PCA_0/0"]
+    [X1_test, X2_test], output_names=["ExtraTreesClassifier_0/0/0", "PCA_0/0/0"]
 )

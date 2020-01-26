@@ -10,6 +10,7 @@ from sklearn.metrics import median_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
 from baikal import make_step, Input, Model
+from baikal.plot import plot_model
 from baikal.steps import Lambda
 
 
@@ -34,7 +35,9 @@ y_t_trans = Lambda(np.reshape, newshape=(-1, 1))(y_t)
 y_t_trans = transformer(y_t_trans)
 y_p_trans = RidgeCV()(x, y_t_trans)
 y_p = transformer(y_p_trans, compute_func="inverse_transform", trainable=False)
+
 model = Model(x, y_p, y_t)
+plot_model(model, filename="transformed_target.png", dpi=96)
 
 # ------- Train model
 model.fit(X_train, y_train)

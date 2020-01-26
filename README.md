@@ -400,8 +400,9 @@ y_t = Input()
 y_p1 = LogisticRegression()(x, y_t, compute_func="predict_proba")
 y_p2 = RandomForestClassifier()(x, y_t, compute_func="predict_proba")
 # predict_proba returns arrays whose columns sum to one, so we drop one column
-y_p1 = Lambda(lambda array: array[:, 1:])(y_p1)
-y_p2 = Lambda(lambda array: array[:, 1:])(y_p2)
+drop_first_col = Lambda(lambda array: array[:, 1:])
+y_p1 = drop_first_col(y_p1)
+y_p2 = drop_first_col(y_p2)
 ensemble_features = ColumnStack()([y_p1, y_p2])
 y_p = ExtraTreesClassifier()(ensemble_features, y_t)
 
@@ -447,11 +448,13 @@ y_t = Input()
 order = list(range(n_targets))
 random.shuffle(order)
 
+squeeze = Lambda(np.squeeze, axis=1)
+
 ys_t = Split(n_targets, axis=1)(y_t)
 ys_p = []
 for j, k in enumerate(order):
     x_stacked = ColumnStack()([x, *ys_p[:j]])
-    ys_t[k] = Lambda(np.squeeze, axis=1)(ys_t[k])
+    ys_t[k] = squeeze(ys_t[k])
     ys_p.append(LogisticRegression()(x_stacked, ys_t[k]))
 
 ys_p = [ys_p[order.index(j)] for j in range(n_targets)]
