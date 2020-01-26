@@ -16,12 +16,12 @@ from baikal._core.step import InputStep as _InputStep
 from baikal._core.utils import make_name as _make_name
 
 
-def _is_model(step):
-    return isinstance(step, _Model)
+def _is_model(node):
+    return isinstance(node.step, _Model)
 
 
-def _is_input(step):
-    return isinstance(step, _InputStep)
+def _is_input(node):
+    return isinstance(node.step, _InputStep)
 
 
 class _DotTransformer:
@@ -47,7 +47,7 @@ class _DotTransformer:
 
         # Add nodes
         for node in model.graph:
-            if _is_input(node.step):
+            if _is_input(node):
                 name = _make_name(root_name, node.step.name)
                 label = node.step.name
                 dot_node = pydot.Node(
@@ -55,7 +55,7 @@ class _DotTransformer:
                 )
                 container.add_node(dot_node)
 
-            elif _is_model(node.step) and self.expand_nested:
+            elif _is_model(node) and self.expand_nested:
                 name = _make_name(root_name, node.name)
                 label = node.name
                 cluster = pydot.Cluster(graph_name=name, label=label, style="dashed")
@@ -77,17 +77,15 @@ class _DotTransformer:
             for d in dataplaceholders:
                 color = "orange" if d in node.targets else "black"
 
-                if (
-                    _is_model(parent_node.step) or _is_model(node.step)
-                ) and self.expand_nested:
+                if (_is_model(parent_node) or _is_model(node)) and self.expand_nested:
 
-                    if _is_model(parent_node.step) and not _is_model(node.step):
+                    if _is_model(parent_node) and not _is_model(node):
                         # Case 1: submodel -> step
                         output_srcs, _, _ = self.sub_internal_dot_nodes[parent_node]
                         src, label = output_srcs[parent_node.outputs.index(d)]
                         dst = self.node_names[node]
 
-                    elif not _is_model(parent_node.step) and _is_model(node.step):
+                    elif not _is_model(parent_node) and _is_model(node):
                         # Case 2: step -> submodel
                         src = self.node_names[parent_node]
 
@@ -167,7 +165,7 @@ class _DotTransformer:
         """
         outputs = []
         for output in model._internal_outputs:
-            if self.expand_nested and _is_model(output.node.step):
+            if self.expand_nested and _is_model(output.node):
                 outputs.extend(self.get_innermost_outputs(output.node.step))
             else:
                 outputs.append(output)
