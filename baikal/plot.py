@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover
 
 from baikal._core.model import Model as _Model
 from baikal._core.step import InputStep as _InputStep
-from baikal._core.utils import make_name as _make_name
+from baikal._core.utils import make_name as _make_name, safezip2 as _safezip2
 
 
 def _is_model(node):
@@ -84,7 +84,7 @@ class _DotTransformer:
                         output_srcs, _, _ = self.inner_dot_nodes[
                             outer_port, parent_node
                         ]
-                        src, label = output_srcs[parent_node.outputs.index(d)]
+                        src = output_srcs[parent_node.outputs.index(d)]
                         dst = self.node_names[outer_port, node]
 
                     elif not _is_model(parent_node) and _is_model(node):
@@ -97,14 +97,13 @@ class _DotTransformer:
                         else:
                             _, input_dsts, _ = self.inner_dot_nodes[outer_port, node]
                             dst = input_dsts[node.inputs.index(d)]
-                        label = d.name
 
                     else:
                         # Case 3: submodel -> submodel
                         output_srcs, _, _ = self.inner_dot_nodes[
                             outer_port, parent_node
                         ]
-                        src, label = output_srcs[parent_node.outputs.index(d)]
+                        src = output_srcs[parent_node.outputs.index(d)]
 
                         if d in node.targets:
                             _, _, target_dsts = self.inner_dot_nodes[outer_port, node]
@@ -118,8 +117,8 @@ class _DotTransformer:
                     color = "orange" if d in node.targets else "black"
                     src = self.node_names[outer_port, parent_node]
                     dst = self.node_names[outer_port, node]
-                    label = d.name
 
+                label = d.name
                 dot_edge = pydot.Edge(src=src, dst=dst, label=label, color=color)
                 container.add_edge(dot_edge)
 
@@ -146,16 +145,17 @@ class _DotTransformer:
         dot_output_src = []
         for output in model._internal_outputs:
             src = self.node_names[outer_port, output.node]
-            label = output.name
-            dot_output_src.append((src, label))
+            dot_output_src.append(src)
         return dot_output_src, dot_input_dst, dot_target_dst
 
     def build_output_edges(self, model, outer_port, container):
         root_name = _make_name(model.name, outer_port)
         keys = self.get_innermost_outputs_keys(model, outer_port)
-        for outer_port, output in keys:
-            src = self.node_names[outer_port, output.node]
-            dst = _make_name(root_name, outer_port, output.name)
+        for (outer_port, inner_output), output in _safezip2(
+            keys, model._internal_outputs
+        ):
+            src = self.node_names[outer_port, inner_output.node]
+            dst = _make_name(root_name, output.name)
             label = output.name
             container.add_node(self.dummy_dot_node(dst))
             container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
