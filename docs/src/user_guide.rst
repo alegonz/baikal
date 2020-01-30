@@ -218,6 +218,7 @@ scikit-learn API, as it has a ``fit`` method:
     model.fit(X=[X1_train, X2_train], y=y_train)
 
 .. autofunction:: baikal.Model.fit
+    :noindex:
 
 4. Use the model
 ~~~~~~~~~~~~~~~~
@@ -234,6 +235,7 @@ all the steps and produce the outputs specified at instantiation.
     y_test_pred = model.predict({x1: X1_test, x2: X2_test})
 
 .. autofunction:: baikal.Model.predict
+    :noindex:
 
 **Models are query-able**. That is, you can request other outputs other than those specified
 at model instantiation. This allows querying intermediate outputs and ease debugging.

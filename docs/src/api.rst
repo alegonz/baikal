@@ -10,4 +10,14 @@ baikal.Step
 Step
 ~~~~
 
-.. autoclass:: baikal.Step
+
+.. rubric:: Classes
+
+.. currentmodule:: baikal
+.. autosummary::
+    :toctree: _generated/
+    :nosignatures:
+    :template: class.rst
+
+    Step
+    Model
