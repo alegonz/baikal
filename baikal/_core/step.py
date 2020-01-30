@@ -398,7 +398,7 @@ class Step(_StepBase):
 
     n_outputs
         The number of outputs of the step's function (predict, transform, or
-        any other callable passed in the ``function`` argument).
+        any other callable passed in the ``compute_func`` argument).
 
     Attributes
     ----------
