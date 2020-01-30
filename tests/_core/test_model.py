@@ -8,7 +8,9 @@ import numpy as np
 import pytest
 import sklearn.ensemble
 import sklearn.linear_model
+from _pytest.python_api import RaisesContext
 from numpy.testing import assert_array_equal, assert_allclose
+from pytest import fail
 from sklearn import datasets
 from sklearn.exceptions import NotFittedError
 from sklearn.model_selection import train_test_split
@@ -46,6 +48,27 @@ from tests.helpers.dummy_steps import (
 
 iris = datasets.load_iris()
 breast_cancer = datasets.load_breast_cancer()
+
+
+class RaisesWithCause(RaisesContext):
+    def __init__(self, expected_exception, expected_cause, message, match_expr=None):
+        super().__init__(expected_exception, message, match_expr)
+        self.expected_cause = expected_cause
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if super().__exit__(exc_type, exc_val, exc_tb):
+            if exc_val.__cause__ is None:
+                fail(self.message)
+            if isinstance(exc_val.__cause__, self.expected_cause):
+                return True
+        return False
+
+
+def raises_with_cause(expected_exception, expected_cause):
+    message = "DID NOT RAISE {} WITH CAUSE {}".format(
+        expected_exception, expected_cause
+    )
+    return RaisesWithCause(expected_exception, expected_cause, message)
 
 
 @contextmanager
