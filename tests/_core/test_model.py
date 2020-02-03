@@ -8,7 +8,9 @@ import numpy as np
 import pytest
 import sklearn.ensemble
 import sklearn.linear_model
+from _pytest.python_api import RaisesContext
 from numpy.testing import assert_array_equal, assert_allclose
+from pytest import fail
 from sklearn import datasets
 from sklearn.exceptions import NotFittedError
 from sklearn.model_selection import train_test_split
@@ -46,6 +48,27 @@ from tests.helpers.dummy_steps import (
 
 iris = datasets.load_iris()
 breast_cancer = datasets.load_breast_cancer()
+
+
+class RaisesWithCause(RaisesContext):
+    def __init__(self, expected_exception, expected_cause, message, match_expr=None):
+        super().__init__(expected_exception, message, match_expr)
+        self.expected_cause = expected_cause
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if super().__exit__(exc_type, exc_val, exc_tb):
+            if exc_val.__cause__ is None:
+                fail(self.message)
+            if isinstance(exc_val.__cause__, self.expected_cause):
+                return True
+        return False
+
+
+def raises_with_cause(expected_exception, expected_cause):
+    message = "DID NOT RAISE {} WITH CAUSE {}".format(
+        expected_exception, expected_cause
+    )
+    return RaisesWithCause(expected_exception, expected_cause, message)
 
 
 @contextmanager
@@ -268,7 +291,7 @@ class TestFit:
         x = Input()
         y = LogisticRegression()(x, trainable=True)
         model = Model(inputs=x, outputs=y)
-        with pytest.raises(TypeError):
+        with raises_with_cause(RuntimeError, TypeError):
             # LogisticRegression.fit will be called with not enough arguments
             # hence the TypeError
             model.fit(iris.data)
@@ -312,7 +335,7 @@ class TestFit:
         z = PCA()(x, trainable=False)
         y = LogisticRegression()(z, y_t)
         model = Model(x, y, y_t)
-        with pytest.raises(NotFittedError):
+        with raises_with_cause(RuntimeError, NotFittedError):
             # this will raise an error when calling compute
             # on PCA which was flagged as trainable=False but
             # hasn't been fitted
@@ -476,7 +499,7 @@ class TestPredict:
         y = LogisticRegression(multi_class="multinomial", solver="lbfgs")(xt)
 
         model = Model(x, y)
-        with pytest.raises(NotFittedError):
+        with raises_with_cause(RuntimeError, NotFittedError):
             model.predict(x_data)
 
     def test_predict_with_shared_step(self, teardown):
@@ -489,29 +512,23 @@ class TestPredict:
         assert model.predict([2, 3]) == [4, 6]
 
 
-def test_try_and_reraise(teardown):
+def test_try_and_raise_with_cause(teardown):
     x = Input()
     y = DummyStepWithFaultyPredict(name="faultystep")(x)
     model = Model(x, y)
-    with pytest.raises(
-        ValueError, match="some failure \(compute failed at: faultystep/0\)"
-    ):
+    with raises_with_cause(RuntimeError, KeyError):
         model.predict(123)
 
     x = Input()
     y = DummyStepWithFaultyFit(name="faultystep")(x)
     model = Model(x, y)
-    with pytest.raises(
-        ValueError, match="some failure \(fit failed at: faultystep/0\)"
-    ):
+    with raises_with_cause(RuntimeError, ValueError):
         model.fit(123)
 
     x = Input()
     y = DummyStepWithFaultyFitPredict(name="faultystep")(x)
     model = Model(x, y)
-    with pytest.raises(
-        ValueError, match="some failure \(fit_compute failed at: faultystep/0\)"
-    ):
+    with raises_with_cause(RuntimeError, ValueError):
         model.fit(123)
 
 
@@ -840,7 +857,7 @@ def test_nested_model(teardown):
     y = submodel(x, y_t)
     model = Model(x, y, y_t)
 
-    with pytest.raises(NotFittedError):
+    with raises_with_cause(RuntimeError, NotFittedError):
         submodel.predict(x_data)
 
     model.fit(x_data, y_t_data)
