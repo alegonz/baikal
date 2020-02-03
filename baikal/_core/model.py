@@ -14,8 +14,8 @@ DataDict = Dict[Union[DataPlaceholder, str], ArrayLike]
 
 
 def try_and_raise_with_cause(action):
-    """Decorator to re-raise exception with information about where in the model
-    the error happened. See https://stackoverflow.com/a/6062799 (Update 2) for details.
+    """Decorator to raise exception with information about where in the model
+    the error happened with the original cause.
     """
 
     def decorator(func):
