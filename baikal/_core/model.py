@@ -34,7 +34,6 @@ def try_and_raise_with_cause(action):
     return decorator
 
 
-# TODO: Update docstrings
 class Model(Step):
     """A Model is a network (more precisely, a directed acyclic graph) of Steps,
     and it is defined from the input/output specification of the pipeline.
