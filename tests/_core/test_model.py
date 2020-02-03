@@ -462,22 +462,22 @@ class TestPredict:
         with pytest.raises(ValueError):
             model.predict(
                 {"x1": self.x1_data, "x2": self.x2_data},
-                ["non-existing-output", "PCA_0/0/0"],
+                ["non-existing-output", "PCA_0:0/0"],
             )
 
     def test_with_unnecessary_input(self, model, teardown):
         # x2 is not needed to compute PCA_0/0
-        model.predict({"x1": self.x1_data, "x2": self.x2_data}, "PCA_0/0/0")
+        model.predict({"x1": self.x1_data, "x2": self.x2_data}, "PCA_0:0/0")
 
     def test_with_duplicated_output(self, model, teardown):
         with pytest.raises(ValueError):
             model.predict(
                 [self.x1_data, self.x2_data],
-                ["LogisticRegression_0/0/0", "LogisticRegression_0/0/0", "PCA_0/0/0"],
+                ["LogisticRegression_0:0/0", "LogisticRegression_0:0/0", "PCA_0:0/0"],
             )
 
     @pytest.mark.parametrize(
-        "output", ["LogisticRegression_0/0/0", "StandardScaler_0/0/0"]
+        "output", ["LogisticRegression_0:0/0", "StandardScaler_0:0/0"]
     )
     def test_with_specified_output(self, model, output, teardown):
         model.predict({"x1": self.x1_data}, output)
@@ -596,17 +596,17 @@ def test_steps_cache(teardown):
 
     # 10) same inputs/outputs signature as 9), hence a hit
     hits += 1
-    model.predict({"x1": x1_data, "x2": x2_data}, ["PCA/0/0", "LogReg/0/0"])
+    model.predict({"x1": x1_data, "x2": x2_data}, ["PCA:0/0", "LogReg:0/0"])
     assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 11) new inputs/outputs signature, hence a miss
     misses += 1
-    model.predict({x1: x1_data}, "LogReg/0/0")
+    model.predict({x1: x1_data}, "LogReg:0/0")
     assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
     # 12) same as above, hence a hit
     hits += 1
-    model.predict({x1: x1_data}, "LogReg/0/0")
+    model.predict({x1: x1_data}, "LogReg:0/0")
     assert model._nodes_cache.hits == hits and model._nodes_cache.misses == misses
 
 

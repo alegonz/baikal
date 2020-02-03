@@ -190,8 +190,8 @@ class TestStep:
 
         assert isinstance(y0, DataPlaceholder)
         assert isinstance(y1, DataPlaceholder)
-        assert y0.name == "DummyMIMO_0/0/0"
-        assert y1.name == "DummyMIMO_0/0/1"
+        assert y0.name == "DummyMIMO_0:0/0"
+        assert y1.name == "DummyMIMO_0:0/1"
 
     def test_call_twice(self, teardown):
         x0 = Input()
@@ -202,8 +202,8 @@ class TestStep:
 
         assert isinstance(y0, DataPlaceholder)
         assert isinstance(y1, DataPlaceholder)
-        assert y0.name == "DummySISO_0/0/0"
-        assert y1.name == "DummySISO_0/1/0"
+        assert y0.name == "DummySISO_0:0/0"
+        assert y1.name == "DummySISO_0:1/0"
 
     def test_repr(self):
         class DummyStep(Step):

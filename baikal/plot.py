@@ -25,6 +25,43 @@ def _is_input(node):
     return not node.inputs
 
 
+def quoted(s):
+    return '"{}"'.format(s)
+
+
+def dot_node(name, label):
+    return pydot.Node(name=quoted(name), label=quoted(label), shape="rect")
+
+
+def dot_input_node(name, label):
+    return pydot.Node(
+        name=quoted(name), label=quoted(label), shape="invhouse", color="green"
+    )
+
+
+def dot_edge(src, dst, label, color):
+    return pydot.Edge(
+        src=quoted(src), dst=quoted(dst), label=quoted(label), color=color
+    )
+
+
+def dot_cluster(name, label):
+    return pydot.Cluster(graph_name=quoted(name), label=quoted(label), style="dashed")
+
+
+def dummy_dot_node(name):
+    return pydot.Node(
+        name=quoted(name),
+        shape="rect",
+        color="white",
+        fontcolor="white",
+        fixedsize=True,
+        width=0.0,
+        height=0.0,
+        fontsize=0.0,
+    )
+
+
 class _DotTransformer:
     def __init__(self, expand_nested, **dot_kwargs):
         self.expand_nested = expand_nested
@@ -44,22 +81,19 @@ class _DotTransformer:
             else container
         )
         level = 0 if level is None else level
-        root_name = make_name(model.name, outer_port)
+        root_name = make_name(model.name, outer_port, sep=":")
 
         # Add nodes
         for node in model.graph:
             if _is_input(node):
                 name = make_name(root_name, node.step.name)
                 label = node.step.name
-                dot_node = pydot.Node(
-                    name=name, label=label, shape="invhouse", color="green"
-                )
-                container.add_node(dot_node)
+                container.add_node(dot_input_node(name, label))
 
             elif _is_model(node) and self.expand_nested:
                 name = make_name(root_name, node.name)
                 label = node.name
-                cluster = pydot.Cluster(graph_name=name, label=label, style="dashed")
+                cluster = dot_cluster(name, label)
                 container.add_subgraph(cluster)
                 self.inner_dot_nodes[outer_port, node] = self.transform(
                     node.step, node.port, cluster, level + 1
@@ -68,8 +102,7 @@ class _DotTransformer:
             else:
                 name = make_name(root_name, node.name)
                 label = node.name
-                dot_node = pydot.Node(name=name, label=label, shape="rect")
-                container.add_node(dot_node)
+                container.add_node(dot_node(name, label))
 
             self.node_names[outer_port, node] = name
 
@@ -103,8 +136,7 @@ class _DotTransformer:
                     dst = self.node_names[outer_port, node]
 
                 label = d.name
-                dot_edge = pydot.Edge(src=src, dst=dst, label=label, color=color)
-                container.add_edge(dot_edge)
+                container.add_edge(dot_edge(src, dst, label, color))
 
         if self.expand_nested and level > 0:
             return self.get_internal_dot_nodes(model, outer_port)
@@ -133,7 +165,7 @@ class _DotTransformer:
         return dot_output_src, dot_input_dst, dot_target_dst
 
     def build_output_edges(self, model, outer_port, container):
-        root_name = make_name(model.name, outer_port)
+        root_name = make_name(model.name, outer_port, sep=":")
         keys = self.get_innermost_outputs_keys(model, outer_port)
         for (outer_port, inner_output), output in safezip2(
             keys, model._internal_outputs
@@ -141,8 +173,8 @@ class _DotTransformer:
             src = self.node_names[outer_port, inner_output.node]
             dst = make_name(root_name, output.name)
             label = output.name
-            container.add_node(self.dummy_dot_node(dst))
-            container.add_edge(pydot.Edge(src=src, dst=dst, label=label, color="black"))
+            container.add_node(dummy_dot_node(dst))
+            container.add_edge(dot_edge(src, dst, label, "black"))
 
     def get_innermost_outputs_keys(self, model, outer_port):
         """Get (outer_port, node) keys of the output placeholders at the innermost level.
@@ -160,19 +192,6 @@ class _DotTransformer:
             else:
                 keys.append((outer_port, output))
         return keys
-
-    @staticmethod
-    def dummy_dot_node(name):
-        return pydot.Node(
-            name=name,
-            shape="rect",
-            color="white",
-            fontcolor="white",
-            fixedsize=True,
-            width=0.0,
-            height=0.0,
-            fontsize=0.0,
-        )
 
 
 # TODO: Add option to not plot targets
