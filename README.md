@@ -490,14 +490,4 @@ Click [here](examples/transformed_target.py) for a full example.
 
 ## Contributing
 
-- Bug reports and fixes are always welcome!
-- Contributions to extend/refactor/improve/document the API are also welcome! **baikal** is currently a one-man operation, and it could benefit from more minds and hands working on it :)
-
-### Setting up the development environment
-1. Clone the project.
-2. From the project root folder run: `make setup_dev`.
-    - This will create a virtualenv and install the package in development mode.
-    - It will also install a pre-commit hook for the black code formatter.
-    - You need Python 3.5 or above.
-3. To run the tests use: `make test`, or `make test-cov` to include coverage.
-    - The tests include a test for the plot utility, so you need to install graphviz.
+Please refer to [the contributing guidelines](CONTRIBUTING.md).
