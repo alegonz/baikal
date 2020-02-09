@@ -15,6 +15,7 @@
          ~{{ name }}.{{ item }}
       {% endif %}
    {%- endfor %}
+      ~{{ name }}.__call__
    {% endif %}
    {% endblock %}
 

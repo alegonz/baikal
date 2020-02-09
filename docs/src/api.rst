@@ -9,7 +9,7 @@ This is the class and function reference of **baikal**.
 .. autosummary::
     :toctree: _generated/
     :nosignatures:
-    :template: class.rst
+    :template: step_class.rst
 
     Step
     Model
@@ -21,7 +21,7 @@ This is the class and function reference of **baikal**.
 .. autosummary::
     :toctree: _generated/
     :nosignatures:
-    :template: class_simple.rst
+    :template: step_class_simple.rst
 
     Lambda
     ColumnStack
