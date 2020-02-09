@@ -244,7 +244,7 @@ For example, to get both the output from ``PCA`` and the ``ExtraTreesClassifier`
 .. code-block:: python
 
     outs = model.predict(
-        [X1_test, X2_test], output_names=["ExtraTreesClassifier_0/0/0", "PCA_0/0/0"]
+        [X1_test, X2_test], output_names=["ExtraTreesClassifier_0:0/0", "PCA_0:0/0"]
     )
 
 You don't need to pass inputs that are not required to compute the queried output.
@@ -252,7 +252,7 @@ For example, if we just want the output of ``PowerTransformer``:
 
 .. code-block:: python
 
-    outs = model.predict({x2: X2_data}, output_names="PowerTransformer_0/0/0")
+    outs = model.predict({x2: X2_data}, output_names="PowerTransformer_0:0/0")
 
 **Models are also nestable**. In fact, Models are steps, too. This allows composing smaller
 models into bigger ones, like so:
