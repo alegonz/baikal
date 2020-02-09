@@ -3,15 +3,7 @@ API Reference
 
 This is the class and function reference of **baikal**.
 
-
-baikal.Step
--------------
-
-Step
-~~~~
-
-
-.. rubric:: Classes
+.. rubric:: Core classes
 
 .. currentmodule:: baikal
 .. autosummary::
@@ -21,3 +13,18 @@ Step
 
     Step
     Model
+
+
+.. rubric:: Steps
+
+.. currentmodule:: baikal.steps
+.. autosummary::
+    :toctree: _generated/
+    :nosignatures:
+    :template: class_simple.rst
+
+    Lambda
+    ColumnStack
+    Concatenate
+    Split
+    Stack
