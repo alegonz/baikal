@@ -93,9 +93,7 @@ html_last_updated_fmt = "%b %d, %Y"
 autoclass_content = "class"
 autodoc_typehints = "none"
 autodoc_default_options = {
-    # "members": True,
     "member-order": "bysource",
-    "special-members": "__call__",
     "show-inheritance": True,
 }
 

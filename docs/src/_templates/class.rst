@@ -11,10 +11,11 @@
    .. autosummary::
       :toctree: ../_generated/
    {% for item in methods %}
-      {%- if not item.startswith('_') or item in ['__call__'] %}
+      {%- if not item.startswith('_') %}
          ~{{ name }}.{{ item }}
       {% endif %}
    {%- endfor %}
+      ~{{ name }}.__call__
    {% endif %}
    {% endblock %}
 
