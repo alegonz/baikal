@@ -55,33 +55,6 @@ class Model(Step):
     name
         Name of the model (optional). If no name is passed, a name will be
         automatically generated.
-
-    Attributes
-    ----------
-    graph
-        The graph associated to the model built from the input/output
-        specification.
-
-    Methods
-    -------
-    fit
-        Trains the model on the given input and target data.
-
-    predict
-        Generates predictions from the input data. It can also be used to
-        query intermediate outputs.
-
-    get_step
-        Get a step (graph node) in the model by name.
-
-    get_data_placeholder
-        Get a data placeholder (graph half-edge) in the model by name.
-
-    get_params
-        Get parameters of the model.
-
-    set_params
-        Set the parameters of the model.
     """
 
     def __init__(
@@ -630,6 +603,7 @@ class Model(Step):
 
     @property
     def graph(self):
+        """Get the graph associated to the model."""
         return self._graph
 
 

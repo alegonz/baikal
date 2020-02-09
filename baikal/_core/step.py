@@ -73,10 +73,12 @@ class _StepBase:
 
     @property
     def name(self):
+        """Get the name of the step."""
         return self._name
 
     @property
     def n_outputs(self):
+        """Get the number of outputs the step produces."""
         return self._n_outputs
 
     @property
@@ -399,32 +401,6 @@ class Step(_StepBase):
     n_outputs
         The number of outputs of the step's function (predict, transform, or
         any other callable passed in the ``compute_func`` argument).
-
-    Attributes
-    ----------
-    name
-        Name of the step.
-
-    n_outputs
-        Number of outputs the step produces.
-
-    inputs
-        Inputs of the step.
-
-    outputs
-        Outputs of the step.
-
-    targets
-        Targets of the step.
-
-    compute_func
-        Function used when computing the step at predict time.
-
-    fit_compute_func
-        Function used when fitting and computing the step at fit time.
-
-    trainable
-        Whether the step is trainable (True) or not (False).
 
     Examples
     --------
