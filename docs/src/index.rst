@@ -21,6 +21,7 @@ subscribe to it if you use **baikal**.
    :caption: Contents:
 
    introduction.rst
+   installation.rst
    user_guide.rst
    examples.rst
    api.rst
