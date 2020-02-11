@@ -26,3 +26,4 @@ subscribe to it if you use **baikal**.
    examples.rst
    api.rst
    changelog.rst
+   license.rst
