@@ -25,3 +25,4 @@ subscribe to it if you use **baikal**.
    user_guide.rst
    examples.rst
    api.rst
+   changelog.rst
