@@ -253,10 +253,10 @@ models into bigger ones, like so:
     y = SVC()(z, y_t)
     bigmodel = Model(x, y, y_t)
 
-Additional concepts
--------------------
+..  Additional concepts
+    -------------------
 
-TODO.
+    TODO
 
 Utilities
 ---------
