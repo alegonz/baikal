@@ -17,18 +17,10 @@ subscribe to it if you use **baikal**.
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    introduction.rst
    user_guide.rst
    examples.rst
    api.rst
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
