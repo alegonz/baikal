@@ -68,7 +68,7 @@ class ColumnStack(Step):
 
 
 class Split(Step):
-    """Step splitting arrays.
+    """Step for splitting arrays.
 
     Parameters
     ----------
