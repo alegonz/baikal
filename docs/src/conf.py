@@ -14,6 +14,8 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import sphinx_material
+import baikal
 
 # -- Project information -----------------------------------------------------
 
@@ -30,7 +32,6 @@ author = "Alejandro González Tineo"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    "sphinx_material",
     "sphinx.ext.autosummary",
 ]
 
@@ -47,15 +48,12 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # built documents.
 #
 # The short X.Y version.
-import baikal
-
 version = baikal.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
-
 highlight_language = "python3"
 
 
@@ -64,28 +62,56 @@ highlight_language = "python3"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# html_theme = 'alabaster'
-# html_theme = "sphinx_rtd_theme"
-html_theme = "sphinx_material"
-
-# Add any paths that contain custom themes here, relative to this directory.
-# Add path to the RTD explicitly to robustify builds (otherwise might
-# fail in a clean Debian build env)
-import sphinx_material
-
-# Get the them path
-html_theme_path = sphinx_material.html_theme_path()
-# Register the required helpers for the html context
-html_context = sphinx_material.get_html_context()
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+# -- HTML theme settings ------------------------------------------------
+
+html_show_sourcelink = True
+html_sidebars = {
+    "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
+}
+
+extensions.append("sphinx_material")
+html_theme_path = sphinx_material.html_theme_path()
+html_context = sphinx_material.get_html_context()
+html_theme = "sphinx_material"
+
+# Material theme options (see theme.conf for more information)
+html_theme_options = {
+    # Set the name of the project to appear in the navigation.
+    "nav_title": "baikal {}".format(version),
+    # Set you GA account ID to enable tracking
+    # 'google_analytics_account': 'UA-XXXXXXX',
+    # Specify a base_url used to generate sitemap.xml. If not
+    # specified, then no sitemap will be built.
+    "base_url": "https://baikal.github.io",
+    # Set the color and the accent color
+    "color_primary": "003366",
+    # 'color_accent': 'cyan',
+    # Set the repo location to get a badge with stats
+    "repo_url": "https://github.com/alegonz/baikal/",
+    "repo_name": "baikal",
+    # Visible levels of the global TOC; -1 means unlimited
+    "globaltoc_depth": 1,
+    # If False, expand all TOC entries
+    "globaltoc_collapse": True,
+    # If True, show hidden TOC entries
+    "globaltoc_includehidden": True,
+    "heroes": {
+        "index": "A graph-based functional API for building complex scikit-learn pipelines.",
+    },
+}
+
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 html_last_updated_fmt = "%b %d, %Y"
+
+html_use_index = True
+html_domain_indices = True
 
 
 # -- Options for autodoc -----------------------------------------------------
