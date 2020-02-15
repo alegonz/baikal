@@ -91,8 +91,7 @@ html_theme_options = {
     # specified, then no sitemap will be built.
     "base_url": "https://baikal.github.io",
     # Set the color and the accent color
-    "color_primary": "003366",
-    # 'color_accent': 'cyan',
+    "color_primary": "blue",
     # Set the repo location to get a badge with stats
     "repo_url": "https://github.com/alegonz/baikal/",
     "repo_name": "baikal",
