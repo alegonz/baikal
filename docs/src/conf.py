@@ -81,6 +81,15 @@ html_theme_path = sphinx_material.html_theme_path()
 html_context = sphinx_material.get_html_context()
 html_theme = "sphinx_material"
 
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = "illustrations/baikal0_white_tight.png"
+
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = "illustrations/baikal0_blue_tight_favicon.ico"
+
 # Material theme options (see theme.conf for more information)
 html_theme_options = {
     # Set the name of the project to appear in the navigation.
@@ -101,9 +110,6 @@ html_theme_options = {
     "globaltoc_collapse": True,
     # If True, show hidden TOC entries
     "globaltoc_includehidden": True,
-    "heroes": {
-        "index": "A graph-based functional API for building complex scikit-learn pipelines.",
-    },
 }
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
