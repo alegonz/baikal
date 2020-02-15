@@ -25,6 +25,10 @@ setup_dev: venv
 	pip install pre-commit && \
 	pre-commit install
 
+setup_docs: venv docs/requirements.txt
+	. venv/bin/activate && \
+	pip install -r docs/requirements.txt
+
 test:
 	. venv/bin/activate && \
 	pytest -s -vv tests/
