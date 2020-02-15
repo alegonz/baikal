@@ -29,12 +29,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - The `extra_targets` argument in `Model.fit` was removed.
 - Step enhancements
     - `make_step` factory function to ease definition of steps.
-    - Added support for function arguments to Lambda step ([(PR #8)](https://github.com/alegonz/baikal/pull/8)).
-    - Added new Split step ([(PR #9)](https://github.com/alegonz/baikal/pull/9)).
+    - Added support for function arguments to Lambda step ([PR #8](https://github.com/alegonz/baikal/pull/8)).
+    - Added new Split step ([PR #9](https://github.com/alegonz/baikal/pull/9)).
 
 ### Fixed
 - Some refactoring and minor fixes.
-- Bug fixes ([(PR #6)](https://github.com/alegonz/baikal/pull/6), [(PR #7)](https://github.com/alegonz/baikal/pull/7))
+- Bug fixes ([PR #6](https://github.com/alegonz/baikal/pull/6), [PR #7](https://github.com/alegonz/baikal/pull/7))
 
 ## [0.1.0] - 2019-06-01
 ### Added
