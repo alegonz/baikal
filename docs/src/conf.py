@@ -32,6 +32,7 @@ author = "Alejandro González Tineo"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
     "m2r",
 ]

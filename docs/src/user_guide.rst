@@ -288,7 +288,7 @@ Currently, **baikal** also provides a wrapper utility class that allows models t
 in scikit-learn's `GridSearchCV API <GridSearchCVURL_>`__. Below there's a code snippet
 showing its usage. It follows the style of Keras' own wrapper.
 
-[Here](examples/gridsearchcv_sklearn_wrapper.py) is an example script of this utility.
+See :ref:`Tune a model with ``GridSearchCV``` for an example script of this utility.
 
 A future release of **baikal** plans to include a custom ``GridSearchCV`` API, based on
 the original scikit-learn implementation, that can handle baikal models natively, avoiding

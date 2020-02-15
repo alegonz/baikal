@@ -133,3 +133,13 @@ inverse transform later in the pipeline.
 .. container:: toggle
 
     .. literalinclude:: ../../examples/transformed_target.py
+
+Tune a model with ``GridSearchCV``
+----------------------------------
+
+Below is an example showing how to use the scikit-learn wrapper to tune the parameters
+of a **baikal** model using ``GridSearchCV``.
+
+.. container:: toggle
+
+    .. literalinclude:: ../../examples/gridsearchcv_sklearn_wrapper.py
