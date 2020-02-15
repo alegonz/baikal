@@ -1,3 +1,5 @@
+from functools import total_ordering
+
 from baikal._core.utils import make_repr
 
 
@@ -5,6 +7,8 @@ def is_data_placeholder_list(l):
     return all([isinstance(item, DataPlaceholder) for item in l])
 
 
+# Make it sortable to aid cache hits in Model._get_required_nodes
+@total_ordering
 class DataPlaceholder:
     """Auxiliary class that represents the inputs and outputs of Steps.
 
@@ -43,10 +47,7 @@ class DataPlaceholder:
         attrs = ["step", "port", "name"]
         return make_repr(self, attrs)
 
-    # Make it sortable to aid cache hits in Model._get_required_nodes
     def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self._name < other.name
         return NotImplemented  # pragma: no cover
-
-    # TODO: Use functools.total_ordering and follow best practices
