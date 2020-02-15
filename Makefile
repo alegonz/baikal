@@ -55,3 +55,10 @@ upload: dist venv
 	pip install --upgrade twine && \
 	twine check dist/* && \
 	twine upload dist/*
+
+.PHONY: docs
+docs:
+	. venv/bin/activate && \
+	rm -rf docs/src/_generated && \
+	make -C docs clean && \
+	make -C docs html
