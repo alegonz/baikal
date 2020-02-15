@@ -25,7 +25,7 @@ and borrows a few concepts from the [TensorFlow](https://www.tensorflow.org) fra
 and the (perhaps lesser known) [graphkit](https://github.com/yahoo/graphkit) package.
 
 **baikal** aims to provide an API that allows to build complex, non-linear machine learning 
-pipelines that looks like this: 
+pipelines that look like this: 
 
 ![multiple_input_nonlinear_pipeline_example_diagram](illustrations/multiple_input_nonlinear_pipeline_example_diagram.png "An example of a multiple-input, nonlinear pipeline")
 

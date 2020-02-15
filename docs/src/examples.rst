@@ -61,7 +61,7 @@ making the steps. **baikal** will then detect and use this method during fit.
     # 2nd level classifier
     ExtraTreesClassifier = make_step(sklearn.ensemble.ExtraTreesClassifier)
 
-The rest of the stack is build exactly the same as in the naive example.
+The rest of the stack is built exactly the same as in the naive example.
 
 .. container:: toggle
 
