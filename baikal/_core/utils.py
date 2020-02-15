@@ -1,4 +1,4 @@
-from typing import Union, Any, List, Tuple, Sequence
+from typing import Union, Any, List, Tuple
 
 
 def listify(x: Union[Any, List[Any], Tuple[Any, ...]]) -> List[Any]:

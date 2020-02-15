@@ -4,7 +4,6 @@
 import numpy as np
 import sklearn.linear_model
 import sklearn.preprocessing
-from sklearn.compose import TransformedTargetRegressor
 from sklearn.datasets import load_boston
 from sklearn.metrics import median_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
