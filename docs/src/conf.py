@@ -20,7 +20,7 @@ import baikal
 # -- Project information -----------------------------------------------------
 
 project = "baikal"
-copyright = "2019, Alejandro González Tineo"
+copyright = "2019-2020, Alejandro González Tineo"
 author = "Alejandro González Tineo"
 
 
