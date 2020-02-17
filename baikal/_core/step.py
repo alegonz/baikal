@@ -73,10 +73,12 @@ class _StepBase:
 
     @property
     def name(self):
+        """Get the name of the step."""
         return self._name
 
     @property
     def n_outputs(self):
+        """Get the number of outputs the step produces."""
         return self._n_outputs
 
     @property
@@ -197,7 +199,7 @@ class _StepBase:
         Parameters
         ----------
         value
-            fit-compute function of the step. Pass `None` to disable it.
+            fit-compute function of the step. Pass ``None`` to disable it.
 
         Raises
         ------
@@ -336,7 +338,7 @@ class _StepBase:
             Port on which to set the fit-compute function.
 
         value
-            fit-compute function of the step. Pass `None` to disable it.
+            fit-compute function of the step. Pass ``None`` to disable it.
         """
         self._nodes[port].fit_compute_func = value
 
@@ -373,15 +375,15 @@ class Step(_StepBase):
 
     Steps are defined by combining any class we would like to make a step from
     with this mixin class. This mixin, among other things, endows the class of
-    interest with a `__call__` method, making the class callable on the outputs
-    (`DataPlaceholder` objects) of previous steps and optional targets (also
-    `DataPlaceholder` objects). You can make a step from any class you like,
+    interest with a ``__call__`` method, making the class callable on the outputs
+    (``DataPlaceholder`` objects) of previous steps and optional targets (also
+    ``DataPlaceholder`` objects). You can make a step from any class you like,
     so long that class implements the scikit-learn API.
 
     Instructions:
         1. Define a class that inherits from both this mixin and the class you
            wish to make a step of (in that order!).
-        2. In the class `__init__`, call `super().__init__(...)` and pass the
+        2. In the class ``__init__``, call ``super().__init__(...)`` and pass the
            appropriate step parameters.
 
     The base class may implement a predict/transform method (the compute function)
@@ -398,40 +400,20 @@ class Step(_StepBase):
 
     n_outputs
         The number of outputs of the step's function (predict, transform, or
-        any other callable passed in the `function` argument).
-
-    Attributes
-    ----------
-    name
-        Name of the step.
-
-    n_outputs
-        Number of outputs the step produces.
-
-    inputs
-        Inputs of the step.
-
-    outputs
-        Outputs of the step.
-
-    targets
-        Targets of the step.
-
-    compute_func
-        Function used when computing the step during the model graph execution.
-
-    trainable
-        Whether the step is trainable (True) or not (False).
+        any other callable passed in the ``compute_func`` argument).
 
     Examples
     --------
-    >>> import sklearn.linear_model
-    >>> # The order of inheritance is important!
-    >>> class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-    >>>     def __init__(self, name=None, **kwargs):
-    >>>         super().__init__(name=name, **kwargs)
-    >>>
-    >>> logreg = LogisticRegression(C=2.0)
+    ::
+
+        import sklearn.linear_model
+        # The order of inheritance is important!
+        class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
+            def __init__(self, name=None, **kwargs):
+                super().__init__(name=name, **kwargs)
+
+        logreg = LogisticRegression(C=2.0)
+
     """
 
     if TYPE_CHECKING:  # pragma: no cover
@@ -503,10 +485,10 @@ class Step(_StepBase):
 
         You can call the same step on different inputs and targets to reuse the step
         (similar to the concept of shared layers and nodes in Keras), and specify a
-        different `compute_func`/`trainable` configuration on each call. This is
+        different ``compute_func``/``trainable`` configuration on each call. This is
         achieved via "ports": each call creates a new port and associates the given
         configuration to it. You may access the configuration at each port using the
-        `get_*_at(port)` methods.
+        ``get_*_at(port)`` methods.
 
         Parameters
         ----------
@@ -518,8 +500,8 @@ class Step(_StepBase):
 
         compute_func
             Specifies which function must be used when computing the step during
-            the model graph execution. If `"auto"` (default), it will use the `predict`
-            or the `transform `method (in that order). If a name string is passed,
+            the model graph execution. If ``"auto"`` (default), it will use the ``predict``
+            or the ``transform`` method (in that order). If a name string is passed,
             it will use the method that matches the given name. If a callable is
             passed, it will use that callable when computing the step.
 
@@ -527,19 +509,19 @@ class Step(_StepBase):
             step (this is not checked, but will raise an error during graph
             execution if there is a mismatch).
 
-            scikit-learn classes typically implement a `predict` method (Estimators)
-            or a `transform` method (Transformers), but with this argument you can,
-            for example, specify `predict_proba` as the compute function.
+            scikit-learn classes typically implement a ``predict`` method (Estimators)
+            or a ``transform`` method (Transformers), but with this argument you can,
+            for example, specify ``predict_proba`` as the compute function.
 
         fit_compute_func
             Specifies which function must be used when fitting AND computing the step
             during the model graph execution.
 
-            If `"auto"` (default), it will use the `fit_predict` or the `fit_transform`
+            If ``"auto"`` (default), it will use the ``fit_predict`` or the ``fit_transform``
             method (in that order) if they are implemented, otherwise it will be
             disabled. If a name string is passed, it will use the method that matches
             the given name. If a callable is passed, it will use that callable when
-            fitting the step. If `None` is passed it will be ignored during graph
+            fitting the step. If ``None`` is passed it will be ignored during graph
             execution.
 
             The number of inputs, outputs and targets, of the function must match those
@@ -547,21 +529,21 @@ class Step(_StepBase):
             execution if there is a mismatch).
 
             By default, when a model is fit, the graph engine will for each step
-            1) execute `fit` to fit the step, and then 2) execute `compute_func` to
+            1) execute ``fit`` to fit the step, and then 2) execute ``compute_func`` to
             compute the outputs required by successor steps. If a step specifies a
-            `fit_compute_func`, the graph execution will use that instead to fit and
+            ``fit_compute_func``, the graph execution will use that instead to fit and
             compute the outputs in a single call. This can be useful for
 
-            1. leveraging implementations of `fit_transform` that are more efficient
-                than calling `fit` and `transform` separately,
+            1. leveraging implementations of ``fit_transform`` that are more efficient
+               than calling ``fit`` and ``transform`` separately,
             2. using transductive estimators,
             3. implementing training protocols such as that of stacked classifiers,
-                where the classifier in the first stage might compute out-of-fold
-                predictions.
+               where the classifier in the first stage might compute out-of-fold
+               predictions.
 
         trainable
             Whether the step is trainable (True) or not (False). This flag is only
-            meaningful only for steps with a fit method. Setting `trainable=False`
+            meaningful only for steps with a fit method. Setting ``trainable=False``
             allows to skip the step when fitting a Model. This is useful if you
             want to freeze some pre-trained steps.
 

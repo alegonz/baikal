@@ -7,7 +7,18 @@ from baikal._core.utils import listify as _listify
 
 
 class Concatenate(Step):
-    """Step for numpy's concatenate function."""
+    """Step for concatenating arrays.
+
+    Parameters
+    ----------
+    axis
+        The axis of concatenation (default is -1, the last axis).
+
+    name
+        Name of the step (optional). If no name is passed, a name will be
+        automatically generated.
+
+    """
 
     def __init__(self, axis=-1, name=None):
         super().__init__(name=name)
@@ -18,7 +29,18 @@ class Concatenate(Step):
 
 
 class Stack(Step):
-    """Step for numpy's stack function."""
+    """Step for stacking arrays.
+
+    Parameters
+    ----------
+    axis
+        The axis parameter specifies the index of the new axis in the dimensions of
+        the result (default is -1).
+
+    name
+        Name of the step (optional). If no name is passed, a name will be
+        automatically generated.
+    """
 
     def __init__(self, axis=-1, name=None):
         super().__init__(name=name)
@@ -29,7 +51,14 @@ class Stack(Step):
 
 
 class ColumnStack(Step):
-    """Step for numpy's column_stack function."""
+    """Step for stacking arrays along the columns.
+
+    Parameters
+    ----------
+    name
+        Name of the step (optional). If no name is passed, a name will be
+        automatically generated.
+    """
 
     def __init__(self, name=None):
         super().__init__(name=name)
@@ -39,7 +68,22 @@ class ColumnStack(Step):
 
 
 class Split(Step):
-    """Step for numpy's concatenate function."""
+    """Step for splitting arrays.
+
+    Parameters
+    ----------
+    indices_or_sections
+        If an integer (N) is passed, the array will be divided into N equal arrays along
+        axis. If an 1-D array of sorted integers is passed, the entries indicate where
+        along axis the array is split.
+
+    axis
+        The axis on where to split the array (default is -1, the last axis).
+
+    name
+        Name of the step (optional). If no name is passed, a name will be
+        automatically generated.
+    """
 
     def __init__(self, indices_or_sections, axis=-1, name=None):
         try:

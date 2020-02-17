@@ -32,24 +32,29 @@ class Lambda(Step):
 
     Examples
     --------
-    >>> def function(Xs):
-    >>>     x1, x2 = Xs
-    >>>     return 2 * x1, x2 / 2
-    >>>
-    >>> x = Input()
-    >>> y1, y2 = Lambda(function, n_outputs=2)([x, x])
-    >>> model = Model(x, [y1, y2])
-    >>>
-    >>> x_data = np.array([[1.0, 2.0],
-    >>>                    [3.0, 4.0]])
-    >>>
-    >>> y1_pred, y2_pred = model.predict(x_data)
-    >>> y1_pred
-    [[2. 4.]
-     [6. 8.]]
-    >>> y2_pred
-    [[0.5 1. ]
-     [1.5 2. ]]
+    ::
+
+        def function(Xs):
+            x1, x2 = Xs
+            return 2 * x1, x2 / 2
+
+        x = Input()
+        y1, y2 = Lambda(function, n_outputs=2)([x, x])
+        model = Model(x, [y1, y2])
+
+        x_data = np.array([[1.0, 2.0],
+                           [3.0, 4.0]])
+
+        y1_pred, y2_pred = model.predict(x_data)
+
+        print(y1_pred)
+        # [[2. 4.]
+        # [6. 8.]]
+
+        print(y2_pred)
+        # [[0.5 1. ]
+        # [1.5 2. ]]
+
     """
 
     def __init__(

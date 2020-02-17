@@ -25,6 +25,10 @@ setup_dev: venv
 	pip install pre-commit && \
 	pre-commit install
 
+setup_docs: venv docs/requirements.txt
+	. venv/bin/activate && \
+	pip install -r docs/requirements.txt
+
 test:
 	. venv/bin/activate && \
 	pytest -s -vv tests/
@@ -51,3 +55,10 @@ upload: dist venv
 	pip install --upgrade twine && \
 	twine check dist/* && \
 	twine upload dist/*
+
+.PHONY: docs
+docs:
+	. venv/bin/activate && \
+	rm -rf docs/src/_generated && \
+	make -C docs clean && \
+	make -C docs html

@@ -8,11 +8,11 @@ from baikal.steps import Step
 def make_step(base_class, attr_dict=None):
     """Creates a step subclass from the given base class.
 
-    For example, calling
+    For example, calling::
 
         PCA = make_step(sklearn.decomposition.PCA)
 
-    is equivalent to
+    is equivalent to::
 
         class PCA(Step, sklearn.decomposition.PCA):
             def __init__(self, name=None, n_outputs=1, **kwargs):
@@ -25,12 +25,12 @@ def make_step(base_class, attr_dict=None):
 
     attr_dict : dict
         Dictionary of additional attributes for the class. You can use this to add
-        methods such as `fit_compute` to the class. (keys: name of attribute (str),
+        methods such as ``fit_compute`` to the class. (keys: name of attribute (``str``),
         values: attributes).
 
     Returns
     -------
-    step_subclass: type
+    step_subclass : type
         A new class that inherits from both Step and the given base class and has the
         the specified attributes.
 

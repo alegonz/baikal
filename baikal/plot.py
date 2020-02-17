@@ -236,15 +236,19 @@ def plot_model(
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
-    >>> import matplotlib.image as mpimg
-    >>> from baikal.plot import plot_model
-    >>> dot_graph = plot_model(model, include_targets=True, expand_nested=False)
-    >>> png = dot_graph.create(format="png", prog=prog)
-    >>> img = mpimg.imread(io.BytesIO(png))
-    >>> plt.imshow(img, aspect="equal")
-    >>> plt.axis("off")
-    >>> plt.show()
+    ::
+
+        import matplotlib.pyplot as plt
+        import matplotlib.image as mpimg
+        from baikal.plot import plot_model
+
+        dot_graph = plot_model(model, include_targets=True, expand_nested=False)
+        png = dot_graph.create(format="png", prog=prog)
+        img = mpimg.imread(io.BytesIO(png))
+        plt.imshow(img, aspect="equal")
+        plt.axis("off")
+        plt.show()
+
     """
 
     dot_transformer = _DotTransformer(expand_nested, **dot_kwargs)

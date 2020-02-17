@@ -27,7 +27,7 @@ below.
 3. Make a case for your proposal and address any questions/comments/suggestions.
 4. If the feature is accepted, you may go ahead and submit a PR.
 
-**baikal** goal is to make building complex machine learning pipelines easier, so a good 
+**baikal**'s goal is to make building complex machine learning pipelines easier, so a good 
 API feature has (ideally all) the following traits:
 
 * makes a task easier,

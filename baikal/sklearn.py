@@ -110,4 +110,5 @@ class SKLearnWrapper:
 
     @property
     def model(self):
+        """Get the wrapped model."""
         return self._model
