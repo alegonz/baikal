@@ -19,6 +19,11 @@ build-defaults: &build-defaults
     - image: circleci/python:3.7.3-stretch
 
 jobs:
+  test-py35:
+    <<: *test-defaults
+    docker:
+      - image: circleci/python:3.5.7-stretch
+
   test-py36:
     <<: *test-defaults
     docker:
@@ -62,6 +67,11 @@ workflows:
   version: 2.1
   build-deploy:
     jobs:
+      - test-py35:
+          sklearn_version: *sklearn_version_prev
+      - test-py35:
+          sklearn_version: *sklearn_version_latest
+
       - test-py36:
           sklearn_version: *sklearn_version_prev
       - test-py36:
@@ -101,6 +111,8 @@ workflows:
               only:
                 - master
     jobs:
+      - test-py35:
+          sklearn_version: "nightly"
       - test-py36:
           sklearn_version: "nightly"
       - test-py37:
