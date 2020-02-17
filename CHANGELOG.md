@@ -5,26 +5,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- Add support for shared steps ([PR #19](https://github.com/alegonz/baikal/pull/19)). Now steps can be called several times on different inputs.
-    - **This is a backwards-incompatible change.** The outputs of the steps now follow the following format: `step_name:port/output_number`.
+- Add support for shared steps ([PR #19](https://github.com/alegonz/baikal/pull/19)). 
+  Now steps can be called several times on different inputs.
+    - **This is a backwards-incompatible change.** The outputs of the steps now follow 
+      the following format: `step_name:port/output_number`.
       (Previously it was `step_name/output_number`)
 - Add option to include targets in `plot_model` ([PR #20](https://github.com/alegonz/baikal/pull/20)).
+- Add new `fit_compute_func` argument to `Step.__call__` that allows to specify custom 
+  behavior at fit time ([PR #22](https://github.com/alegonz/baikal/pull/22)).
+- Add documentation built with Sphinx and hosted on [baikal.readthedocs.io](https://baikal.readthedocs.io/en/latest) 
+  ([PR #29](https://github.com/alegonz/baikal/pull/29)).
 
 ### Changed
-- Move `compute_func` (previously `function`) and `trainable` args to `Step.__call__` ([PR #18](https://github.com/alegonz/baikal/pull/18)).
+- Move `compute_func` (previously `function`) and `trainable` args to `Step.__call__` 
+  ([PR #18](https://github.com/alegonz/baikal/pull/18)).
+    - Also, the default value is changed from `None` to `"auto"`.
     - **This is a backwards-incompatible change.**
+- Raise `RuntimeError` chained with the original exception in `Model.fit` and `Model.predict`. 
 
 ### Fixed
-- Specify `scikit-learn` instead of `sklearn` in package dependencies
 - Add clarification in that steps must be named in `build_fn` when using `SKLearnWrapper`
 - Fix bug where the compute function was not being transferred when replacing a step in `Model.set_params`.
-- Fix some bugs in `plot_model` ([PR #20](https://github.com/alegonz/baikal/pull/20)).
+- Fix an API inconsistency regarding the handling of the arguments of fit/compute for 
+  steps with multiple inputs and targets ([PR #21](https://github.com/alegonz/baikal/pull/21)).
+- Fix several bugs in `plot_model` (it was largely broken) 
+  ([PR #20](https://github.com/alegonz/baikal/pull/20), [PR #24](https://github.com/alegonz/baikal/pull/24)).
 
 ## [0.2.0] - 2019-11-16
 ### Added
 - This CHANGELOG file.
 - Introduced new targets API ([PR #1](https://github.com/alegonz/baikal/pull/1)).
-    - Steps now take an optional `targets` argument at call time to specify inputs for target data at fit time.
+    - Steps now take an optional `targets` argument at call time to specify inputs for 
+      target data at fit time.
     - Correspondingly, `Model` also takes an additional argument for these targets.
     - The `extra_targets` argument in `Model.fit` was removed.
 - Step enhancements
