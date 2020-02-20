@@ -64,3 +64,32 @@ With **baikal** you can
 - plot pipelines
 
 All with boilerplate-free, readable code.
+
+### Why baikal?	
+
+The pipeline above (to the best of the author's knowledge) cannot be easily built using 
+[scikit-learn's composite estimators API](https://scikit-learn.org/stable/modules/compose.html#pipelines-and-composite-estimators) 
+as you encounter some limitations:	
+
+1. It is aimed at linear pipelines	
+    - You could add some step parallelism with the [ColumnTransformer](https://scikit-learn.org/stable/modules/compose.html#columntransformer-for-heterogeneous-data) 
+      API, but this is limited to transformer objects.	
+2. Classifiers/Regressors can only be used at the end of the pipeline.	
+    - This means we cannot use the predicted labels (or their probabilities) as features 
+      to other classifiers/regressors.	
+    - You could leverage mlxtend's [StackingClassifier](http://rasbt.github.io/mlxtend/user_guide/classifier/StackingClassifier/#stackingclassifier) 
+      and come up with some clever combination of the above composite estimators 
+      (`Pipeline`s, `ColumnTransformer`s, and `StackingClassifier`s, etc), but you might 
+      end up with code that feels hard-to-follow and verbose.	
+3. Cannot handle multiple input/multiple output models.	
+
+Perhaps you could instead define a big, composite estimator class that integrates each of 
+the pipeline steps through composition. This, however, most likely will require 	
+* writing big `__init__` methods to control each of the internal steps' knobs;	
+* being careful with `get_params` and `set_params` if you want to use, say, `GridSearchCV`;	
+* and adding some boilerplate code if you want to access the outputs of intermediate 
+  steps for debugging.	
+
+By using **baikal** as shown in the example above, code can be more readable, less verbose 
+and closer to our mental representation of the pipeline. **baikal** also provides an API 
+to fit, predict with, and query the entire pipeline with single commands. 
