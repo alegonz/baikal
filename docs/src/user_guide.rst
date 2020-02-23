@@ -253,10 +253,84 @@ models into bigger ones, like so:
     y = SVC()(z, y_t)
     bigmodel = Model(x, y, y_t)
 
-..  Additional concepts
-    -------------------
+Generalizations introduced by the API
+-------------------------------------
 
-    TODO
+.. _PipelineURL: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
+
+The **baikal** API generalizes scikit-learn estimators and pipelines in several ways:
+
+**Steps can be combined into non-linear pipelines**. That is,
+
+* steps may be parallel,
+* feed-forward connections my exist between non-consecutive steps,
+* an input of the pipeline is not necessarily taken from the first step,
+* an output of the pipeline is not necessarily produced from the last step.
+
+**Steps can take multiple inputs and produce multiple outputs**. This, for example, is
+useful for defining steps for aggregating, concatenating or splitting arrays; building
+models that take multi-modal data, for example and input for an image, and an input for
+tabular data; and building models with mixed classification/regression outputs.
+
+**Steps can lack a fit method.** Models allow steps that have no ``fit`` method
+(a.k.a. stateless estimators). At training time, such steps will omit their own training
+and simply do inference on their inputs to produce the outputs required by successive
+steps.
+
+Also, the Model graph engine will, for each step, pass only the arguments associated to
+the inputs and targets that were specified for that step. So, if you (naturally) didn't
+specify any targets for an unsupervised step, then that step can safely define a fit
+method with a ``fit(X)`` signature. This avoids having to define methods with a
+misleading ``fit(X, y=None)`` signature if the step either does not require target data
+or does not require a fit method at all, improving the readability of estimator classes.
+
+In short, this means steps can
+
+* omit defining ``fit`` for stateless steps,
+* define ``fit(X)`` for unsupervised steps,
+* define ``fit(X, y)`` for supervised and semi-supervised steps.
+
+**Steps can specify any function for inference.** Canonical scikit-learn estimators
+typically define either a ``predict`` or a ``transform`` method as their function for
+inference, and the `Pipeline API <PipelineURL_>`__ only admits these two. More complex
+models, however, may require estimators that do other kinds of computations such as
+prediction probabilities, the decision function, or the leaf indices of decision tree
+predictions. To allow this, the Step API generalizes these as "compute functions" and
+provides a ``compute_func`` argument that can be used to specify ``predict_proba`` ,
+``decision_function`` , ``apply`` or any other function for inference.
+
+**Steps can be frozen.** This is done via a ``trainable`` boolean flag and allows you
+to skip steps during training time. This is useful if you have a pre-trained estimator
+that you would like to reuse in another model without re-training it when training the
+whole model.
+
+**Steps can specify special behavior at training time.** Some estimators define special
+``fit_transform`` or ``fit_predict`` methods that do both training and inference in a
+single swoop. Usually, such methods are meant to leverage implementations that are more
+efficient than calling ``fit`` and ``predict``/``transform`` separately, or meant for
+transductive estimators as such estimators don't allow separate training and inference
+regimes. From the perspective of the execution of a pipeline at training time, where
+training and inference (to produce the outputs required by successor steps) is done for
+each step in tandem, these methods can be generalized to provide a means to control
+these stages jointly and define special behaviors. This can be useful, for example, for
+implementing training protocols such as that of stacked classifiers, where the
+classifiers in the first stage are trained on the input data, but instead compute
+out-of-fold predictions for the next stage in the stack. The Step API provides this via
+a ``fit_compute_func`` argument which, if specified, will be used by the graph execution
+instead of using ``fit`` and ``compute_func`` separately.
+
+**Steps can be shared.** Steps can be called on different inputs and targets (similar to
+the concept of shared layers and nodes in Keras), and specify a different behavior (that
+is, a specific configuration of ``compute_func``, ``fit_compute_func`` and ``trainable``),
+on each call. The mapping between inputs/targets and the behavior is achieved via
+"ports": each call creates a new port on the step and associates the given configuration
+to the inputs/targets the step was called on. The Model graph engine will then use the
+appropriate configuration on each set of inputs and targets.
+
+Shared steps allow reusing a step and its learned parameters on different inputs. For
+example, this is particularly useful for reusing learned transformations on targets.
+Also, this useful for reusing steps of stateless estimators to apply the same
+computation (e.g. casting data types, dropping dimensions) on several inputs.
 
 Utilities
 ---------
