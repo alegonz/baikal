@@ -2,6 +2,7 @@
 
 # A graph-based functional API for building complex scikit-learn pipelines
 
+[![docs](https://img.shields.io/badge/docs-read%20now-blue.svg)](https://baikal.readthedocs.io)
 [![build status](https://circleci.com/gh/alegonz/baikal/tree/master.svg?style=svg&circle-token=fb67eeed2067c361989d2091b9d4d03e6899010b)](https://circleci.com/gh/alegonz/baikal/tree/master)
 [![coverage](https://codecov.io/gh/alegonz/baikal/branch/master/graph/badge.svg?token=SSoeQETNh6)](https://codecov.io/gh/alegonz/baikal)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/alegonz/baikal.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/alegonz/baikal/context:python)
