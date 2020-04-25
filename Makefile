@@ -31,11 +31,11 @@ setup_docs: venv docs/requirements.txt
 
 test:
 	. venv/bin/activate && \
-	pytest -s -vv tests/
+	pytest -vv tests/
 
 test-cov:
 	. venv/bin/activate && \
-	pytest -s -vv --cov-config .coveragerc --cov=baikal tests/
+	pytest -vv --cov-config .coveragerc --cov=baikal tests/
 
 upload-cov:
 	. venv/bin/activate && \
