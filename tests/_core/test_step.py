@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 
 import pytest
+from sklearn.base import TransformerMixin, BaseEstimator
 
 from baikal import Input, Step
 from baikal._core.data_placeholder import DataPlaceholder
@@ -220,6 +221,21 @@ class TestStep:
         params = step.get_params()
         expected = {"x": 123, "y": "abc"}
         assert params == expected
+
+    def test_get_params_without_init(self, teardown):
+        """Test edge case where the base class does not define
+        an __init__ method. get_params should resolve to object.__init__
+        which results in an empty dict.
+        """
+
+        class TransformerWithoutInit(TransformerMixin, BaseEstimator):
+            pass
+
+        class TransformerWithoutInitStep(Step, TransformerWithoutInit):
+            pass
+
+        step = TransformerWithoutInitStep()
+        assert step.get_params() == {}
 
     def test_set_params(self, teardown):
         step = DummyEstimator()

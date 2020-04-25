@@ -38,14 +38,20 @@ class _StepBase:
         # For testing purposes only.
         cls._names.clear()
 
-    def _get_param_names(self):
+    @classmethod
+    def _get_param_names(cls):
         """This is a workaround to override @classmethod binding of the sklearn
         parent class method so we can feed it the sklearn parent class instead
         of the children class. We assume client code subclassed from this mixin
         and a sklearn class, with the sklearn class being the next base class in
         the mro.
         """
-        return super()._get_param_names.__func__(super())
+        mro = cls.mro()
+        for super_class in mro[mro.index(_StepBase) + 1 :]:
+            if hasattr(super_class, "__init__"):
+                # object is the last class in the mro and it defines an __init__ method
+                # so this is guaranteed to return before the for loop finishes
+                return super()._get_param_names.__func__(super_class)
 
     def _get_step_attr(self, attr):
         n_nodes = len(self._nodes)
