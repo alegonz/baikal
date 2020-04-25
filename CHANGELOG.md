@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2020-04-26
+### Fixed
+- Fix bug where `get_params` would break when the base class did not implement 
+  an `__init__` method ([PR #32]).
+
 ## [0.3.0] - 2020-02-23
 ### Added
 - Add support for shared steps ([PR #19](https://github.com/alegonz/baikal/pull/19)). 
