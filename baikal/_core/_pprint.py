@@ -64,12 +64,46 @@ BaseEstimator.__repr__ for pretty-printing estimators"""
 #   shortened using ellipsis (', ...') at the end.
 
 from inspect import signature
+import numbers
 import pprint
 from collections import OrderedDict
 
+import numpy as np
+
 from ..base import BaseEstimator
 from .._config import get_config
-from . import is_scalar_nan
+
+
+def is_scalar_nan(x):
+    """Tests if x is NaN
+
+    This function is meant to overcome the issue that np.isnan does not allow
+    non-numerical types as input, and that np.nan is not np.float('nan').
+
+    Parameters
+    ----------
+    x : any type
+
+    Returns
+    -------
+    boolean
+
+    Examples
+    --------
+    >>> is_scalar_nan(np.nan)
+    True
+    >>> is_scalar_nan(float("nan"))
+    True
+    >>> is_scalar_nan(None)
+    False
+    >>> is_scalar_nan("")
+    False
+    >>> is_scalar_nan([np.nan])
+    False
+    """
+    # convert from numpy.bool_ to python bool to ensure that testing
+    # is_scalar_nan(x) is True does not fail.
+    return bool(isinstance(x, numbers.Real) and np.isnan(x))
 
 
 class KeyValTuple(tuple):
