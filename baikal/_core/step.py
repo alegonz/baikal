@@ -4,7 +4,7 @@ import warnings
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from baikal._core.data_placeholder import DataPlaceholder, is_data_placeholder_list
-from baikal._core.utils import listify, make_name, make_repr, make_args_from_attrs
+from baikal._core.utils import listify, make_name, make_repr
 
 
 class _StepBase:
@@ -39,6 +39,16 @@ class _StepBase:
         cls._names.clear()
 
     @classmethod
+    def _get_super_class_with_init(cls):
+        """Get super class that defines __init__"""
+        mro = cls.mro()
+        for super_class in mro[mro.index(_StepBase) + 1 :]:
+            if hasattr(super_class, "__init__"):
+                # object is the last class in the mro and it defines an __init__ method
+                # so this is guaranteed to return before the for loop finishes
+                return super_class
+
+    @classmethod
     def _get_param_names(cls):
         """This is a workaround to override @classmethod binding of the sklearn
         parent class method so we can feed it the sklearn parent class instead
@@ -46,12 +56,8 @@ class _StepBase:
         and a sklearn class, with the sklearn class being the next base class in
         the mro.
         """
-        mro = cls.mro()
-        for super_class in mro[mro.index(_StepBase) + 1 :]:
-            if hasattr(super_class, "__init__"):
-                # object is the last class in the mro and it defines an __init__ method
-                # so this is guaranteed to return before the for loop finishes
-                return super()._get_param_names.__func__(super_class)
+        super_class = cls._get_super_class_with_init()
+        return super()._get_param_names.__func__(super_class)
 
     def _get_step_attr(self, attr):
         n_nodes = len(self._nodes)
@@ -473,7 +479,8 @@ class Step(_StepBase):
                 pass
             else:
                 raise ValueError(
-                    "If specified, `fit_compute_func` must be either None, a string or a callable."
+                    "If specified, `fit_compute_func` must be either None, a string or"
+                    " a callable."
                 )
         return fit_compute_func
 
@@ -639,25 +646,59 @@ class Step(_StepBase):
             outputs.append(DataPlaceholder(self, port, name))
         return outputs
 
-    def __repr__(self):
-        cls_name = self.__class__.__name__
-        parent_repr = super().__repr__()
-        step_attrs = ["name", "n_outputs"]
+    def __repr__(self, N_CHAR_MAX=700):
+        # Copied from scikit-learn BaseEstimator.__repr__
+        #
+        # N_CHAR_MAX is the (approximate) maximum number of non-blank
+        # characters to render. We pass it as an optional parameter to ease
+        # the tests.
 
-        # Insert Step attributes into the parent repr
-        # if the repr has the sklearn pattern
-        sklearn_pattern = r"^" + cls_name + r"\((.*)\)$"
-        match = re.search(sklearn_pattern, parent_repr, re.DOTALL)
-        if match:
-            parent_args = match.group(1)
-            indentations = re.findall("[ \t]{2,}", parent_args)
-            indent = min(indentations, key=len) if indentations else ""
-            step_args = make_args_from_attrs(self, step_attrs)
-            repr = "{}({},\n{}{})".format(cls_name, step_args, indent, parent_args)
-            return repr
+        from baikal._core._pprint import _EstimatorPrettyPrinter
 
-        else:
-            return make_repr(self, step_attrs)
+        N_MAX_ELEMENTS_TO_SHOW = 30  # number of elements to show in sequences
+
+        # use ellipsis for sequences with a lot of elements
+        pp = _EstimatorPrettyPrinter(
+            compact=True,
+            indent=1,
+            indent_at_name=True,
+            n_max_elements_to_show=N_MAX_ELEMENTS_TO_SHOW,
+        )
+
+        repr_ = pp.pformat(self)
+
+        # Use bruteforce ellipsis when there are a lot of non-blank characters
+        n_nonblank = len("".join(repr_.split()))
+        if n_nonblank > N_CHAR_MAX:
+            lim = N_CHAR_MAX // 2  # apprx number of chars to keep on both ends
+            regex = r"^(\s*\S){%d}" % lim
+            # The regex '^(\s*\S){%d}' % n
+            # matches from the start of the string until the nth non-blank
+            # character:
+            # - ^ matches the start of string
+            # - (pattern){n} matches n repetitions of pattern
+            # - \s*\S matches a non-blank char following zero or more blanks
+            left_lim = re.match(regex, repr_).end()
+            right_lim = re.match(regex, repr_[::-1]).end()
+
+            if "\n" in repr_[left_lim:-right_lim]:
+                # The left side and right side aren't on the same line.
+                # To avoid weird cuts, e.g.:
+                # categoric...ore',
+                # we need to start the right side with an appropriate newline
+                # character so that it renders properly as:
+                # categoric...
+                # handle_unknown='ignore',
+                # so we add [^\n]*\n which matches until the next \n
+                regex += r"[^\n]*\n"
+                right_lim = re.match(regex, repr_[::-1]).end()
+
+            ellipsis = "..."
+            if left_lim + len(ellipsis) < len(repr_) - right_lim:
+                # Only add ellipsis if it results in a shorter repr
+                repr_ = repr_[:left_lim] + "..." + repr_[-right_lim:]
+
+        return repr_
 
 
 class InputStep(_StepBase):

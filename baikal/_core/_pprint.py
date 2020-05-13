@@ -1,5 +1,8 @@
 """This module contains the _EstimatorPrettyPrinter class used in
-BaseEstimator.__repr__ for pretty-printing estimators"""
+Step.__repr__ for pretty-printing steps.
+It is derived from the one in scikit-learn:
+https://github.com/scikit-learn/scikit-learn/blob/5a4340834d23c4bdcd813ccda24a690ae174c168/sklearn/utils/_pprint.py
+"""
 
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 # 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018 Python Software Foundation;
@@ -7,6 +10,7 @@ BaseEstimator.__repr__ for pretty-printing estimators"""
 
 # Authors: Fred L. Drake, Jr. <fdrake@acm.org> (built-in CPython pprint module)
 #          Nicolas Hug (scikit-learn specific changes)
+#          Alejandro González Tineo (baikal specific changes)
 
 # License: PSF License version 2 (see below)
 
@@ -63,6 +67,13 @@ BaseEstimator.__repr__ for pretty-printing estimators"""
 # - long sequences (lists, tuples, dict items) with more than N elements are
 #   shortened using ellipsis (', ...') at the end.
 
+# Brief summary of changes to the scikit-learn code:
+# - Prints changed parameters only, by default, unless sklearn is importable and
+#   print_changed_only is set to False in the global config.
+# - It has a local definition of is_scalar_nan.
+# - Includes the step-specific parameters in the repr.
+# - Revise logic to extract default parameters from the step signature.
+
 from inspect import signature
 import numbers
 import pprint
@@ -70,7 +81,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from ..base import BaseEstimator
+from baikal import Step
 
 
 def is_scalar_nan(x):
@@ -117,16 +128,28 @@ class KeyValTupleParam(KeyValTuple):
     pass
 
 
-def _changed_params(estimator):
+def _get_params(step: Step, changed_only):
+    params = step.get_params(deep=False) if hasattr(step, "get_params") else {}
+    if changed_only and params:
+        init_func = step._get_super_class_with_init().__init__
+        init_params = {
+            name: param.default
+            for name, param in signature(init_func).parameters.items()
+        }
+        params = _changed_params(params, init_params)
+
+    params = OrderedDict(
+        (name, val) for (name, val) in sorted(params.items(), key=pprint._safe_tuple)
+    )
+    # step-specific parameters
+    params.update({"name": step.name, "n_outputs": step.n_outputs})
+    return params
+
+
+def _changed_params(params, init_params):
     """Return dict (param_name: value) of parameters that were given to
     estimator with non-default values."""
-
-    params = estimator.get_params(deep=False)
     filtered_params = {}
-    init_func = getattr(estimator.__init__, 'deprecated_original',
-                        estimator.__init__)
-    init_params = signature(init_func).parameters
-    init_params = {name: param.default for name, param in init_params.items()}
     for k, v in params.items():
         if (repr(v) != repr(init_params[k]) and
                 not (is_scalar_nan(init_params[k]) and is_scalar_nan(v))):
@@ -214,13 +237,7 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
         if self._indent_at_name:
             indent += len(object.__class__.__name__)
 
-        if self._changed_only:
-            params = _changed_params(object)
-        else:
-            params = object.get_params(deep=False)
-
-        params = OrderedDict((name, val)
-                             for (name, val) in sorted(params.items()))
+        params = _get_params(object, self._changed_only)
 
         self._format_params(params.items(), stream, indent, allowance + 1,
                             context, level)
@@ -365,7 +382,7 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
     # 12906)
     # mypy error: "Type[PrettyPrinter]" has no attribute "_dispatch"
     _dispatch = pprint.PrettyPrinter._dispatch.copy()  # type: ignore
-    _dispatch[BaseEstimator.__repr__] = _pprint_estimator
+    _dispatch[Step.__repr__] = _pprint_estimator
     _dispatch[KeyValTuple.__repr__] = _pprint_key_val_tuple
 
 
@@ -440,7 +457,7 @@ def _safe_repr(object, context, maxlevels, level, changed_only=False):
         del context[objid]
         return format % ", ".join(components), readable, recursive
 
-    if issubclass(typ, BaseEstimator):
+    if issubclass(typ, Step):
         objid = id(object)
         if maxlevels and level >= maxlevels:
             return "{...}", False, objid in context
@@ -449,16 +466,12 @@ def _safe_repr(object, context, maxlevels, level, changed_only=False):
         context[objid] = 1
         readable = True
         recursive = False
-        if changed_only:
-            params = _changed_params(object)
-        else:
-            params = object.get_params(deep=False)
+        params = _get_params(object, changed_only)
         components = []
         append = components.append
         level += 1
         saferepr = _safe_repr
-        items = sorted(params.items(), key=pprint._safe_tuple)
-        for k, v in items:
+        for k, v in params.items():
             krepr, kreadable, krecur = saferepr(
                 k, context, maxlevels, level, changed_only=changed_only)
             vrepr, vreadable, vrecur = saferepr(
