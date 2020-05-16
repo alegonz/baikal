@@ -1,14 +1,24 @@
+import pytest
 import sklearn.linear_model
 
 from baikal import make_step, Step
 
 
-def test_make_step():
+@pytest.mark.parametrize(
+    "class_name,expected",
+    [
+        (None, "LogisticRegression"),
+        ("LogisticRegressionStep", "LogisticRegressionStep"),
+    ],
+)
+def test_make_step(class_name, expected):
     def some_method(self):
         pass
 
     LogisticRegression = make_step(
-        sklearn.linear_model.LogisticRegression, attr_dict={"some_method": some_method}
+        sklearn.linear_model.LogisticRegression,
+        class_name,
+        {"some_method": some_method},
     )
 
     assert issubclass(LogisticRegression, Step)
@@ -18,4 +28,4 @@ def test_make_step():
     assert hasattr(LogisticRegression, "fit")
     assert hasattr(LogisticRegression, "predict")
     assert hasattr(LogisticRegression, "some_method")
-    assert LogisticRegression.__name__ == "LogisticRegression"
+    assert LogisticRegression.__name__ == expected

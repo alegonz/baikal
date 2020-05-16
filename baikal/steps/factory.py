@@ -5,12 +5,12 @@ import inspect
 from baikal.steps import Step
 
 
-def make_step(base_class, attr_dict=None):
+def make_step(base_class, class_name=None, attr_dict=None):
     """Creates a step subclass from the given base class.
 
     For example, calling::
 
-        PCA = make_step(sklearn.decomposition.PCA)
+        PCA = make_step(sklearn.decomposition.PCA, class_name="PCA")
 
     is equivalent to::
 
@@ -22,6 +22,10 @@ def make_step(base_class, attr_dict=None):
     ----------
     base_class : type
         The base class to inherit from. It must implement the scikit-learn API.
+
+    class_name
+        Name of the step class. If None, the name will be the name of the given
+        base class.
 
     attr_dict : dict
         Dictionary of additional attributes for the class. You can use this to add
@@ -42,7 +46,7 @@ def make_step(base_class, attr_dict=None):
         )
 
     metaclass = type(base_class)
-    name = base_class.__name__
+    name = base_class.__name__ if class_name is None else class_name
     bases = (Step, base_class)
     caller_module = inspect.currentframe().f_back.f_globals["__name__"]
 
