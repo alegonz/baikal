@@ -108,8 +108,8 @@ For example, to make a step for ``sklearn.linear_model.LogisticRegression`` we d
 
     # The order of inheritance is important!
     class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-        def __init__(self, name=None, n_outputs=1, **kwargs):
-            super().__init__(name=name,n_outputs=n_outputs,**kwargs)
+        def __init__(self, *args, name=None, n_outputs=1, **kwargs):
+            super().__init__(*args, name=name,n_outputs=n_outputs,**kwargs)
 
 Other steps are defined similarly (omitted here for brevity).
 

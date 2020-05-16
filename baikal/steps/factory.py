@@ -20,8 +20,8 @@ def make_step(
     is equivalent to::
 
         class PCA(Step, sklearn.decomposition.PCA):
-            def __init__(self, name=None, n_outputs=1, **kwargs):
-                super().__init__(name=name, n_outputs=n_outputs, **kwargs)
+            def __init__(self, *args, name=None, n_outputs=1, **kwargs):
+                super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)
 
     Parameters
     ----------
@@ -45,9 +45,9 @@ def make_step(
 
     """
 
-    def __init__(self, name=None, n_outputs=1, **kwargs):
+    def __init__(self, *args, name=None, n_outputs=1, **kwargs):
         super(self.__class__, self).__init__(
-            name=name, n_outputs=n_outputs, **kwargs,
+            *args, name=name, n_outputs=n_outputs, **kwargs,
         )
 
     metaclass = type(base_class)
