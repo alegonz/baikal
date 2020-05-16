@@ -1,4 +1,4 @@
 [tool.black]
 line-length = 88
 target-version = ['py35', 'py36', 'py37', 'py38']
-force-exclude = "baikal/_core/_pprint.py"
+force-exclude = "baikal/_core/pprint.py"
