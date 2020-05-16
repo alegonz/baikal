@@ -132,7 +132,7 @@ class KeyValTupleParam(KeyValTuple):
     pass
 
 
-def _get_params(step: Step, changed_only):
+def _get_params(step, changed_only):
     params = step.get_params(deep=False) if hasattr(step, "get_params") else {}
     if changed_only and params:
         init_func = step._get_super_class_with_init().__init__
