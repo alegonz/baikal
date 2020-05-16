@@ -9,7 +9,7 @@ from baikal.steps import Step
 
 
 def make_step(
-    base_class: type, class_name: Optional[str] = None, attr_dict: Dict[str, Any] = None
+    base_class: type, attr_dict: Dict[str, Any] = None, class_name: Optional[str] = None
 ) -> type:
     """Creates a step subclass from the given base class.
 
@@ -28,14 +28,14 @@ def make_step(
     base_class
         The base class to inherit from. It must implement the scikit-learn API.
 
-    class_name
-        Name of the step class. If None, the name will be the name of the given
-        base class.
-
     attr_dict
         Dictionary of additional attributes for the class. You can use this to add
         methods such as ``fit_compute`` to the class. (keys: name of attribute (``str``),
         values: attributes).
+
+    class_name
+        Name of the step class. If None, the name will be the name of the given
+        base class.
 
     Returns
     -------

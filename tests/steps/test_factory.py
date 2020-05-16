@@ -17,8 +17,8 @@ def test_make_step(class_name, expected):
 
     LogisticRegression = make_step(
         sklearn.linear_model.LogisticRegression,
-        class_name,
         {"some_method": some_method},
+        class_name,
     )
 
     assert issubclass(LogisticRegression, Step)
