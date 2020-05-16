@@ -83,7 +83,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from baikal import Step
+from baikal import Step, get_config
 
 
 def is_scalar_nan(x):
@@ -218,11 +218,7 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
         if self._indent_at_name:
             self._indent_per_level = 1  # ignore indent param
 
-        try:
-            from sklearn._config import get_config
-            self._changed_only = get_config()['print_changed_only']
-        except ImportError:
-            self._changed_only = True
+        self._changed_only = get_config()['print_changed_only']
 
         # Max number of elements in a list, dict, tuple until we start using
         # ellipsis. This also affects the number of arguments of an estimators
