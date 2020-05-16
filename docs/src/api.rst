@@ -50,3 +50,10 @@ This is the class and function reference of **baikal**.
     :template: class.rst
 
     SKLearnWrapper
+
+.. currentmodule:: baikal
+.. autosummary::
+    :toctree: _generated/
+
+    get_config
+    set_config
