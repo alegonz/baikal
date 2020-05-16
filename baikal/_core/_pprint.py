@@ -73,10 +73,12 @@ https://github.com/scikit-learn/scikit-learn/blob/5a4340834d23c4bdcd813ccda24a69
 # - It has a local definition of is_scalar_nan.
 # - Includes the step-specific parameters in the repr.
 # - Revise logic to extract default parameters from the step signature.
+# - Migrate brute-force ellipsis post-processing logic from BaseEstimator.__repr__
 
 from inspect import signature
 import numbers
 import pprint
+import re
 from collections import OrderedDict
 
 import numpy as np
@@ -486,3 +488,40 @@ def _safe_repr(object, context, maxlevels, level, changed_only=False):
 
     rep = repr(object)
     return rep, (rep and not rep.startswith('<')), False
+
+
+def post_process_repr(repr_, n_char_max):
+    """Post-process repr produced by _EstimatorPrettyPrinter.
+    Adapted from the original in scikit-learn BaseEstimator.__repr__
+    """
+    # Use bruteforce ellipsis when there are a lot of non-blank characters
+    n_nonblank = len("".join(repr_.split()))
+    if n_nonblank > n_char_max:
+        lim = n_char_max // 2  # apprx number of chars to keep on both ends
+        regex = r"^(\s*\S){%d}" % lim
+        # The regex '^(\s*\S){%d}' % n
+        # matches from the start of the string until the nth non-blank
+        # character:
+        # - ^ matches the start of string
+        # - (pattern){n} matches n repetitions of pattern
+        # - \s*\S matches a non-blank char following zero or more blanks
+        left_lim = re.match(regex, repr_).end()
+        right_lim = re.match(regex, repr_[::-1]).end()
+
+        if "\n" in repr_[left_lim:-right_lim]:
+            # The left side and right side aren't on the same line.
+            # To avoid weird cuts, e.g.:
+            # categoric...ore',
+            # we need to start the right side with an appropriate newline
+            # character so that it renders properly as:
+            # categoric...
+            # handle_unknown='ignore',
+            # so we add [^\n]*\n which matches until the next \n
+            regex += r"[^\n]*\n"
+            right_lim = re.match(regex, repr_[::-1]).end()
+
+        ellipsis = "..."
+        if left_lim + len(ellipsis) < len(repr_) - right_lim:
+            # Only add ellipsis if it results in a shorter repr
+            repr_ = repr_[:left_lim] + "..." + repr_[-right_lim:]
+    return repr_
