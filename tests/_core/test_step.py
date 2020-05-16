@@ -4,7 +4,7 @@ from functools import partial
 import pytest
 from sklearn.base import TransformerMixin, BaseEstimator
 
-from baikal import Input, Step
+from baikal import Input, Step, set_config
 from baikal._core.data_placeholder import DataPlaceholder
 from baikal._core.step import InputStep
 
@@ -206,15 +206,18 @@ class TestStep:
         assert y0.name == "DummySISO_0:0/0"
         assert y1.name == "DummySISO_0:1/0"
 
-    def test_repr(self):
-        class DummyStep(Step):
-            def somefunc(self, X):
-                pass
-
-        step = DummyStep(name="some-step")
-        assert repr(step) == "DummyStep(name='some-step', n_outputs=1)"
-
-        # TODO: Add test for sklearn step
+    @pytest.mark.parametrize(
+        "print_changed_only,expected",
+        [
+            (None, "_DummyEstimator(x=456, name='DE', n_outputs=1)"),
+            (True, "_DummyEstimator(x=456, name='DE', n_outputs=1)"),
+            (False, "_DummyEstimator(x=456, y='abc', name='DE', n_outputs=1)"),
+        ],
+    )
+    def test_repr(self, print_changed_only, expected, teardown):
+        set_config(print_changed_only=print_changed_only)
+        step = DummyEstimator(x=456, name="DE")
+        assert repr(step) == expected
 
     def test_get_params(self, teardown):
         step = DummyEstimator()
