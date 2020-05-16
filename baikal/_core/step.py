@@ -664,7 +664,7 @@ class Step(_StepBase):
         -------
         repr string of the object.
         """
-        from baikal._core._pprint import _EstimatorPrettyPrinter, post_process_repr
+        from baikal._core.pprint import _EstimatorPrettyPrinter, post_process_repr
 
         pp = _EstimatorPrettyPrinter(
             compact=True,
