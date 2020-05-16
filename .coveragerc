@@ -1,6 +1,7 @@
 [run]
 branch = True
 source = baikal
+omit = baikal/_core/pprint.py
 parallel = True
 
 [report]

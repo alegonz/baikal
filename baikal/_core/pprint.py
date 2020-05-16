@@ -2,6 +2,8 @@
 Step.__repr__ for pretty-printing steps.
 It is derived from the one in scikit-learn:
 https://github.com/scikit-learn/scikit-learn/blob/5a4340834d23c4bdcd813ccda24a690ae174c168/sklearn/utils/_pprint.py
+
+TODO: Although we trust this borrowed code, it'd be nice to have test coverage.
 """
 
 # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
