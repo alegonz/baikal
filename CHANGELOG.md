@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.3.1] - 2020-04-26
 ### Fixed
 - Fix bug where `get_params` would break when the base class did not implement 
-  an `__init__` method ([PR #32]).
+  an `__init__` method ([PR #32](https://github.com/alegonz/baikal/pull/32)).
 
 ## [0.3.0] - 2020-02-23
 ### Added
@@ -60,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Everything. This is the first (pre-release) version.
 
 [Unreleased]: https://github.com/alegonz/baikal/compare/v0.3.0...HEAD
+[0.3.1]: https://github.com/alegonz/baikal/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/alegonz/baikal/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alegonz/baikal/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alegonz/baikal/releases/tag/v0.1.0
