@@ -1,4 +1,4 @@
-"""This module contains the _EstimatorPrettyPrinter class used in
+"""This module contains the _StepPrettyPrinter class used in
 Step.__repr__ for pretty-printing steps.
 It is derived from the one in scikit-learn:
 https://github.com/scikit-learn/scikit-learn/blob/5a4340834d23c4bdcd813ccda24a690ae174c168/sklearn/utils/_pprint.py
@@ -76,6 +76,7 @@ TODO: Although we trust this borrowed code, it'd be nice to have test coverage.
 # - Includes the step-specific parameters in the repr.
 # - Revise logic to extract default parameters from the step signature.
 # - Migrate brute-force ellipsis post-processing logic from BaseEstimator.__repr__
+# - Rename all instances of "estimator[s]" to "steps" in class/function/variable names.
 
 from inspect import signature
 import numbers
@@ -153,7 +154,7 @@ def _get_params(step, changed_only):
 
 def _changed_params(params, init_params):
     """Return dict (param_name: value) of parameters that were given to
-    estimator with non-default values."""
+    the step with non-default values."""
     filtered_params = {}
     for k, v in params.items():
         if (repr(v) != repr(init_params[k]) and
@@ -162,12 +163,12 @@ def _changed_params(params, init_params):
     return filtered_params
 
 
-class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
-    """Pretty Printer class for estimator objects.
+class _StepPrettyPrinter(pprint.PrettyPrinter):
+    """Pretty Printer class for step objects.
 
     This extends the pprint.PrettyPrinter class, because:
-    - we need estimators to be printed with their parameters, e.g.
-      Estimator(param1=value1, ...) which is not supported by default.
+    - we need steps to be printed with their parameters, e.g.
+      Step(param1=value1, ...) which is not supported by default.
     - the 'compact' parameter of PrettyPrinter is ignored for dicts, which
       may lead to very long representations that we want to avoid.
 
@@ -194,22 +195,22 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
 
     This class overrides:
     - format() to support the changed_only parameter
-    - _safe_repr to support printing of estimators (for when they fit on a
+    - _safe_repr to support printing of steps (for when they fit on a
       single line)
     - _format_dict_items so that dict are correctly 'compacted'
     - _format_items so that ellipsis is used on long lists and tuples
 
-    When estimators cannot be printed on a single line, the builtin _format()
-    will call _pprint_estimator() because it was registered to do so (see
-    _dispatch[BaseEstimator.__repr__] = _pprint_estimator).
+    When steps cannot be printed on a single line, the builtin _format()
+    will call _pprint_step() because it was registered to do so (see
+    _dispatch[Step.__repr__] = _pprint_step).
 
-    both _format_dict_items() and _pprint_estimator() use the
+    both _format_dict_items() and _pprint_step() use the
     _format_params_or_dict_items() method that will format parameters and
     key-value pairs respecting the compact parameter. This method needs another
     subroutine _pprint_key_val_tuple() used when a parameter or a key-value
     pair is too long to fit on a single line. This subroutine is called in
     _format() and is registered as well in the _dispatch dict (just like
-    _pprint_estimator). We had to create the two classes KeyValTuple and
+    _pprint_step). We had to create the two classes KeyValTuple and
     KeyValTupleParam for this.
     """
 
@@ -224,7 +225,7 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
         self._changed_only = get_config()['print_changed_only']
 
         # Max number of elements in a list, dict, tuple until we start using
-        # ellipsis. This also affects the number of arguments of an estimators
+        # ellipsis. This also affects the number of arguments of a step
         # (they are treated as dicts)
         self.n_max_elements_to_show = n_max_elements_to_show
 
@@ -232,8 +233,7 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
         return _safe_repr(object, context, maxlevels, level,
                           changed_only=self._changed_only)
 
-    def _pprint_estimator(self, object, stream, indent, allowance, context,
-                          level):
+    def _pprint_step(self, object, stream, indent, allowance, context, level):
         stream.write(object.__class__.__name__ + '(')
         if self._indent_at_name:
             indent += len(object.__class__.__name__)
@@ -378,17 +378,14 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
         self._format(v, stream, indent + len(rep) + len(middle), allowance,
                      context, level)
 
-    # Note: need to copy _dispatch to prevent instances of the builtin
-    # PrettyPrinter class to call methods of _EstimatorPrettyPrinter (see issue
-    # 12906)
     # mypy error: "Type[PrettyPrinter]" has no attribute "_dispatch"
     _dispatch = pprint.PrettyPrinter._dispatch.copy()  # type: ignore
-    _dispatch[Step.__repr__] = _pprint_estimator
+    _dispatch[Step.__repr__] = _pprint_step
     _dispatch[KeyValTuple.__repr__] = _pprint_key_val_tuple
 
 
 def _safe_repr(object, context, maxlevels, level, changed_only=False):
-    """Same as the builtin _safe_repr, with added support for Estimator
+    """Same as the builtin _safe_repr, with added support for Step
     objects."""
     typ = type(object)
 
@@ -490,7 +487,7 @@ def _safe_repr(object, context, maxlevels, level, changed_only=False):
 
 
 def post_process_repr(repr_, n_char_max):
-    """Post-process repr produced by _EstimatorPrettyPrinter.
+    """Post-process repr produced by _StepPrettyPrinter.
     Adapted from the original in scikit-learn BaseEstimator.__repr__
     """
     # Use bruteforce ellipsis when there are a lot of non-blank characters
