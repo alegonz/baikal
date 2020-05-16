@@ -415,8 +415,8 @@ class Step(_StepBase):
         import sklearn.linear_model
         # The order of inheritance is important!
         class LogisticRegression(Step, sklearn.linear_model.LogisticRegression):
-            def __init__(self, name=None, **kwargs):
-                super().__init__(name=name, **kwargs)
+            def __init__(self, *args, name=None, **kwargs):
+                super().__init__(*args, name=name, **kwargs)
 
         logreg = LogisticRegression(C=2.0)
 
