@@ -146,7 +146,8 @@ def _get_params(step, changed_only):
         (name, val) for (name, val) in sorted(params.items(), key=pprint._safe_tuple)
     )
     # step-specific parameters
-    params.update({"name": step.name, "n_outputs": step.n_outputs})
+    params.update({"name": step.name,})
+    params.update({"n_outputs": step.n_outputs})
     return params
 
 
