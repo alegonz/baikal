@@ -1,3 +1,6 @@
+from types import FrameType
+from typing import Optional, Dict, Any, cast
+
 __all__ = ["make_step"]
 
 import inspect
@@ -5,7 +8,9 @@ import inspect
 from baikal.steps import Step
 
 
-def make_step(base_class, class_name=None, attr_dict=None):
+def make_step(
+    base_class: type, class_name: Optional[str] = None, attr_dict: Dict[str, Any] = None
+) -> type:
     """Creates a step subclass from the given base class.
 
     For example, calling::
@@ -20,21 +25,21 @@ def make_step(base_class, class_name=None, attr_dict=None):
 
     Parameters
     ----------
-    base_class : type
+    base_class
         The base class to inherit from. It must implement the scikit-learn API.
 
     class_name
         Name of the step class. If None, the name will be the name of the given
         base class.
 
-    attr_dict : dict
+    attr_dict
         Dictionary of additional attributes for the class. You can use this to add
         methods such as ``fit_compute`` to the class. (keys: name of attribute (``str``),
         values: attributes).
 
     Returns
     -------
-    step_subclass : type
+    step_subclass
         A new class that inherits from both Step and the given base class and has the
         the specified attributes.
 
@@ -48,7 +53,8 @@ def make_step(base_class, class_name=None, attr_dict=None):
     metaclass = type(base_class)
     name = base_class.__name__ if class_name is None else class_name
     bases = (Step, base_class)
-    caller_module = inspect.currentframe().f_back.f_globals["__name__"]
+    caller_frame = cast(FrameType, cast(FrameType, inspect.currentframe()).f_back)
+    caller_module = caller_frame.f_globals["__name__"]
 
     dict = {"__init__": __init__, "__module__": caller_module}
     if attr_dict is not None:
