@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Add capability to specify a name to the class made by `make_step` ([PR #34](https://github.com/alegonz/baikal/pull/34)).
+
+### Fixed
+- Improved and fixed a bug in repr of steps that causes a RuntimeError for scikit-learn 0.23.0. 
+  ([PR #33](https://github.com/alegonz/baikal/pull/33)).
+- Fix bug where `*args` was not included in the constructor of the class made by `make_step` 
+  (and fix related examples in the docs) ([PR #34](https://github.com/alegonz/baikal/pull/34)).
 
 ## [0.3.1] - 2020-04-26
 ### Fixed
