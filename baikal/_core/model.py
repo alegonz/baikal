@@ -212,15 +212,17 @@ class Model(Step):
         unused_inputs = given_inputs - given_inputs_found
         if unused_inputs and not allow_unused_inputs:
             raise ValueError(
-                "The following inputs were given but are not required:\n"
-                "{}".format(",".join([input.name for input in unused_inputs]))
+                "The following inputs were given but are not required:\n{}".format(
+                    ",".join([input.name for input in unused_inputs])
+                )
             )
 
         unused_targets = given_targets - given_targets_found
         if unused_targets and not allow_unused_targets:
             raise ValueError(
-                "The following targets were given but are not required:\n"
-                "{}".format(",".join([target.name for target in unused_targets]))
+                "The following targets were given but are not required:\n{}".format(
+                    ",".join([target.name for target in unused_targets])
+                )
             )
 
         required_nodes_sorted = [
@@ -605,6 +607,28 @@ class Model(Step):
     def graph(self):
         """Get the graph associated to the model."""
         return self._graph
+
+    def __repr__(self):
+        def data_placeholders_repr_short(data_placeholders: List[DataPlaceholder]):
+            if len(data_placeholders) == 1:
+                return data_placeholders[0].name
+            return "[{}]".format(", ".join(d.name for d in data_placeholders))
+
+        class_name = type(self).__name__
+        args = [
+            "{}={}".format(group, data_placeholders_repr_short(data_placeholders))
+            for group, data_placeholders in [
+                ("inputs", self._internal_inputs),
+                ("outputs", self._internal_outputs),
+                ("targets", self._internal_targets),
+            ]
+        ]
+        args += ["name='{}'".format(self.name)]
+        repr_ = "{}({})".format(class_name, ", ".join(args))
+        if len(repr_) > 88:
+            align = ",\n    "
+            repr_ = "{}(\n    {}\n)".format(class_name, align.join(args))
+        return repr_
 
 
 def build_graph_from_outputs(outputs: Iterable[DataPlaceholder]) -> DiGraph:
