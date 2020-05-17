@@ -78,9 +78,11 @@ def does_not_raise():
 
 skip_sklearn_0_22 = pytest.mark.skipif(
     sklearn.__version__ == "0.22",
-    reason="sklearn.utils.validation.check_is_fitted in 0.22 yields false positives "
-    "when the class has private attributes."
-    "see: https://github.com/scikit-learn/scikit-learn/issues/15845",
+    reason=(
+        "sklearn.utils.validation.check_is_fitted in 0.22 yields false positives "
+        "when the class has private attributes."
+        "see: https://github.com/scikit-learn/scikit-learn/issues/15845"
+    ),
 )
 
 skip_sklearn_pre_0_22 = pytest.mark.skipif(
@@ -510,6 +512,29 @@ class TestPredict:
         y2 = doubler(x2)
         model = Model([x1, x2], [y1, y2])
         assert model.predict([2, 3]) == [4, 6]
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("model", "Model(inputs=x, outputs=[y:0/0, x], targets=y_t, name='model')"),
+        (
+            "someunnecessarilylongnameforamodel",
+            "Model(\n"
+            "    inputs=x,\n"
+            "    outputs=[y:0/0, x],\n"
+            "    targets=y_t,\n"
+            "    name='someunnecessarilylongnameforamodel'\n"
+            ")",
+        ),
+    ],
+)
+def test_repr(name, expected, teardown):
+    x = Input(name="x")
+    y_t = Input(name="y_t")
+    y = LogisticRegression(name="y")(x, y_t)
+    model = Model(x, [y, x], y_t, name=name)
+    assert repr(model) == expected
 
 
 def test_try_and_raise_with_cause(teardown):

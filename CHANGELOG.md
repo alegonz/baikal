@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.1] - 2020-05-17
+### Fixed
+- Fix bug in repr of Model class ([PR #35](https://github.com/alegonz/baikal/pull/35)).
+
 ## [0.4.0] - 2020-05-16
 ### Added
 - Add capability to specify a name to the class made by `make_step` ([PR #34](https://github.com/alegonz/baikal/pull/34)).
@@ -67,7 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Everything. This is the first (pre-release) version.
 
-[Unreleased]: https://github.com/alegonz/baikal/compare/v0.4.0...HEAD
+[0.4.1]: https://github.com/alegonz/baikal/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/alegonz/baikal/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/alegonz/baikal/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/alegonz/baikal/compare/v0.2.0...v0.3.0
