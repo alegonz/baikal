@@ -1,7 +1,7 @@
 version: 2.1
 
-sklearn_version_latest: &sklearn_version_latest 0.22.*
-sklearn_version_prev: &sklearn_version_prev 0.21.*
+sklearn_version_latest: &sklearn_version_latest 0.23.*
+sklearn_version_prev: &sklearn_version_prev 0.22.*
 
 test-defaults: &test-defaults
   parameters:
@@ -67,10 +67,13 @@ workflows:
   version: 2.1
   build-deploy:
     jobs:
+      # scikit-learn dropped py3.5 support from 0.23
+      # so we fix to the previous two releases, and
+      # we don't test nightly on py3.5.
       - test-py35:
-          sklearn_version: *sklearn_version_prev
+          sklearn_version: "0.21.*"
       - test-py35:
-          sklearn_version: *sklearn_version_latest
+          sklearn_version: "0.22.*"
 
       - test-py36:
           sklearn_version: *sklearn_version_prev
@@ -111,8 +114,6 @@ workflows:
               only:
                 - master
     jobs:
-      - test-py35:
-          sklearn_version: "nightly"
       - test-py36:
           sklearn_version: "nightly"
       - test-py37:
