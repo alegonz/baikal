@@ -28,4 +28,5 @@ def test_make_step(class_name, expected):
     assert hasattr(LogisticRegression, "fit")
     assert hasattr(LogisticRegression, "predict")
     assert hasattr(LogisticRegression, "some_method")
+    assert hasattr(LogisticRegression, "_nodes")
     assert LogisticRegression.__name__ == expected
