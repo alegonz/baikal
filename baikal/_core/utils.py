@@ -68,6 +68,11 @@ class SimpleCache:
         self._misses = 0
         self._cache = {}
 
+    def __setstate__(self, state):
+        self._hits = state['_hits']
+        self._misses = state['_misses']
+        self._cache = state['_cache']
+
     def __contains__(self, key):
         if key in self._cache:
             self._hits += 1

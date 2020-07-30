@@ -87,6 +87,19 @@ class Model(Step):
         self._internal_targets = targets
         self._build()
 
+    def __setstate__(self, state):
+        self._n_outputs = state['_n_outputs']
+        self._internal_inputs = state['_internal_inputs']
+        self._internal_outputs = state['_internal_outputs']
+        self._internal_targets = state['_internal_targets']
+        self._graph = state['_graph']
+        self._name = state['_name']
+        self._steps = state['_steps']
+        self._all_nodes_sorted = state['_all_nodes_sorted']
+        self._nodes_cache = state['_nodes_cache']
+        self._data_placeholders = state['_data_placeholders']
+
+
     def _build(self):
         # Model uses the DiGraph data structure to store and operate on its DataPlaceholder and Steps.
         self._graph = build_graph_from_outputs(self._internal_outputs)

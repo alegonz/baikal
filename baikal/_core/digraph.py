@@ -21,6 +21,11 @@ class DiGraph:
         self._predecessors = OrderedDict()
         self.name = name
 
+    def __setstate__(self, state):
+        self._successors = state['_successors']
+        self._predecessors = state['_predecessors']
+        self.name = state['name']
+
     def add_node(self, node):
         if node in self:
             # If node already exists in the graph, return silently.

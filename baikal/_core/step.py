@@ -381,6 +381,12 @@ class _StepBase:
         self._nodes[port].trainable = value
 
 
+    def __setstate__(self, state):
+        self._nodes = state['_nodes']
+        self._name = state['_name']
+        self._n_outputs = state['_n_outputs']
+
+
 class Step(_StepBase):
     """Mixin class to endow scikit-learn classes with Step capabilities.
 
@@ -437,6 +443,9 @@ class Step(_StepBase):
         super().__init__(*args, name=name, n_outputs=n_outputs, **kwargs)  # type: ignore
 
         self._nodes = []  # type: List[Node]
+
+    def __setstate__(self, state):
+        self._nodes = state['_nodes']
 
     def _check_compute_func(self, compute_func):
         if compute_func == "auto":
@@ -703,6 +712,9 @@ class InputStep(_StepBase):
         step_attrs = ["name"]
         return make_repr(self, step_attrs)
 
+    def __setstate__(self, state):
+        self._nodes = state['_nodes']
+
 
 def Input(name: Optional[str] = None) -> DataPlaceholder:
     """Helper function that instantiates a data placeholder representing an
@@ -746,6 +758,16 @@ class Node:
         self.compute_func = compute_func
         self.fit_compute_func = fit_compute_func
         self.trainable = trainable
+
+    def __setstate__(self, state):
+        self._step = state['_step']
+        self._inputs = state['_inputs']
+        self._outputs = state['_outputs']
+        self._targets = state['_targets']
+        self.compute_func = state['compute_func']
+        self.fit_func = state['fit_func']
+        self.fit_compute_func = state['fit_compute_func']
+        self.trainable = state['trainable']
 
     @property
     def step(self):

@@ -50,6 +50,7 @@ def make_step(
             *args, name=name, n_outputs=n_outputs, **kwargs,
         )
 
+
     metaclass = type(base_class)
     name = base_class.__name__ if class_name is None else class_name
     bases = (Step, base_class)

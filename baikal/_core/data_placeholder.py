@@ -51,3 +51,8 @@ class DataPlaceholder:
         if self.__class__ is other.__class__:
             return self._name < other.name
         return NotImplemented  # pragma: no cover
+
+    def __setstate__(self, state):
+        self._step = state['_step']
+        self._port = state['_port']
+        self._name = state['_name']
