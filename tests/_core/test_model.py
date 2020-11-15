@@ -16,7 +16,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline, Pipeline
 
-from baikal import Model, Input
+from baikal import Model, Input, Step
 from baikal._core.data_placeholder import DataPlaceholder
 from baikal._core.typing import ArrayLike
 from baikal.steps import Concatenate, ColumnStack, Stack, Lambda
@@ -1000,6 +1000,22 @@ def test_fit_params(teardown):
     # Use assert_allclose instead of all equal due to small numerical differences
     # between fit_transform(...) and fit(...).transform(...)
     assert_allclose(model.get_step("logreg").coef_, pipe.named_steps["logreg"].coef_)
+
+
+def test_fit_params_unhashable_step():
+    class UnhashableStep(Step, sklearn.linear_model.LogisticRegression):
+        def __eq__(self, other):
+            pass
+
+    x = Input()
+    y_t = Input()
+    y = UnhashableStep()(x, y_t)
+    model = Model(x, y, y_t)
+
+    mask = iris.target != 2  # Reduce to binary problem to avoid ConvergenceWarning
+    x_data = iris.data[mask]
+    y_t_data = iris.target[mask]
+    model.fit(x_data, y_t_data)
 
 
 def test_get_params(teardown):
