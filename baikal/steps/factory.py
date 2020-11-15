@@ -1,3 +1,4 @@
+import warnings
 from types import FrameType
 from typing import Optional, Dict, Any, cast
 
@@ -35,7 +36,11 @@ def make_step(
 
     class_name
         Name of the step class. If None, the name will be the name of the given
-        base class.
+        base class. For instances made from the generated class to be pickle-able,
+        you must pass a name that matches the name of the variable the generated
+        class is being assigned to (the variable must also be declared at the top
+        level of the module). **Deprecation notice**: This argument will be required
+        from version 0.5.0.
 
     Returns
     -------
@@ -51,7 +56,15 @@ def make_step(
         )
 
     metaclass = type(base_class)
-    name = base_class.__name__ if class_name is None else class_name
+    if class_name is None:
+        warnings.warn(
+            "Pass a string to `class_name`. From version 0.5.0 this argument will be"
+            " required.",
+            FutureWarning,
+        )
+        name = base_class.__name__
+    else:
+        name = class_name
     bases = (Step, base_class)
     caller_frame = cast(FrameType, cast(FrameType, inspect.currentframe()).f_back)
     caller_module = caller_frame.f_globals["__name__"]
