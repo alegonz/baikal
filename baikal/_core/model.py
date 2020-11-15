@@ -284,7 +284,7 @@ class Model(Step):
         -------
         The step.
         """
-        # Steps are assumed to have unique names (guaranteed by success of _build_graph)
+        # Steps are assumed to have unique names (guaranteed by success of build_graph_from_outputs)
         if name in self._steps.keys():
             return self._steps[name]
         raise ValueError("{} was not found in the model.".format(name))
@@ -384,7 +384,7 @@ class Model(Step):
             # TODO: Add check for __. Add error message if step was not found
             step_name, _, param_name = param_key.partition("__")
             step = self.get_step(step_name)
-            fit_params_steps[step][param_name] = param_value
+            fit_params_steps[step.name][param_name] = param_value
 
         # Intermediate results are stored here
         # keys: DataPlaceholder instances, values: actual data (e.g. numpy arrays)
@@ -411,7 +411,7 @@ class Model(Step):
                 continue
 
             ys = [results_cache[t] for t in node.targets]
-            fit_params = fit_params_steps.get(node.step, {})
+            fit_params = fit_params_steps.get(node.step.name, {})
 
             if node.fit_compute_func is not None:
                 self._fit_compute_node(node, Xs, ys, results_cache, **fit_params)
