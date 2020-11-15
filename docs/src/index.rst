@@ -14,6 +14,7 @@
    user_guide.rst
    examples.rst
    api.rst
+   known_issues.rst
    contributing.rst
    changelog.rst
    license.rst
