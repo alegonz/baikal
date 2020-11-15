@@ -1,25 +1,33 @@
+from contextlib import contextmanager
+
 import pytest
 import sklearn.linear_model
 
 from baikal import make_step, Step
 
 
+@contextmanager
+def does_not_warn():
+    yield
+
+
 @pytest.mark.parametrize(
-    "class_name,expected",
+    "class_name,expected,warns",
     [
-        (None, "LogisticRegression"),
-        ("LogisticRegressionStep", "LogisticRegressionStep"),
+        (None, "LogisticRegression", pytest.warns(FutureWarning)),
+        ("LogisticRegressionStep", "LogisticRegressionStep", does_not_warn()),
     ],
 )
-def test_make_step(class_name, expected):
+def test_make_step(class_name, expected, warns):
     def some_method(self):
         pass
 
-    LogisticRegression = make_step(
-        sklearn.linear_model.LogisticRegression,
-        {"some_method": some_method},
-        class_name,
-    )
+    with warns:
+        LogisticRegression = make_step(
+            sklearn.linear_model.LogisticRegression,
+            {"some_method": some_method},
+            class_name,
+        )
 
     assert issubclass(LogisticRegression, Step)
     assert issubclass(LogisticRegression, sklearn.linear_model.LogisticRegression)
