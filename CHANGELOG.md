@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Fix a bug where `Model.fit` would fail for unhashable steps ([PR #43](https://github.com/alegonz/baikal/pull/43)).
+
+### Changed
+- Deprecate default value of `class_name` argument in `make_step` function ([PR #45](https://github.com/alegonz/baikal/pull/45)).
 
 ## [0.4.1] - 2020-05-17
 ### Fixed
