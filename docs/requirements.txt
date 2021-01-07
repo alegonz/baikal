@@ -14,8 +14,8 @@ docutils==0.16            # via m2r, sphinx
 idna==2.8                 # via requests
 imagesize==1.2.0          # via sphinx
 jinja2==2.11.1            # via sphinx
-lxml==4.5.0               # via sphinx-material
-m2r==0.2.1
+lxml==4.6.2               # via sphinx-material
+m2r==0.2.1                # via -r requirements.in
 markupsafe==1.1.1         # via jinja2
 mistune==0.8.4            # via m2r
 packaging==20.1           # via sphinx
@@ -27,8 +27,8 @@ requests==2.22.0          # via sphinx
 six==1.14.0               # via packaging
 snowballstemmer==2.0.0    # via sphinx
 soupsieve==1.9.5          # via beautifulsoup4
-sphinx-material==0.0.23
-sphinx==2.4.1
+sphinx-material==0.0.23   # via -r requirements.in
+sphinx==2.4.1             # via -r requirements.in, sphinx-material
 sphinxcontrib-applehelp==1.0.1  # via sphinx
 sphinxcontrib-devhelp==1.0.1  # via sphinx
 sphinxcontrib-htmlhelp==1.0.2  # via sphinx
