@@ -96,8 +96,7 @@ workflows:
           name: test-main
           sklearn_version: *sklearn_version_latest
 
-      - test-py39:
-          sklearn_version: *sklearn_version_prev
+      # There are no sklearn 0.23.* wheels for py3.9
       - test-py39:
           sklearn_version: *sklearn_version_latest
 
