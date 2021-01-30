@@ -1,7 +1,7 @@
 version: 2.1
 
-sklearn_version_latest: &sklearn_version_latest 0.23.*
-sklearn_version_prev: &sklearn_version_prev 0.22.*
+sklearn_version_latest: &sklearn_version_latest 0.24.*
+sklearn_version_prev: &sklearn_version_prev 0.23.*
 
 test-defaults: &test-defaults
   parameters:
