@@ -209,9 +209,9 @@ class TestStep:
     @pytest.mark.parametrize(
         "print_changed_only,expected",
         [
-            (None, "_DummyEstimator(x=456, name='DE', n_outputs=1)"),
-            (True, "_DummyEstimator(x=456, name='DE', n_outputs=1)"),
-            (False, "_DummyEstimator(x=456, y='abc', name='DE', n_outputs=1)"),
+            (None, "DummyEstimator(x=456, name='DE', n_outputs=1)"),
+            (True, "DummyEstimator(x=456, name='DE', n_outputs=1)"),
+            (False, "DummyEstimator(x=456, y='abc', name='DE', n_outputs=1)"),
         ],
     )
     def test_repr(self, print_changed_only, expected, teardown):

@@ -4,8 +4,7 @@ from baikal import Step, make_step
 
 
 class DummySISO(Step):
-    """Dummy step that takes a single input and produces a single output.
-    """
+    """Dummy step that takes a single input and produces a single output."""
 
     def __init__(self, name=None):
         super().__init__(name=name)
@@ -15,8 +14,7 @@ class DummySISO(Step):
 
 
 class DummySIMO(Step):
-    """Dummy step that takes a single input and produces multiple outputs.
-    """
+    """Dummy step that takes a single input and produces multiple outputs."""
 
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=2)
@@ -26,8 +24,7 @@ class DummySIMO(Step):
 
 
 class DummyMISO(Step):
-    """Dummy step that takes multiple inputs and produces a single output.
-    """
+    """Dummy step that takes multiple inputs and produces a single output."""
 
     def __init__(self, name=None):
         super().__init__(name=name)
@@ -43,8 +40,7 @@ class DummyMISO(Step):
 
 
 class DummyMIMO(Step):
-    """Dummy step that takes multiple inputs and produces multiple outputs.
-    """
+    """Dummy step that takes multiple inputs and produces multiple outputs."""
 
     def __init__(self, name=None):
         super().__init__(name=name, n_outputs=2)
@@ -58,8 +54,7 @@ class DummyMIMO(Step):
 
 
 class DummyImproperlyDefined(Step):
-    """Dummy step that returns two outputs but defines only one.
-    """
+    """Dummy step that returns two outputs but defines only one."""
 
     def __init__(self, name=None):
         super().__init__(name=name)
@@ -114,4 +109,4 @@ class _DummyEstimator(BaseEstimator):
         return X
 
 
-DummyEstimator = make_step(_DummyEstimator)
+DummyEstimator = make_step(_DummyEstimator, class_name="DummyEstimator")
