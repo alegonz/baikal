@@ -33,13 +33,18 @@ jobs:
     <<: *test-defaults
     docker:
       - image: circleci/python:3.7.3-stretch
-    environment:
-      RUN_TEST_WITH_COVERAGE: 1
 
   test-py38:
     <<: *test-defaults
     docker:
       - image: circleci/python:3.8.0-buster
+    environment:
+      RUN_TEST_WITH_COVERAGE: 1
+
+  test-py39:
+    <<: *test-defaults
+    docker:
+      - image: circleci/python:3.9.0-buster
 
   build-wheel:
     <<: *build-defaults
@@ -83,12 +88,17 @@ workflows:
       - test-py37:
           sklearn_version: *sklearn_version_prev
       - test-py37:
+          sklearn_version: *sklearn_version_latest
+
+      - test-py38:
+          sklearn_version: *sklearn_version_prev
+      - test-py38:
           name: test-main
           sklearn_version: *sklearn_version_latest
 
-      # For py3.8 we only test 0.22.* or above
-      # see: https://github.com/scikit-learn/scikit-learn/issues/15328
-      - test-py38:
+      - test-py39:
+          sklearn_version: *sklearn_version_prev
+      - test-py39:
           sklearn_version: *sklearn_version_latest
 
       - build-wheel:
@@ -119,4 +129,6 @@ workflows:
       - test-py37:
           sklearn_version: "nightly"
       - test-py38:
+          sklearn_version: "nightly"
+      - test-py39:
           sklearn_version: "nightly"
