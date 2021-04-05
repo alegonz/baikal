@@ -69,7 +69,7 @@ jobs:
           sudo -E make upload
 
 workflows:
-  version: 2.1
+  version: 2
   build-deploy:
     jobs:
       # scikit-learn dropped py3.5 support from 0.23
