@@ -54,7 +54,7 @@ upload: dist venv
 	. venv/bin/activate && \
 	pip install --upgrade twine && \
 	twine check dist/* && \
-	twine upload dist/*
+	twine upload dist/*.tar.gz  # temporary hack to deploy missing tar.gz package
 
 .PHONY: docs
 docs:
