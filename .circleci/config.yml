@@ -51,6 +51,7 @@ jobs:
           root: ./dist
           paths:
             - "*.whl"
+            - "*.tar.gz"
       - store_artifacts:
           path: ./dist
 
