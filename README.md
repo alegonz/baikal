@@ -8,7 +8,7 @@
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/alegonz/baikal.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/alegonz/baikal/context:python)
 [![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![latest release](https://img.shields.io/pypi/v/baikal.svg)](https://pypi.org/project/baikal)
-[![conda_release](https://anaconda.org/conda-forge/baikal/badges/version.svg)]
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/baikal/badges/version.svg)](https://anaconda.org/conda-forge/baikal)
 [![license](https://img.shields.io/pypi/l/baikal.svg)](https://github.com/alegonz/baikal/blob/master/LICENSE)
 
 **baikal** is written in pure Python. It supports Python 3.5 and above.
