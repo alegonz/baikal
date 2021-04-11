@@ -13,6 +13,12 @@ If you wish to install the latest development version, you can do so with:
 
     pip install git+https://github.com/alegonz/baikal.git@master#egg=baikal
 
+The package is also available from conda-forge:
+
+.. code-block:: bash
+
+    conda install -c conda-forge baikal
+
 Requirements
 ------------
 
