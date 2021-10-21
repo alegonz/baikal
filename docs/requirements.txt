@@ -6,7 +6,7 @@
 #
 alabaster==0.7.12
     # via sphinx
-babel==2.8.0
+babel==2.9.1
     # via sphinx
 beautifulsoup4==4.8.2
     # via sphinx-material
@@ -52,12 +52,12 @@ snowballstemmer==2.0.0
     # via sphinx
 soupsieve==1.9.5
     # via beautifulsoup4
-sphinx-material==0.0.23
-    # via -r requirements.in
 sphinx==2.4.1
     # via
     #   -r requirements.in
     #   sphinx-material
+sphinx-material==0.0.23
+    # via -r requirements.in
 sphinxcontrib-applehelp==1.0.1
     # via sphinx
 sphinxcontrib-devhelp==1.0.1
