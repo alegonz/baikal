@@ -26,7 +26,7 @@ imagesize==1.2.0
     # via sphinx
 jinja2==2.11.3
     # via sphinx
-lxml==4.6.3
+lxml==4.6.5
     # via sphinx-material
 m2r==0.2.1
     # via -r requirements.in
@@ -52,12 +52,12 @@ snowballstemmer==2.0.0
     # via sphinx
 soupsieve==1.9.5
     # via beautifulsoup4
-sphinx-material==0.0.23
-    # via -r requirements.in
 sphinx==2.4.1
     # via
     #   -r requirements.in
     #   sphinx-material
+sphinx-material==0.0.23
+    # via -r requirements.in
 sphinxcontrib-applehelp==1.0.1
     # via sphinx
 sphinxcontrib-devhelp==1.0.1
