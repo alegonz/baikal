@@ -32,7 +32,7 @@ m2r==0.2.1
     # via -r requirements.in
 markupsafe==1.1.1
     # via jinja2
-mistune==0.8.4
+mistune==2.0.3
     # via m2r
 packaging==20.1
     # via sphinx
@@ -52,12 +52,12 @@ snowballstemmer==2.0.0
     # via sphinx
 soupsieve==1.9.5
     # via beautifulsoup4
-sphinx-material==0.0.23
-    # via -r requirements.in
 sphinx==2.4.1
     # via
     #   -r requirements.in
     #   sphinx-material
+sphinx-material==0.0.23
+    # via -r requirements.in
 sphinxcontrib-applehelp==1.0.1
     # via sphinx
 sphinxcontrib-devhelp==1.0.1
